@@ -20,6 +20,7 @@
 #include "imu/adxl345.h"
 #include "imu/l3g4200d.h"
 #include "imu/hmc5883.h"
+#include "imu/bmp085.h"
 
 #define LED_GPIO_BASE   GPIO_PORTF_BASE
 #define LED_RED         GPIO_PIN_1
@@ -28,7 +29,7 @@
 
 void main(void)
 {
-    unsigned long i, temp;
+    unsigned long i;
     uint8_t len;
     uint8_t recv[15] = "0123456789abcd", addr[6];
     uint8_t buffer[100];
@@ -116,22 +117,26 @@ void main(void)
     nRF24_setPayloadSize(15);
     nRF24_setRF(NRF24DataRate2Mbps, NRF24TransmitPower0dBm);
 
-    temp = 0;
-
     ADXL345_setOffsets(0, 0, 0);
     ADXL345_init();
     L3G4200D_init();
     HMC5883_init();
+    BMP085_init();
 
-    int16_t ax, ay, az, gx, gy, gz, mx, my, mz;
+    int16_t ax, ay, az, gx, gy, gz, mx, my, mz, temp;
+    int32_t pressure;
+
     while (1)
     {
         ADXL345_getAcceleration(&ax, &ay, &az);
         L3G4200D_readGyro(&gx, &gy, &gz);
         HMC5883_readMag(&mx, &my, &mz);
+        temp = BMP085_readTemperature();
+        pressure = BMP085_readPressure();
 //        UARTprintf("aX: %4d, aY: %4d, aZ: %4d | gX: %6d, gY: %6d, gZ: %6d\r\n",
 //                   ax, ay, az, gx, gy, gz);
-        UARTprintf("mX: %6d, mY: %6d, mZ: %6d\r\n", mx, my, mz);
+//        UARTprintf("mX: %6d, mY: %6d, mZ: %6d\r\n", mx, my, mz);
+        UARTprintf("temp: %6d, press: %6d\r\n", temp, pressure);
         nRF24_delay(10000UL);
     }
 
@@ -206,8 +211,6 @@ void main(void)
         UARTprintf("Received: %s\r\n", recv);
 
         //UARTprintf("status 0x%02x\r\n", nRF24_getStatus());
-
-        temp++;
 
         GPIOPinWrite(LED_GPIO_BASE, LED_RED | LED_GREEN | LED_BLUE, LED_GREEN);
 

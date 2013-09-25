@@ -11,6 +11,7 @@
 #include "driverlib/gpio.h"
 
 #include "nrf24.h"
+#include "../utils/utils.h"
 
 //-----------------------------------------------------------------
 
@@ -66,8 +67,7 @@ void nRF24_csn(uint8_t mode)
 
 void nRF24_delay(unsigned long us)
 {
-    sysTickCount = us;
-    while (sysTickCount);
+    delay(us);
 }
 
 //-----------------------------------------------------------------
