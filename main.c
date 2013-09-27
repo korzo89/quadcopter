@@ -27,6 +27,16 @@
 #define LED_GREEN       GPIO_PIN_3
 #define LED_BLUE        GPIO_PIN_2
 
+void UARTPutBuffer(unsigned long base, uint8_t *buf, int len)
+{
+    uint8_t c;
+    while (len--)
+    {
+        c = *buf++;
+        UARTCharPut(base, c);
+    }
+}
+
 void main(void)
 {
     unsigned long i;
@@ -110,7 +120,7 @@ void main(void)
 
     UARTStdioInit(0);
 
-    UARTprintf("*** Quadcopter Test ***\r\n");
+//    UARTprintf("*** Quadcopter Test ***\r\n");
 
     nRF24_init();
     nRF24_setChannel(23);
@@ -136,7 +146,23 @@ void main(void)
 //        UARTprintf("aX: %4d, aY: %4d, aZ: %4d | gX: %6d, gY: %6d, gZ: %6d\r\n",
 //                   ax, ay, az, gx, gy, gz);
 //        UARTprintf("mX: %6d, mY: %6d, mZ: %6d\r\n", mx, my, mz);
-        UARTprintf("temp: %6d, press: %6d\r\n", temp, pressure);
+//        UARTprintf("temp: %6d, press: %6d\r\n", temp, pressure);
+
+        UARTCharPut(UART0_BASE, 0x99);
+        UARTCharPut(UART0_BASE, 25);
+        UARTCharPut(UART0_BASE, 0x01);
+        UARTPutBuffer(UART0_BASE, (uint8_t*) &ax, 2);
+        UARTPutBuffer(UART0_BASE, (uint8_t*) &ay, 2);
+        UARTPutBuffer(UART0_BASE, (uint8_t*) &az, 2);
+        UARTPutBuffer(UART0_BASE, (uint8_t*) &gx, 2);
+        UARTPutBuffer(UART0_BASE, (uint8_t*) &gy, 2);
+        UARTPutBuffer(UART0_BASE, (uint8_t*) &gz, 2);
+        UARTPutBuffer(UART0_BASE, (uint8_t*) &mx, 2);
+        UARTPutBuffer(UART0_BASE, (uint8_t*) &my, 2);
+        UARTPutBuffer(UART0_BASE, (uint8_t*) &mz, 2);
+        UARTPutBuffer(UART0_BASE, (uint8_t*) &pressure, 4);
+        UARTPutBuffer(UART0_BASE, (uint8_t*) &temp, 2);
+
         nRF24_delay(10000UL);
     }
 
