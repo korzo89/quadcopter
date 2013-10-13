@@ -15,9 +15,9 @@ extern volatile unsigned long sysTickCount;
 
 //-----------------------------------------------------------------
 
-void delay(unsigned long us)
+void delay(unsigned long ms)
 {
-    sysTickCount = us;
+    sysTickCount = ms;
     while (sysTickCount);
 }
 

@@ -37,8 +37,8 @@ void nRF24_config();
 void nRF24_ce(uint8_t mode);
 void nRF24_csn(uint8_t mode);
 
-void nRF24_delay(unsigned long us);
-void nRF24_setTimeout(unsigned long us);
+void nRF24_delay(unsigned long ms);
+void nRF24_setTimeout(unsigned long ms);
 bool nRF24_checkTimeout();
 
 uint8_t nRF24_spiTransfer(uint8_t data);

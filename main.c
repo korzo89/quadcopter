@@ -2,6 +2,7 @@
 #include "inc/hw_ssi.h"
 #include "inc/hw_uart.h"
 #include "inc/hw_types.h"
+#include "inc/hw_ints.h"
 #include "driverlib/ssi.h"
 #include "driverlib/i2c.h"
 #include "driverlib/uart.h"
@@ -14,6 +15,8 @@
 #include "utils/uartstdio.h"
 #include "driverlib/rom.h"
 
+#include "comm.h"
+#include "utils/utils.h"
 #include "nrf24/nrf24.h"
 #include "servo/servo.h"
 #include "imu/i2c.h"
@@ -26,6 +29,13 @@
 #define LED_RED         GPIO_PIN_1
 #define LED_GREEN       GPIO_PIN_3
 #define LED_BLUE        GPIO_PIN_2
+
+void Timer2AIntHandler(void)
+{
+    TimerIntClear(TIMER2_BASE, TIMER_TIMA_TIMEOUT);
+
+//    UARTprintf("TIMER\r\n");
+}
 
 void UARTPutBuffer(unsigned long base, uint8_t *buf, int len)
 {
@@ -41,7 +51,7 @@ void main(void)
 {
     unsigned long i;
     uint8_t len;
-    uint8_t recv[15] = "0123456789abcd", addr[6];
+    uint8_t recv[24], addr[6];
     uint8_t buffer[100];
 
     SysCtlClockSet(SYSCTL_SYSDIV_4 | SYSCTL_USE_PLL | SYSCTL_XTAL_16MHZ | SYSCTL_OSC_MAIN);
@@ -52,11 +62,19 @@ void main(void)
     SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOD);
     SysCtlPeripheralEnable(SYSCTL_PERIPH_UART0);
     SysCtlPeripheralEnable(SYSCTL_PERIPH_UART2);
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER2);
 
-    SysTickPeriodSet(SysCtlClockGet() / 1000000UL);
+    SysTickPeriodSet(SysCtlClockGet() / 1000UL);
+
+    TimerConfigure(TIMER2_BASE, TIMER_CFG_32_BIT_PER);
+    TimerLoadSet(TIMER2_BASE, TIMER_A, SysCtlClockGet() / 100);
 
     IntMasterEnable();
     SysTickIntEnable();
+    TimerIntEnable(TIMER2_BASE, TIMER_TIMA_TIMEOUT);
+    IntEnable(INT_TIMER2A);
+
+    TimerEnable(TIMER2_BASE, TIMER_A);
 
     SysTickEnable();
 
@@ -74,8 +92,6 @@ void main(void)
     GPIOPinTypeGPIOOutput(LED_GPIO_BASE, LED_RED | LED_GREEN | LED_BLUE);
     GPIOPinWrite(LED_GPIO_BASE, LED_RED | LED_GREEN | LED_BLUE, 0x00);
 
-    nRF24_config();
-
     servoConfig();
     servoInit();
 
@@ -84,28 +100,31 @@ void main(void)
     servoSetPulse(SERVO2_BASE, SERVO2_TIMER, 1000);
     servoSetPulse(SERVO3_BASE, SERVO3_TIMER, 1000);
 
+    GPIOPinTypeGPIOOutput(GPIO_PORTD_BASE, GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_3);
+    GPIOPinWrite(GPIO_PORTD_BASE, GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_3, 0x00);
+
     GPIOPinWrite(GPIO_PORTD_BASE, GPIO_PIN_1, 0xFF);
-    nRF24_delay(100000UL);
+    delay(100);
     GPIOPinWrite(GPIO_PORTD_BASE, GPIO_PIN_1, 0x00);
     GPIOPinWrite(GPIO_PORTD_BASE, GPIO_PIN_2, 0xFF);
-    nRF24_delay(100000UL);
+    delay(100);
     GPIOPinWrite(GPIO_PORTD_BASE, GPIO_PIN_2, 0x00);
     GPIOPinWrite(GPIO_PORTD_BASE, GPIO_PIN_3, 0xFF);
-    nRF24_delay(100000UL);
+    delay(100);
     GPIOPinWrite(GPIO_PORTD_BASE, GPIO_PIN_3, 0x00);
     GPIOPinWrite(GPIO_PORTD_BASE, GPIO_PIN_2, 0xFF);
-    nRF24_delay(100000UL);
+    delay(100);
     GPIOPinWrite(GPIO_PORTD_BASE, GPIO_PIN_2, 0x00);
     GPIOPinWrite(GPIO_PORTD_BASE, GPIO_PIN_1, 0xFF);
-    nRF24_delay(100000UL);
+    delay(100);
     GPIOPinWrite(GPIO_PORTD_BASE, GPIO_PIN_1, 0x00);
-    nRF24_delay(100000UL);
+    delay(100);
     GPIOPinWrite(GPIO_PORTD_BASE, GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_3, 0xFF);
-    nRF24_delay(100000UL);
+    delay(100);
     GPIOPinWrite(GPIO_PORTD_BASE, GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_3, 0x00);
-    nRF24_delay(100000UL);
+    delay(100);
     GPIOPinWrite(GPIO_PORTD_BASE, GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_3, 0xFF);
-    nRF24_delay(100000UL);
+    delay(100);
     GPIOPinWrite(GPIO_PORTD_BASE, GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_3, 0x00);
 
     // I2C
@@ -122,10 +141,7 @@ void main(void)
 
 //    UARTprintf("*** Quadcopter Test ***\r\n");
 
-    nRF24_init();
-    nRF24_setChannel(23);
-    nRF24_setPayloadSize(15);
-    nRF24_setRF(NRF24DataRate2Mbps, NRF24TransmitPower0dBm);
+    commConfig();
 
     ADXL345_setOffsets(0, 0, 0);
     ADXL345_init();
@@ -163,7 +179,9 @@ void main(void)
         UARTPutBuffer(UART0_BASE, (uint8_t*) &pressure, 4);
         UARTPutBuffer(UART0_BASE, (uint8_t*) &temp, 2);
 
-        nRF24_delay(10000UL);
+//        break;
+
+//        nRF24_delay(10UL);
     }
 
 //    while (1)
@@ -174,6 +192,14 @@ void main(void)
 
     while (1)
     {
+        ADXL345_getAcceleration(&ax, &ay, &az);
+        L3G4200D_readGyro(&gx, &gy, &gz);
+        HMC5883_readMag(&mx, &my, &mz);
+        temp = BMP085_readTemperature();
+        pressure = BMP085_readPressure();
+
+        commPollReceiver();
+        continue;
 //        UARTprintf("Waiting for available data...\r\n");
 
 //        nRF24_waitAvailable();
@@ -228,6 +254,17 @@ void main(void)
 //            continue;
 //        }
         nRF24_receive(recv, &len);
+
+        nRF24_setTxAddress((uint8_t*) "clie1");
+        nRF24_send(recv, 24, false);
+        if (!nRF24_waitPacketSent())
+        {
+            UARTprintf("waitPacketSent failed! %d\r\n",
+                    nRF24_readRegister(NRF24_REG_08_OBSERVE_TX) >> 4);
+            continue;
+        }
+        else
+            UARTprintf("SENT\r\n");
 
         servoSetPulse(SERVO0_BASE, SERVO0_TIMER, (recv[0] << 8) | recv[1]);
         servoSetPulse(SERVO1_BASE, SERVO1_TIMER, (recv[2] << 8) | recv[3]);

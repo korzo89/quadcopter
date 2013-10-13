@@ -41,9 +41,6 @@ void nRF24_config()
     GPIOPinWrite(GPIO_PORTA_BASE, GPIO_PIN_7, GPIO_PIN_7);
     GPIOPinTypeSSI(GPIO_PORTA_BASE, GPIO_PIN_5 | GPIO_PIN_4 | GPIO_PIN_2);
 
-    GPIOPinTypeGPIOOutput(GPIO_PORTD_BASE, GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_3);
-    GPIOPinWrite(GPIO_PORTD_BASE, GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_3, 0x00);
-
     SSIConfigSetExpClk(NRF24_SPI_BASE, SysCtlClockGet(),
                        SSI_FRF_MOTO_MODE_0, SSI_MODE_MASTER, 1000000, 8);
     SSIEnable(NRF24_SPI_BASE);
@@ -65,16 +62,16 @@ void nRF24_csn(uint8_t mode)
 
 //-----------------------------------------------------------------
 
-void nRF24_delay(unsigned long us)
+void nRF24_delay(unsigned long ms)
 {
-    delay(us);
+    delay(ms);
 }
 
 //-----------------------------------------------------------------
 
-void nRF24_setTimeout(unsigned long us)
+void nRF24_setTimeout(unsigned long ms)
 {
-    sysTickCount = us;
+    sysTickCount = ms;
 }
 
 //-----------------------------------------------------------------

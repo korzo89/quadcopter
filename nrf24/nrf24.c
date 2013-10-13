@@ -229,7 +229,7 @@ void nRF24_powerUpRx()
 {
     nRF24_writeRegister(NRF24_REG_00_CONFIG, configuration | NRF24_PWR_UP | NRF24_PRIM_RX);
     nRF24_ce(NRF24_PIN_HIGH);
-    nRF24_delay(130);
+    nRF24_delay(1);
 }
 
 //-----------------------------------------------------------------
@@ -239,7 +239,7 @@ void nRF24_powerUpTx()
     nRF24_ce(NRF24_PIN_LOW);
     nRF24_writeRegister(NRF24_REG_00_CONFIG, configuration | NRF24_PWR_UP);
     nRF24_ce(NRF24_PIN_HIGH);
-    nRF24_delay(130);
+    nRF24_delay(1);
 }
 
 //-----------------------------------------------------------------
@@ -303,10 +303,10 @@ void nRF24_waitAvailable()
 
 //-----------------------------------------------------------------
 
-bool nRF24_waitAvailableTimeout(unsigned long us)
+bool nRF24_waitAvailableTimeout(unsigned long ms)
 {
     nRF24_powerUpRx();
-    nRF24_setTimeout(us);
+    nRF24_setTimeout(ms);
     while (!nRF24_checkTimeout())
     {
         if (nRF24_available())

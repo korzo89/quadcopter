@@ -16,7 +16,8 @@ static uint8_t buffer[6];
 
 void L3G4200D_init()
 {
-    L3G4200D_writeRegister(L3G4200D_CTRL_REG1, 0x0F);
+    L3G4200D_writeRegister(L3G4200D_CTRL_REG4, 0xA0);
+    L3G4200D_writeRegister(L3G4200D_CTRL_REG1, 0x4F);
 }
 
 //-----------------------------------------------------------------
