@@ -35,8 +35,9 @@ void ResetISR(void);
 static void NmiSR(void);
 static void FaultISR(void);
 static void IntDefaultHandler(void);
-static void SysTickISR(void);
+extern void SysTickISR(void);
 extern void Timer2AIntHandler(void);
+extern void Timer3AIntHandler(void);
 
 //*****************************************************************************
 //
@@ -304,12 +305,3 @@ IntDefaultHandler(void)
 }
 
 //*****************************************************************************
-
-volatile unsigned long sysTickCount = 0;
-
-static void
-SysTickISR(void)
-{
-    if (sysTickCount)
-        sysTickCount--;
-}

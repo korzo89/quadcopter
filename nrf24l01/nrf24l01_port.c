@@ -1,7 +1,7 @@
 /*
- * nrf24_port.c
+ * nrf24l01_port.c
  *
- *  Created on: 18-08-2013
+ *  Created on: 30-10-2013
  *      Author: Korzo
  */
 
@@ -9,9 +9,9 @@
 #include "inc/hw_types.h"
 #include "driverlib/ssi.h"
 #include "driverlib/gpio.h"
-
-#include "nrf24.h"
 #include "../utils/utils.h"
+
+#include "nrf24l01.h"
 
 //-----------------------------------------------------------------
 
@@ -21,15 +21,14 @@
 #define NRF24_CSN_PORT_BASE     GPIO_PORTA_BASE
 #define NRF24_CSN_PIN           GPIO_PIN_7
 
+#define NRF24_IRQ_PORT_BASE     GPIO_PORTC_BASE
+#define NRF24_IRQ_PIN           GPIO_PIN_7
+
 #define NRF24_SPI_BASE          SSI0_BASE
 
 //-----------------------------------------------------------------
 
-extern volatile unsigned long sysTickCount;
-
-//-----------------------------------------------------------------
-
-void nRF24_config()
+void nrf24_config(void)
 {
     SysCtlPeripheralEnable(SYSCTL_PERIPH_SSI0);
 
@@ -41,6 +40,8 @@ void nRF24_config()
     GPIOPinWrite(GPIO_PORTA_BASE, GPIO_PIN_7, GPIO_PIN_7);
     GPIOPinTypeSSI(GPIO_PORTA_BASE, GPIO_PIN_5 | GPIO_PIN_4 | GPIO_PIN_2);
 
+    GPIOPinTypeGPIOInput(NRF24_IRQ_PORT_BASE, NRF24_IRQ_PIN);
+
     SSIConfigSetExpClk(NRF24_SPI_BASE, SysCtlClockGet(),
                        SSI_FRF_MOTO_MODE_0, SSI_MODE_MASTER, 1000000, 8);
     SSIEnable(NRF24_SPI_BASE);
@@ -48,48 +49,55 @@ void nRF24_config()
 
 //-----------------------------------------------------------------
 
-void nRF24_ce(uint8_t mode)
-{
-    GPIOPinWrite(NRF24_CE_PORT_BASE, NRF24_CE_PIN, mode);
-}
-
-//-----------------------------------------------------------------
-
-void nRF24_csn(uint8_t mode)
-{
-    GPIOPinWrite(NRF24_CSN_PORT_BASE, NRF24_CSN_PIN, mode);
-}
-
-//-----------------------------------------------------------------
-
-void nRF24_delay(unsigned long ms)
+void nrf24_delay(unsigned int ms)
 {
     delay(ms);
 }
 
 //-----------------------------------------------------------------
 
-void nRF24_setTimeout(unsigned long ms)
+bool nrf24_irqPinActive(void)
 {
-    sysTickCount = ms;
+    return ~GPIOPinRead(NRF24_IRQ_PORT_BASE, NRF24_IRQ_PIN);
 }
 
 //-----------------------------------------------------------------
 
-bool nRF24_checkTimeout()
+void nrf24_clearCE(void)
 {
-    return !sysTickCount;
+    GPIOPinWrite(NRF24_CE_PORT_BASE, NRF24_CE_PIN, 0x00);
 }
 
 //-----------------------------------------------------------------
 
-uint8_t nRF24_spiTransfer(uint8_t data)
+void nrf24_setCE(void)
+{
+    GPIOPinWrite(NRF24_CE_PORT_BASE, NRF24_CE_PIN, 0xFF);
+}
+
+//-----------------------------------------------------------------
+
+void nrf24_clearCSN(void)
+{
+    GPIOPinWrite(NRF24_CSN_PORT_BASE, NRF24_CSN_PIN, 0x00);
+}
+
+//-----------------------------------------------------------------
+
+void nrf24_setCSN(void)
+{
+    GPIOPinWrite(NRF24_CSN_PORT_BASE, NRF24_CSN_PIN, 0xFF);
+}
+
+//-----------------------------------------------------------------
+
+unsigned char nrf24_spiSendByte(unsigned char data)
 {
     unsigned long result;
 
     SSIDataPut(NRF24_SPI_BASE, data);
-    while (SSIBusy(SSI0_BASE));
+    while (SSIBusy(NRF24_SPI_BASE));
     SSIDataGet(NRF24_SPI_BASE, &result);
 
-    return (uint8_t) result;
+    return (unsigned char)result;
 }
