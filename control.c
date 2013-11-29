@@ -18,6 +18,10 @@ PID_t pidPitch;
 PID_t pidRoll;
 PID_t pidYaw;
 
+bool enablePitch = true;
+bool enableRoll = false;
+bool enableYaw = false;
+
 //-----------------------------------------------------------------
 
 void controlInit(void)
@@ -31,15 +35,20 @@ void controlInit(void)
 void controlUpdate(float dt)
 {
     float m1, m2, m3, m4;
+    float op, or, oy;
 
     if (control.throttle > CONTROL_THROTTLE)
     {
         PIDUpdate(&pidPitch, state.pitch, dt);
 
-        m1 = control.throttle - pidPitch.output + pidRoll.output + pidYaw.output;
-        m2 = control.throttle + pidPitch.output + pidRoll.output - pidYaw.output;
-        m3 = control.throttle + pidPitch.output - pidRoll.output + pidYaw.output;
-        m4 = control.throttle - pidPitch.output - pidRoll.output - pidYaw.output;
+        op = enablePitch ? pidPitch.output : 0.0f;
+        or = enableRoll ? pidRoll.output : 0.0f;
+        oy = enableYaw ? pidYaw.output : 0.0f;
+
+        m1 = control.throttle - op + or + oy;
+        m2 = control.throttle + op + or - oy;
+        m3 = control.throttle + op - or + oy;
+        m4 = control.throttle - op - or - oy;
     }
     else
     {
@@ -51,16 +60,18 @@ void controlUpdate(float dt)
 
     if (motorsArmed())
         motorsSetThrottle(m1, m2, m3, m4);
+    else
+        motorsSetThrottle(0.0f, 0.0f, 0.0f, 0.0f);
 }
 
 //-----------------------------------------------------------------
 
 void controlThrottle(float throttle)
 {
-    if (throttle < 0.0)
-        throttle = 0.0;
-    else if (throttle > 1000.0)
-        throttle = 1000.0;
+    if (throttle < 0.0f)
+        throttle = 0.0f;
+    else if (throttle > 1000.0f)
+        throttle = 1000.0f;
 
     control.throttle = throttle;
 }
@@ -76,21 +87,24 @@ void controlAttitude(float pitch, float roll, float yaw)
 
 //-----------------------------------------------------------------
 
-void controlSetPitchPID(float kp, float ki, float kd, float max, float min, float iMax)
+void controlSetPitchPID(bool enable, float kp, float ki, float kd, float max, float min, float iMax)
 {
+    enablePitch = enable;
     PIDConfig(&pidPitch, kp, ki, kd, max, min, iMax);
 }
 
 //-----------------------------------------------------------------
 
-void controlSetRollPID(float kp, float ki, float kd, float max, float min, float iMax)
+void controlSetRollPID(bool enable, float kp, float ki, float kd, float max, float min, float iMax)
 {
+    enableRoll = enable;
     PIDConfig(&pidRoll, kp, ki, kd, max, min, iMax);
 }
 
 //-----------------------------------------------------------------
 
-void controlSetYawPID(float kp, float ki, float kd, float max, float min, float iMax)
+void controlSetYawPID(bool enable, float kp, float ki, float kd, float max, float min, float iMax)
 {
+    enableYaw = enable;
     PIDConfig(&pidYaw, kp, ki, kd, max, min, iMax);
 }

@@ -56,6 +56,7 @@ void commBufferWriteHeader(CommBuffer *buf)
 
 void commBufferReadHeader(CommBuffer *buf)
 {
+    buf->start     = buf->data[MSG_POS_START];
     buf->command   = buf->data[MSG_POS_CMD];
     buf->response  = buf->data[MSG_POS_RESPONSE];
     buf->length    = buf->data[MSG_POS_LENGTH];

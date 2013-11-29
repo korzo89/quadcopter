@@ -32,10 +32,11 @@ typedef struct
     unsigned char data[COMM_BUFFER_SIZE];
     unsigned char *writePtr;
     unsigned char *readPtr;
-    unsigned char command;
-    unsigned char response;
     unsigned int length;
 
+    unsigned char command;
+    unsigned char response;
+    unsigned char start;
 } CommBuffer;
 
 //-----------------------------------------------------------------

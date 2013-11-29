@@ -10,6 +10,10 @@
 
 //-----------------------------------------------------------------
 
+#include <stdbool.h>
+
+//-----------------------------------------------------------------
+
 #define CONTROL_THROTTLE        100.0f
 
 //-----------------------------------------------------------------
@@ -30,9 +34,9 @@ void controlUpdate(float dt);
 void controlThrottle(float throttle);
 void controlAttitude(float pitch, float roll, float yaw);
 
-void controlSetPitchPID(float kp, float ki, float kd, float max, float min, float iMax);
-void controlSetRollPID(float kp, float ki, float kd, float max, float min, float iMax);
-void controlSetYawPID(float kp, float ki, float kd, float max, float min, float iMax);
+void controlSetPitchPID(bool enable, float kp, float ki, float kd, float max, float min, float iMax);
+void controlSetRollPID(bool enable, float kp, float ki, float kd, float max, float min, float iMax);
+void controlSetYawPID(bool enable, float kp, float ki, float kd, float max, float min, float iMax);
 
 //-----------------------------------------------------------------
 
