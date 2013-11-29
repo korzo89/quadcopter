@@ -11,8 +11,6 @@
 //-----------------------------------------------------------------
 
 #include <stdbool.h>
-#include <stdint.h>
-#include "comm_cmd.h"
 
 //-----------------------------------------------------------------
 
@@ -29,19 +27,6 @@ void commPollReceiver(void);
 bool commSendPayload(void);
 
 void commProcessData(void);
-void commProcessControl(void);
-void commProcessArm(void);
-void commProcessDisarm(void);
-void commSetPIDPitch(void);
-void commSetPIDRoll(void);
-void commSetPIDYaw(void);
-
-void commResponseOK(void);
-void commResponseRawIMU(void);
-void commResponseAngles(void);
-void commResponsePID(void);
-
-void commExtractPID(bool *en, float *kp, float *ki, float *kd, float *mo, float *mi);
 
 //-----------------------------------------------------------------
 

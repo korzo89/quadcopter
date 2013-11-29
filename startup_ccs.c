@@ -37,7 +37,6 @@ static void FaultISR(void);
 static void IntDefaultHandler(void);
 extern void SysTickISR(void);
 extern void Timer2AIntHandler(void);
-extern void Timer3AIntHandler(void);
 
 //*****************************************************************************
 //

@@ -14,7 +14,7 @@
 
 #include "pid.h"
 #include "imu/imu.h"
-#include "comm.h"
+#include "motors.h"
 #include "led.h"
 
 //-----------------------------------------------------------------
@@ -67,7 +67,7 @@ void Timer2AIntHandler(void)
 
     lostCount++;
     if (lostCount == 300)
-        commProcessDisarm();
+        motorsDisarm();
 
     IMUPollSensors();
     IMUUpdate();

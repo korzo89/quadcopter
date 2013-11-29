@@ -10,6 +10,10 @@
 
 //-----------------------------------------------------------------
 
+#include "comm_cmd.h"
+
+//-----------------------------------------------------------------
+
 #define COMM_BUFFER_SIZE        32
 
 #define MSG_POS_START           0
@@ -34,8 +38,8 @@ typedef struct
     unsigned char *readPtr;
     unsigned int length;
 
-    unsigned char command;
-    unsigned char response;
+    QuadCommand command;
+    QuadCommand response;
     unsigned char start;
 } CommBuffer;
 
@@ -51,7 +55,7 @@ void commBufferResetRead(CommBuffer *buf);
 
 void commBufferWriteHeader(CommBuffer *buf);
 void commBufferReadHeader(CommBuffer *buf);
-void commBufferCreateHeader(CommBuffer *buf, unsigned char cmd, unsigned char resp);
+void commBufferCreateHeader(CommBuffer *buf, QuadCommand cmd, QuadCommand resp);
 
 //-----------------------------------------------------------------
 

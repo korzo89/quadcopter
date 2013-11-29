@@ -47,8 +47,8 @@ void commBufferResetRead(CommBuffer *buf)
 void commBufferWriteHeader(CommBuffer *buf)
 {
     buf->data[MSG_POS_START]    = MSG_START;
-    buf->data[MSG_POS_CMD]      = buf->command;
-    buf->data[MSG_POS_RESPONSE] = buf->response;
+    buf->data[MSG_POS_CMD]      = (unsigned char) buf->command;
+    buf->data[MSG_POS_RESPONSE] = (unsigned char) buf->response;
     buf->data[MSG_POS_LENGTH]   = buf->length;
 }
 
@@ -57,14 +57,14 @@ void commBufferWriteHeader(CommBuffer *buf)
 void commBufferReadHeader(CommBuffer *buf)
 {
     buf->start     = buf->data[MSG_POS_START];
-    buf->command   = buf->data[MSG_POS_CMD];
-    buf->response  = buf->data[MSG_POS_RESPONSE];
+    buf->command   = (QuadCommand) buf->data[MSG_POS_CMD];
+    buf->response  = (QuadCommand) buf->data[MSG_POS_RESPONSE];
     buf->length    = buf->data[MSG_POS_LENGTH];
 }
 
 //-----------------------------------------------------------------
 
-void commBufferCreateHeader(CommBuffer *buf, unsigned char cmd, unsigned char resp)
+void commBufferCreateHeader(CommBuffer *buf, QuadCommand cmd, QuadCommand resp)
 {
     buf->command = cmd;
     buf->response = resp;
