@@ -6,7 +6,7 @@
  */
 
 #include "led.h"
-#include "utils/utils.h"
+#include <utils/delay.h>
 
 #include "driverlib/sysctl.h"
 

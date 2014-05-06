@@ -9,7 +9,7 @@
 #include "inc/hw_types.h"
 #include "driverlib/ssi.h"
 #include "driverlib/gpio.h"
-#include "../utils/utils.h"
+#include "../utils/delay.h"
 
 #include "nrf24l01.h"
 

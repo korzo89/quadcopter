@@ -1,14 +1,7 @@
-/*
- * oled.c
- *
- *  Created on: 24-04-2014
- *      Author: Korzo
- */
-
 #include "oled.h"
 #include "oled_font.h"
-#include <i2c.h>
-#include <utils/utils.h>
+#include <drivers/common_i2c.h>
+#include <utils/delay.h>
 
 #include <inc/hw_types.h>
 #include <inc/hw_memmap.h>
@@ -18,21 +11,11 @@
 
 //-----------------------------------------------------------------
 
-#define OLED_I2C_BASE   I2C2_MASTER_BASE
 #define OLED_ADDRESS    0x3C
 
 //-----------------------------------------------------------------
 
-void oledConfig(void)
-{
-    // I2C config
-    GPIOPinConfigure(GPIO_PE4_I2C2SCL);
-    GPIOPinConfigure(GPIO_PE5_I2C2SDA);
-    GPIOPinTypeI2CSCL(GPIO_PORTE_BASE, GPIO_PIN_4);
-    GPIOPinTypeI2C(GPIO_PORTE_BASE, GPIO_PIN_5);
-
-    I2CMasterInitExpClk(OLED_I2C_BASE, SysCtlClockGet(), true);
-}
+static uint8_t currRow = 0, currCol = 0;
 
 //-----------------------------------------------------------------
 
@@ -73,9 +56,12 @@ void oledClear(void)
 
 void oledSetPos(uint8_t row, uint8_t col)
 {
-    oledSendCmd(0xB0 + row);
-    oledSendCmd(0x00 + (8 * col & 0x0F));
-    oledSendCmd(0x10 + ((8 * col >> 4) & 0x0F));
+    currRow = row % OLED_ROWS;
+    currCol = col % OLED_COLS;
+
+    oledSendCmd(0xB0 + currRow);
+    oledSendCmd(0x00 + (8 * currCol & 0x0F));
+    oledSendCmd(0x10 + ((8 * currCol >> 4) & 0x0F));
 }
 
 //-----------------------------------------------------------------
@@ -99,6 +85,12 @@ void oledDispStrAt(char *str, uint8_t row, uint8_t col)
 
 void oledDispChar(char c)
 {
+    if (c == '\n')
+    {
+        oledSetPos(currRow + 1, 0);
+        return;
+    }
+
     int i;
     for (i = 0; i < 8; ++i)
         oledSendData(OLED_FONT[c - 0x20][i]);
@@ -108,13 +100,20 @@ void oledDispChar(char c)
 
 bool oledSendData(uint8_t data)
 {
-    return I2CWriteRegister(OLED_I2C_BASE, OLED_ADDRESS, 0x40, data) == I2C_MASTER_ERR_NONE;
+    if (comI2CWriteRegister(OLED_ADDRESS, 0x40, data) == I2C_MASTER_ERR_NONE)
+    {
+        currCol++;
+        if (currCol == OLED_COLS)
+            oledSetPos(currRow + 1, 0);
+        return true;
+    }
+    return false;
 }
 
 //-----------------------------------------------------------------
 
 bool oledSendCmd(uint8_t cmd)
 {
-    return I2CWriteRegister(OLED_I2C_BASE, OLED_ADDRESS, 0x80, cmd) == I2C_MASTER_ERR_NONE;
+    return comI2CWriteRegister(OLED_ADDRESS, 0x80, cmd) == I2C_MASTER_ERR_NONE;
 }
 

@@ -1,10 +1,3 @@
-/*
- * oled.h
- *
- *  Created on: 24-04-2014
- *      Author: Korzo
- */
-
 #ifndef OLED_H_
 #define OLED_H_
 
@@ -15,7 +8,11 @@
 
 //-----------------------------------------------------------------
 
-void oledConfig(void);
+#define OLED_COLS       128
+#define OLED_ROWS       ( 64 / 8 )
+
+//-----------------------------------------------------------------
+
 bool oledInit(void);
 
 void oledClear(void);

@@ -21,6 +21,7 @@ unsigned long I2CWriteRegisterBurst(unsigned long base, uint8_t addr, uint8_t re
 uint8_t I2CReadRegister(unsigned long base, uint8_t addr, uint8_t reg, unsigned long *res);
 unsigned long I2CReadRegisterBurst(unsigned long base, uint8_t addr, uint8_t reg, uint8_t *buf, int len);
 
+unsigned long I2CDataPut(unsigned long base, uint8_t data, unsigned long control);
 
 //-----------------------------------------------------------------
 

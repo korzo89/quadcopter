@@ -17,7 +17,7 @@
 #include "imu/imu.h"
 #include "motors.h"
 #include "led.h"
-#include "oled.h"
+#include "drivers/oled.h"
 
 #include <utils/ustdlib.h>
 
