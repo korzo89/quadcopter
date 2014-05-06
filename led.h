@@ -17,14 +17,14 @@
 
 //-----------------------------------------------------------------
 
-#define LED_GPIO        GPIO_PORTD_BASE
-#define LED0_PIN        GPIO_PIN_1
+#define LED_GPIO        GPIO_PORTE_BASE
+#define LED0_PIN        GPIO_PIN_3
 #define LED1_PIN        GPIO_PIN_2
-#define LED2_PIN        GPIO_PIN_3
+#define LED2_PIN        GPIO_PIN_1
 
-#define LED_RED         LED0_PIN
+#define LED_RED         LED2_PIN
 #define LED_YELLOW      LED1_PIN
-#define LED_GREEN       LED2_PIN
+#define LED_GREEN       LED0_PIN
 
 #define LEDS_OFF        0x00
 

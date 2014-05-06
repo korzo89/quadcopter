@@ -18,7 +18,7 @@ PID_t pidPitch;
 PID_t pidRoll;
 PID_t pidYaw;
 
-bool enablePitch = true;
+bool enablePitch = false;
 bool enableRoll = false;
 bool enableYaw = false;
 

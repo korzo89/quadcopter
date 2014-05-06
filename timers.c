@@ -11,11 +11,15 @@
 #include "driverlib/timer.h"
 #include "driverlib/interrupt.h"
 #include "driverlib/sysctl.h"
+#include "utils/uartstdio.h"
 
 #include "pid.h"
 #include "imu/imu.h"
 #include "motors.h"
 #include "led.h"
+#include "oled.h"
+
+#include <utils/ustdlib.h>
 
 //-----------------------------------------------------------------
 
@@ -54,6 +58,7 @@ void Timer2AIntHandler(void)
 {
     float pitch, roll, yaw;
     static int count = 0;
+    static char buf[30];
 
     if (!TimerIntStatus(TIMER2_BASE, TIMER_TIMA_TIMEOUT))
         return;
@@ -61,7 +66,7 @@ void Timer2AIntHandler(void)
     TimerIntClear(TIMER2_BASE, TIMER_TIMA_TIMEOUT);
 
     count++;
-    LEDToggle(LED_YELLOW, count < 25);
+    LEDToggle(LED_YELLOW, GPIOPinRead(GPIO_PORTD_BASE, GPIO_PIN_0) && count < 25);
     if (count == 50)
         count = 0;
 
@@ -73,5 +78,22 @@ void Timer2AIntHandler(void)
     IMUUpdate();
 
     IMUGetEulerAngles(&pitch, &roll, &yaw);
+//    UARTprintf("%d %d %d\r\n", (int)pitch, (int)roll, (int)yaw);
+
     PIDUpdate(&pitchPID, pitch, 0.01f);
+
+    if (count == 49)
+    {
+        usprintf(buf, "Pitch: %4d", (int)pitch);
+        oledDispStrAt(buf, 1, 0);
+        usprintf(buf, "Roll:  %4d", (int)roll);
+        oledDispStrAt(buf, 2, 0);
+        usprintf(buf, "Yaw:   %4d", (int)yaw);
+        oledDispStrAt(buf, 3, 0);
+
+        if (motorsArmed())
+            oledDispStrAt(" *** ARMED! *** ", 7, 0);
+        else
+            oledDispStrAt("                ", 7, 0);
+    }
 }

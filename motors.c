@@ -21,6 +21,30 @@
 
 #define THROTTLE_TO_PULSE(x)    (1000 + (uint16_t) min(max(0, (x)), THROTTLE_MAX))
 
+#define MOTOR1_BASE     TIMER0_BASE
+#define MOTOR1_TIMER    TIMER_A
+#define MOTOR1_PORT     GPIO_PORTB_BASE
+#define MOTOR1_PIN      GPIO_PIN_6
+#define MOTOR1_CFG      GPIO_PB6_T0CCP0
+
+#define MOTOR2_BASE     TIMER0_BASE
+#define MOTOR2_TIMER    TIMER_B
+#define MOTOR2_PORT     GPIO_PORTB_BASE
+#define MOTOR2_PIN      GPIO_PIN_7
+#define MOTOR2_CFG      GPIO_PB7_T0CCP1
+
+#define MOTOR3_BASE     TIMER1_BASE
+#define MOTOR3_TIMER    TIMER_A
+#define MOTOR3_PORT     GPIO_PORTB_BASE
+#define MOTOR3_PIN      GPIO_PIN_4
+#define MOTOR3_CFG      GPIO_PB4_T1CCP0
+
+#define MOTOR4_BASE     TIMER1_BASE
+#define MOTOR4_TIMER    TIMER_B
+#define MOTOR4_PORT     GPIO_PORTB_BASE
+#define MOTOR4_PIN      GPIO_PIN_5
+#define MOTOR4_CFG      GPIO_PB5_T1CCP1
+
 //-----------------------------------------------------------------
 
 static uint32_t cycle20ms;
