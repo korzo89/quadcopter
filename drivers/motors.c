@@ -1,18 +1,23 @@
 /*
- * servo.c
+ * motors.c
  *
  *  Created on: 31-08-2013
  *      Author: Korzo
  */
 
 #include "motors.h"
-#include "led.h"
 
+#include <drivers/led.h>
+
+#include <inc/hw_types.h>
+#include <inc/hw_memmap.h>
+#include <driverlib/pin_map.h>
+#include <driverlib/gpio.h>
+#include <driverlib/timer.h>
+#include <driverlib/sysctl.h>
+#include <driverlib/gpio.h>
 #include <stdbool.h>
 #include <math.h>
-
-#include "driverlib/sysctl.h"
-#include "driverlib/gpio.h"
 
 //-----------------------------------------------------------------
 
@@ -110,8 +115,8 @@ void motorsArm(void)
 {
     armed = true;
 
-    LEDTurnOff(LED_GREEN);
-    LEDTurnOn(LED_RED);
+    ledTurnOff(LED_GREEN);
+    ledTurnOn(LED_RED);
 }
 
 //-----------------------------------------------------------------
@@ -121,8 +126,8 @@ void motorsDisarm(void)
     armed = false;
     motorsSetThrottle(0.0f, 0.0f, 0.0f, 0.0f);
 
-    LEDTurnOn(LED_GREEN);
-    LEDTurnOff(LED_RED);
+    ledTurnOn(LED_GREEN);
+    ledTurnOff(LED_RED);
 }
 
 //-----------------------------------------------------------------

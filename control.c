@@ -6,8 +6,8 @@
  */
 
 #include "control.h"
-#include "pid.h"
-#include "motors.h"
+#include <modules/pid.h>
+#include <drivers/motors.h>
 
 //-----------------------------------------------------------------
 

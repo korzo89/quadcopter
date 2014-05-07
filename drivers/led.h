@@ -11,9 +11,9 @@
 //-----------------------------------------------------------------
 
 #include <stdbool.h>
-#include "inc/hw_types.h"
-#include "inc/hw_memmap.h"
-#include "driverlib/gpio.h"
+#include <inc/hw_types.h>
+#include <inc/hw_memmap.h>
+#include <driverlib/gpio.h>
 
 //-----------------------------------------------------------------
 
@@ -30,12 +30,12 @@
 
 //-----------------------------------------------------------------
 
-void LEDConfig();
+void ledConfig();
 
-void LEDTurnOn(unsigned char leds);
-void LEDTurnOff(unsigned char leds);
-void LEDToggle(unsigned char leds, bool on);
-void LEDSet(unsigned char leds);
+void ledTurnOn(unsigned char leds);
+void ledTurnOff(unsigned char leds);
+void ledToggle(unsigned char leds, bool on);
+void ledSet(unsigned char leds);
 
 //-----------------------------------------------------------------
 

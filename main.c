@@ -14,11 +14,7 @@
 #include "driverlib/rom.h"
 
 #include "comm.h"
-#include "motors.h"
-#include "led.h"
-#include "imu/imu.h"
 #include "timers.h"
-#include "buzzer_notes.h"
 
 #include <FreeRTOS.h>
 #include <portmacro.h>
@@ -31,6 +27,11 @@
 #include <drivers/common_i2c.h>
 #include <drivers/oled.h>
 #include <drivers/eeprom.h>
+#include <drivers/buzzer.h>
+#include <drivers/led.h>
+#include <drivers/motors.h>
+#include <drivers/ultrasonic.h>
+#include <hal/imu.h>
 
 //-----------------------------------------------------------------
 
@@ -42,38 +43,6 @@ static xSemaphoreHandle initMutex;
 
 static int ledCounter = 0;
 static int buttonCounter = 0;
-
-const unsigned int notes[16] = {
-        0, NOTE_C4, NOTE_G4, NOTE_A4, NOTE_G4, NOTE_F4, NOTE_E4, NOTE_D4, NOTE_C4,
-        NOTE_C5, NOTE_G5, NOTE_A5, NOTE_G5, NOTE_F5, NOTE_E5, NOTE_D5
-};
-
-static void buzzerSetFrequency(unsigned int freq)
-{
-    uint32_t cycle = SysCtlClockGet() / freq;
-    uint32_t period = cycle;
-//    uint8_t ext = period >> 16;
-//    period &= 0xFFFF;
-
-    TimerConfigure(WTIMER1_BASE, TIMER_CFG_SPLIT_PAIR | TIMER_CFG_A_PWM);
-    TimerControlLevel(WTIMER1_BASE, TIMER_A, false);
-    //TimerPrescaleSet(WTIMER1_BASE, TIMER_A, ext);
-    TimerPrescaleSet(WTIMER1_BASE, TIMER_A, 0);
-    TimerLoadSet(WTIMER1_BASE, TIMER_A, period);
-
-    period = cycle * 4 / 5;
-//    ext = period >> 16;
-//    period &= 0xFFFF;
-
-    TimerMatchSet(WTIMER1_BASE, TIMER_A, period);
-    TimerPrescaleMatchSet(WTIMER1_BASE, TIMER_A, 0);
-    //TimerPrescaleMatchSet(WTIMER1_BASE, TIMER_A, ext);
-
-    if (freq != 0)
-        TimerEnable(WTIMER1_BASE, TIMER_A);
-    else
-        TimerDisable(WTIMER1_BASE, TIMER_A);
-}
 
 static void initWait(void)
 {
@@ -100,16 +69,18 @@ static void initTask(void *params)
         return;
     }
 
-    LEDSet(LED_GREEN);
-    buzzerSetFrequency(NOTE_C4);
+    char buf[17];
+
+    ledSet(LED_GREEN);
+    buzzerSetFreq(NOTE_C5);
     vTaskDelay(MSEC_TO_TICKS(100));
-    LEDSet(LED_GREEN | LED_YELLOW);
-    buzzerSetFrequency(NOTE_D4);
+    ledSet(LED_GREEN | LED_YELLOW);
+    buzzerSetFreq(NOTE_D5);
     vTaskDelay(MSEC_TO_TICKS(100));
-    LEDSet(LED_GREEN | LED_YELLOW | LED_RED);
-    buzzerSetFrequency(NOTE_E4);
+    ledSet(LED_GREEN | LED_YELLOW | LED_RED);
+    buzzerSetFreq(NOTE_E5);
     vTaskDelay(MSEC_TO_TICKS(100));
-    buzzerSetFrequency(0);
+    buzzerSetFreq(0);
 
     oledClear();
     oledDispStr("EEPROM read\n");
@@ -117,7 +88,6 @@ static void initTask(void *params)
     uint8_t eep[4] = { 0 };
     eepromRead(0x0000, eep, 4);
 
-    char buf[17];
     usprintf(buf, "%02x %02x %02x %02x", eep[0], eep[1], eep[2], eep[3]);
     oledDispStr(buf);
 
@@ -136,11 +106,11 @@ static void ledTask(void *params)
 
     while (1)
     {
-        LEDSet(LED_RED);
+        ledSet(LED_RED);
         vTaskDelay(MSEC_TO_TICKS(150));
-        LEDSet(LED_YELLOW);
+        ledSet(LED_YELLOW);
         vTaskDelay(MSEC_TO_TICKS(150));
-        LEDSet(LED_GREEN);
+        ledSet(LED_GREEN);
         vTaskDelay(MSEC_TO_TICKS(150));
 
         xSemaphoreTake(mutex, portMAX_DELAY);
@@ -161,7 +131,7 @@ static void oledTask(void *params)
     vTaskDelay(MSEC_TO_TICKS(1000));
 
     uint8_t i, state;
-//    unsigned int freq;
+    float dist;
 
     while (1)
     {
@@ -173,33 +143,22 @@ static void oledTask(void *params)
                 break;
             case 1:
                 ++buttonCounter;
-
-//                freq = notes[buttonCounter % 16];
-//                if (freq == 0)
-//                {
-//                    TimerDisable(WTIMER1_BASE, TIMER_A);
-//                }
-//                else
-//                {
-//                    buzzerSetFrequency(freq);
-//                    TimerEnable(WTIMER1_BASE, TIMER_A);
-//                }
                 break;
             case 2:
                 screen = (screen + 1) % 3;
 
                 oledClear();
 
-                buzzerSetFrequency(NOTE_C5);
+                buzzerSetFreq(NOTE_C5);
                 vTaskDelay(MSEC_TO_TICKS(10));
-                buzzerSetFrequency(0);
+                buzzerSetFreq(0);
                 break;
             default:
                 break;
             }
         }
 
-        usprintf(buf, "      %d/3       ", screen + 1);
+        usprintf(buf, "      %d/4       ", screen + 1);
         oledDispStrAt(buf, 0, 0);
 
         switch (screen)
@@ -233,9 +192,15 @@ static void oledTask(void *params)
             break;
 
         case 2:
+            dist = ultrasonicGetDistance();
+            usprintf(buf, "Dist: %7d mm", (int)(dist * 10));
+            oledDispStrAt(buf, 2, 0);
+
+            break;
+
+        case 3:
             oledSetPos(2, 0);
-            while (UARTCharsAvail(UART2_BASE))
-                oledDispChar((char)UARTCharGetNonBlocking(UART2_BASE));
+
             break;
 
         default:
@@ -311,20 +276,16 @@ void main(void)
                         UART_CONFIG_WLEN_8 | UART_CONFIG_STOP_ONE |
                         UART_CONFIG_PAR_NONE);
 
-    // buzzer timer config
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_WTIMER1);
-
-    GPIOPinConfigure(GPIO_PC6_WT1CCP0);
-    GPIOPinTypeTimer(GPIO_PORTC_BASE, GPIO_PIN_6);
-
-    buzzerSetFrequency(0);
-
 //    GPIOPinTypeGPIOInput(GPIO_PORTD_BASE, GPIO_PIN_0);
     GPIODirModeSet(GPIO_PORTD_BASE, GPIO_PIN_0, GPIO_DIR_MODE_IN);
     GPIOPadConfigSet(GPIO_PORTD_BASE, GPIO_PIN_0, GPIO_STRENGTH_2MA, GPIO_PIN_TYPE_STD_WPU);
 
-    LEDConfig();
-    LEDSet(LED_GREEN);
+    ultrasonicConfig();
+
+    buzzerConfig();
+
+    ledConfig();
+    ledSet(LED_GREEN);
 
     motorsConfig();
     motorsInit();

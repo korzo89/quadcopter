@@ -1,9 +1,9 @@
 #include "comm_cmd.h"
 #include "comm_buffer.h"
-#include "imu/imu.h"
-#include "pid.h"
+#include <hal/imu.h>
+#include <modules/pid.h>
 #include "control.h"
-#include "motors.h"
+#include <drivers/motors.h>
 
 #include <stdint.h>
 
@@ -183,7 +183,7 @@ void respAngles(void)
 {
     float pitch, roll, yaw;
 
-    IMUGetEulerAngles(&pitch, &roll, &yaw);
+    imuGetEulerAngles(&pitch, &roll, &yaw);
 
     commBufferResetWrite(&buffer);
     COMM_BUFFER_WRITE_T(&buffer, &pitch, float);

@@ -1,5 +1,5 @@
 /*
- * servo.h
+ * motors.h
  *
  *  Created on: 31-08-2013
  *      Author: Korzo
@@ -12,12 +12,6 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-
-#include "inc/hw_types.h"
-#include "inc/hw_memmap.h"
-#include "driverlib/pin_map.h"
-#include "driverlib/gpio.h"
-#include "driverlib/timer.h"
 
 //-----------------------------------------------------------------
 

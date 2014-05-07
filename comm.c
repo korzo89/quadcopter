@@ -9,10 +9,10 @@
 #include "comm_buffer.h"
 #include "comm_cmd.h"
 #include "nrf24l01/nrf24l01.h"
-#include "led.h"
-#include "motors.h"
+#include <drivers/led.h>
+#include <drivers/motors.h>
 
-#include "driverlib/timer.h"
+#include <driverlib/timer.h>
 
 //-----------------------------------------------------------------
 
@@ -84,9 +84,9 @@ void commProcessData(void)
 
     commHandleMessage();
 
-    LEDTurnOn(LED_RED);
+    ledTurnOn(LED_RED);
     commSendPayload();
-    LEDTurnOff(LED_RED);
+    ledTurnOff(LED_RED);
 
     lostCount = 0;
 }

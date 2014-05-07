@@ -6,21 +6,21 @@
  */
 
 #include "imu.h"
+
 #include <stdint.h>
 #include <math.h>
-#include "inc/hw_types.h"
-#include "inc/hw_memmap.h"
-#include "inc/hw_ints.h"
-#include "driverlib/pin_map.h"
-#include "driverlib/gpio.h"
-#include "driverlib/i2c.h"
-#include "driverlib/timer.h"
-#include "driverlib/interrupt.h"
-#include "adxl345.h"
-#include "l3g4200d.h"
-#include "hmc5883.h"
-#include "bmp085.h"
-#include "../pid.h"
+#include <inc/hw_types.h>
+#include <inc/hw_memmap.h>
+#include <inc/hw_ints.h>
+#include <driverlib/pin_map.h>
+#include <driverlib/gpio.h>
+#include <driverlib/i2c.h>
+#include <driverlib/timer.h>
+#include <driverlib/interrupt.h>
+#include <drivers/adxl345.h>
+#include <drivers/l3g4200d.h>
+#include <drivers/hmc5883.h>
+#include <drivers/bmp085.h>
 
 //-----------------------------------------------------------------
 
@@ -51,11 +51,9 @@ const float magOff[] = { -506.7, 472.552, 282.965 };
 
 volatile float pitch, roll, yaw;
 
-PID_t pitchPID;
-
 //-----------------------------------------------------------------
 
-void IMUConfig(void)
+void imuConfig(void)
 {
     // I2C config
     GPIOPinConfigure(GPIO_PB2_I2C0SCL);
@@ -71,19 +69,11 @@ void IMUConfig(void)
     L3G4200D_init();
     HMC5883_init();
     BMP085_init();
-
-    pitchPID.kp = 1.0f;
-    pitchPID.ki = 0.0f;
-    pitchPID.kd = 0.0f;
-    pitchPID.maxOut = 500.0f;
-    pitchPID.minOut = -500.0f;
-    pitchPID.maxInt = 500.0f;
-    pitchPID.setPoint = 0.0f;
 }
 
 //-----------------------------------------------------------------
 
-void IMUInit(float beta, float freq)
+void imuInit(float beta, float freq)
 {
     q0 = 1.0f;
     q1 = 0.0f;
@@ -92,13 +82,11 @@ void IMUInit(float beta, float freq)
 
     filterBeta = beta;
     sampleFreq = freq;
-
-    PIDReset(&pitchPID);
 }
 
 //-----------------------------------------------------------------
 
-void IMUPollSensors(void)
+void imuPollSensors(void)
 {
     ADXL345_getAcceleration(&accX, &accY, &accZ);
     L3G4200D_readGyro(&gyroX, &gyroY, &gyroZ);
@@ -109,7 +97,7 @@ void IMUPollSensors(void)
 
 //-----------------------------------------------------------------
 
-void IMUUpdate(void)
+void imuUpdate(void)
 {
     float ax, ay, az, gx, gy, gz, mx, my, mz, cx, cy, cz;
 
@@ -132,12 +120,12 @@ void IMUUpdate(void)
     my = cy / 1000.0;
     mz = cz / 1000.0;
 
-    IMUEstimate(gx, gy, gz, ax, ay, az, mx, my, mz);
+    imuEstimate(gx, gy, gz, ax, ay, az, mx, my, mz);
 }
 
 //-----------------------------------------------------------------
 
-void IMUEstimate(float gx, float gy, float gz, float ax, float ay, float az, float mx, float my, float mz)
+void imuEstimate(float gx, float gy, float gz, float ax, float ay, float az, float mx, float my, float mz)
 {
     float recipNorm;
     float s0, s1, s2, s3;
@@ -145,10 +133,10 @@ void IMUEstimate(float gx, float gy, float gz, float ax, float ay, float az, flo
     float hx, hy;
     float _2q0mx, _2q0my, _2q0mz, _2q1mx, _2bx, _2bz, _4bx, _4bz, _2q0, _2q1, _2q2, _2q3, _2q0q2, _2q2q3, q0q0, q0q1, q0q2, q0q3, q1q1, q1q2, q1q3, q2q2, q2q3, q3q3;
 
-    // Use IMU algorithm if magnetometer measurement invalid (avoids NaN in magnetometer normalisation)
+    // Use imu algorithm if magnetometer measurement invalid (avoids NaN in magnetometer normalisation)
     if ((mx == 0.0f) && (my == 0.0f) && (mz == 0.0f))
     {
-        IMUEstimateNoMag(gx, gy, gz, ax, ay, az);
+        imuEstimateNoMag(gx, gy, gz, ax, ay, az);
         return;
     }
 
@@ -238,7 +226,7 @@ void IMUEstimate(float gx, float gy, float gz, float ax, float ay, float az, flo
 
 //-----------------------------------------------------------------
 
-void IMUEstimateNoMag(float gx, float gy, float gz, float ax, float ay, float az)
+void imuEstimateNoMag(float gx, float gy, float gz, float ax, float ay, float az)
 {
     float recipNorm;
     float s0, s1, s2, s3;
@@ -309,7 +297,7 @@ void IMUEstimateNoMag(float gx, float gy, float gz, float ax, float ay, float az
 
 //-----------------------------------------------------------------
 
-void IMUGetEulerAngles(float *pitch, float *roll, float *yaw)
+void imuGetEulerAngles(float *pitch, float *roll, float *yaw)
 {
     float m11 = 2.0f * q0 * q0 - 1.0f + 2.0f * q1 * q1;
     float m21 = 2.0f * (q1 * q2 - q0 * q3);

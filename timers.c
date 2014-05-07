@@ -13,11 +13,11 @@
 #include "driverlib/sysctl.h"
 #include "utils/uartstdio.h"
 
-#include "pid.h"
-#include "imu/imu.h"
-#include "motors.h"
-#include "led.h"
-#include "drivers/oled.h"
+#include <modules/pid.h>
+#include <hal/imu.h>
+#include <drivers/motors.h>
+#include <drivers/led.h>
+#include <drivers/oled.h>
 
 #include <utils/ustdlib.h>
 
@@ -28,8 +28,6 @@ volatile unsigned long sysTickCount = 0;
 //-----------------------------------------------------------------
 
 extern volatile int lostCount;
-
-extern PID_t pitchPID;
 
 //-----------------------------------------------------------------
 
@@ -66,7 +64,7 @@ void Timer2AIntHandler(void)
     TimerIntClear(TIMER2_BASE, TIMER_TIMA_TIMEOUT);
 
     count++;
-    LEDToggle(LED_YELLOW, GPIOPinRead(GPIO_PORTD_BASE, GPIO_PIN_0) && count < 25);
+    ledToggle(LED_YELLOW, GPIOPinRead(GPIO_PORTD_BASE, GPIO_PIN_0) && count < 25);
     if (count == 50)
         count = 0;
 
@@ -74,13 +72,11 @@ void Timer2AIntHandler(void)
     if (lostCount == 300)
         motorsDisarm();
 
-    IMUPollSensors();
-    IMUUpdate();
+    imuPollSensors();
+    imuUpdate();
 
-    IMUGetEulerAngles(&pitch, &roll, &yaw);
+    imuGetEulerAngles(&pitch, &roll, &yaw);
 //    UARTprintf("%d %d %d\r\n", (int)pitch, (int)roll, (int)yaw);
-
-    PIDUpdate(&pitchPID, pitch, 0.01f);
 
     if (count == 49)
     {

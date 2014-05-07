@@ -6,9 +6,9 @@
  */
 
 #include "led.h"
-#include <utils/delay.h>
 
-#include "driverlib/sysctl.h"
+#include <utils/delay.h>
+#include <driverlib/sysctl.h>
 
 //-----------------------------------------------------------------
 
@@ -16,7 +16,7 @@
 
 //-----------------------------------------------------------------
 
-void LEDConfig()
+void ledConfig()
 {
     GPIOPinTypeGPIOOutput(LED_GPIO, LED0_PIN | LED1_PIN | LED2_PIN);
     GPIOPinWrite(LED_GPIO, LED0_PIN | LED1_PIN | LED2_PIN, 0x00);
@@ -24,28 +24,28 @@ void LEDConfig()
 
 //-----------------------------------------------------------------
 
-void LEDTurnOn(unsigned char leds)
+void ledTurnOn(unsigned char leds)
 {
     GPIOPinWrite(LED_GPIO, leds & LED_MASK, 0xFF);
 }
 
 //-----------------------------------------------------------------
 
-void LEDTurnOff(unsigned char leds)
+void ledTurnOff(unsigned char leds)
 {
     GPIOPinWrite(LED_GPIO, leds & LED_MASK, 0x00);
 }
 
 //-----------------------------------------------------------------
 
-void LEDToggle(unsigned char leds, bool on)
+void ledToggle(unsigned char leds, bool on)
 {
     GPIOPinWrite(LED_GPIO, leds & LED_MASK, on ? 0xFF : 0x00);
 }
 
 //-----------------------------------------------------------------
 
-void LEDSet(unsigned char leds)
+void ledSet(unsigned char leds)
 {
     GPIOPinWrite(LED_GPIO, LED0_PIN | LED1_PIN | LED2_PIN, leds);
 }
