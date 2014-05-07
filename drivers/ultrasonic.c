@@ -20,7 +20,6 @@
 #define US_PRESCALE_1_80        79
 #define US_TRIG_PULSE           10
 
-#define US_MAX_DIST             200
 #define US_TIMER_MAX            ( US_MAX_DIST * 58 )
 
 #define US_TRIG_GPIO            GPIO_PORTD_BASE
