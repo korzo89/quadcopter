@@ -5,21 +5,15 @@
  *      Author: Korzo
  */
 
-#include "inc/hw_types.h"
-#include "inc/hw_memmap.h"
-#include "inc/hw_ints.h"
-#include "driverlib/timer.h"
-#include "driverlib/interrupt.h"
-#include "driverlib/sysctl.h"
-#include "utils/uartstdio.h"
-
 #include <modules/pid.h>
-#include <hal/imu.h>
+#include <modules/imu.h>
 #include <drivers/motors.h>
 #include <drivers/led.h>
 #include <drivers/oled.h>
 
+#include <stellaris_config.h>
 #include <utils/ustdlib.h>
+#include <utils/uartstdio.h>
 
 //-----------------------------------------------------------------
 

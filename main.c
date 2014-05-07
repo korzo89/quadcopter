@@ -31,7 +31,8 @@
 #include <drivers/led.h>
 #include <drivers/motors.h>
 #include <drivers/ultrasonic.h>
-#include <hal/imu.h>
+#include <drivers/adc.h>
+#include <modules/imu.h>
 
 //-----------------------------------------------------------------
 
@@ -132,6 +133,9 @@ static void oledTask(void *params)
 
     uint8_t i, state;
     float dist;
+    unsigned long battery;
+
+    const int NUM_SCREENS = 4;
 
     while (1)
     {
@@ -145,7 +149,7 @@ static void oledTask(void *params)
                 ++buttonCounter;
                 break;
             case 2:
-                screen = (screen + 1) % 3;
+                screen = (screen + 1) % NUM_SCREENS;
 
                 oledClear();
 
@@ -158,7 +162,7 @@ static void oledTask(void *params)
             }
         }
 
-        usprintf(buf, "      %d/4       ", screen + 1);
+        usprintf(buf, "      %d/%d       ", screen + 1, NUM_SCREENS);
         oledDispStrAt(buf, 0, 0);
 
         switch (screen)
@@ -196,11 +200,16 @@ static void oledTask(void *params)
             usprintf(buf, "Dist: %7d mm", (int)(dist * 10));
             oledDispStrAt(buf, 2, 0);
 
+            battery = adcGetValue();
+            usprintf(buf, "Battery: %4d", battery);
+            oledDispStrAt(buf, 3, 0);
+
             break;
 
         case 3:
             oledSetPos(2, 0);
-
+            while (UARTCharsAvail(UART2_BASE))
+                oledDispChar((char)UARTCharGetNonBlocking(UART2_BASE));
             break;
 
         default:
@@ -280,11 +289,11 @@ void main(void)
     GPIODirModeSet(GPIO_PORTD_BASE, GPIO_PIN_0, GPIO_DIR_MODE_IN);
     GPIOPadConfigSet(GPIO_PORTD_BASE, GPIO_PIN_0, GPIO_STRENGTH_2MA, GPIO_PIN_TYPE_STD_WPU);
 
+    adcConfig();
     ultrasonicConfig();
-
     buzzerConfig();
-
     ledConfig();
+
     ledSet(LED_GREEN);
 
     motorsConfig();

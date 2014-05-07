@@ -1,6 +1,6 @@
 #include "comm_cmd.h"
 #include "comm_buffer.h"
-#include <hal/imu.h>
+#include <modules/imu.h>
 #include <modules/pid.h>
 #include "control.h"
 #include <drivers/motors.h>
