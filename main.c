@@ -1,17 +1,4 @@
-#include "inc/hw_memmap.h"
-#include "inc/hw_ssi.h"
-#include "inc/hw_uart.h"
-#include "inc/hw_types.h"
-#include "inc/hw_ints.h"
-#include "driverlib/uart.h"
-#include "driverlib/gpio.h"
-#include "driverlib/sysctl.h"
-#include "driverlib/systick.h"
-#include "driverlib/interrupt.h"
-#include "driverlib/pin_map.h"
-#include "driverlib/timer.h"
-#include "utils/uartstdio.h"
-#include "driverlib/rom.h"
+#include <stellaris_config.h>
 
 #include "comm.h"
 #include "timers.h"
@@ -44,6 +31,8 @@ static xSemaphoreHandle initMutex;
 
 static int ledCounter = 0;
 static int buttonCounter = 0;
+
+//-----------------------------------------------------------------
 
 static void initWait(void)
 {
@@ -133,7 +122,7 @@ static void oledTask(void *params)
 
     uint8_t i, state;
     float dist;
-    unsigned long battery;
+    float battery;
 
     const int NUM_SCREENS = 4;
 
@@ -200,8 +189,8 @@ static void oledTask(void *params)
             usprintf(buf, "Dist: %7d mm", (int)(dist * 10));
             oledDispStrAt(buf, 2, 0);
 
-            battery = adcGetValue();
-            usprintf(buf, "Battery: %4d", battery);
+            battery = (float)adcGetValue() * 3.3 / 4095.0 * 78.0 / 10.0;
+            usprintf(buf, "Battery: %2d.%1d V", (int)battery, (int)(battery * 10) % 10);
             oledDispStrAt(buf, 3, 0);
 
             break;
@@ -340,16 +329,4 @@ void main(void)
 //    {
 //        commPollReceiver();
 //    }
-}
-
-void vApplicationStackOverflowHook(xTaskHandle *pxTask, signed char *pcTaskName)
-{
-    //
-    // This function can not return, so loop forever.  Interrupts are disabled
-    // on entry to this function, so no processor interrupts will interrupt
-    // this loop.
-    //
-    while(1)
-    {
-    }
 }

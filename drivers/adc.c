@@ -11,6 +11,10 @@
 
 //-----------------------------------------------------------------
 
+#define ADC_OVERSAMPLING_FACTOR 32
+
+//-----------------------------------------------------------------
+
 void adcConfig(void)
 {
     SysCtlPeripheralEnable(SYSCTL_PERIPH_ADC0);
@@ -19,6 +23,7 @@ void adcConfig(void)
 
     GPIOPinTypeADC(GPIO_PORTE_BASE, GPIO_PIN_0);
 
+    ADCHardwareOversampleConfigure(ADC0_BASE, ADC_OVERSAMPLING_FACTOR);
     ADCSequenceConfigure(ADC0_BASE, 0, ADC_TRIGGER_PROCESSOR, 0);
     ADCSequenceStepConfigure(ADC0_BASE, 0, 0, ADC_CTL_CH3 | ADC_CTL_IE | ADC_CTL_END);
     ADCSequenceEnable(ADC0_BASE, 0);
