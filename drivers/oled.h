@@ -16,6 +16,7 @@
 bool oledInit(void);
 
 void oledClear(void);
+void oledClearRect(uint8_t row, uint8_t col, uint8_t width, uint8_t height);
 void oledSetPos(uint8_t row, uint8_t col);
 
 void oledDispStr(char *str);

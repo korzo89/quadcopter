@@ -54,6 +54,23 @@ void oledClear(void)
 
 //-----------------------------------------------------------------
 
+void oledClearRect(uint8_t row, uint8_t col, uint8_t width, uint8_t height)
+{
+    uint8_t tempRow = currRow, tempCol = currCol;
+
+    int i, j;
+    for (i = 0; i < height; ++i)
+    {
+        oledSetPos(row + i, col);
+        for (j = 0; j < width; ++j)
+            oledSendData(0x00);
+    }
+
+    oledSetPos(tempRow, tempCol);
+}
+
+//-----------------------------------------------------------------
+
 void oledSetPos(uint8_t row, uint8_t col)
 {
     currRow = row % OLED_ROWS;

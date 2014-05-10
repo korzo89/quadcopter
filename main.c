@@ -3,12 +3,14 @@
 #include "comm.h"
 #include "timers.h"
 
+#include <FreeRTOSConfig.h>
 #include <FreeRTOS.h>
 #include <portmacro.h>
 #include <task.h>
 #include <semphr.h>
 
 #include <utils/ustdlib.h>
+#include <utils/uartstdio.h>
 
 #include <utils/delay.h>
 #include <drivers/common_i2c.h>
@@ -20,80 +22,25 @@
 #include <drivers/ultrasonic.h>
 #include <drivers/adc.h>
 #include <modules/imu.h>
+#include <modules/gps.h>
+
+//-----------------------------------------------------------------
+
+#define BUTTON_READ()      GPIOPinRead(GPIO_PORTD_BASE, GPIO_PIN_0)
+#define BUTTON_PRESSED()   (!BUTTON_READ())
 
 //-----------------------------------------------------------------
 
 static xSemaphoreHandle mutex;
 static xQueueHandle buttonQueue;
 
-static bool initialized = false;
-static xSemaphoreHandle initMutex;
-
 static int ledCounter = 0;
 static int buttonCounter = 0;
 
 //-----------------------------------------------------------------
 
-static void initWait(void)
-{
-    while (!initialized)
-        vTaskDelay(2);
-
-    xSemaphoreTake(initMutex, portMAX_DELAY);
-    xSemaphoreGive(initMutex);
-}
-
-static void initTask(void *params)
-{
-    initMutex = xSemaphoreCreateMutex();
-
-    xSemaphoreTake(initMutex, portMAX_DELAY);
-
-    oledInit();
-
-    if (GPIOPinRead(GPIO_PORTD_BASE, GPIO_PIN_0))
-    {
-        initialized = true;
-        xSemaphoreGive(initMutex);
-        vTaskDelete(NULL);
-        return;
-    }
-
-    char buf[17];
-
-    ledSet(LED_GREEN);
-    buzzerSetFreq(NOTE_C5);
-    vTaskDelay(MSEC_TO_TICKS(100));
-    ledSet(LED_GREEN | LED_YELLOW);
-    buzzerSetFreq(NOTE_D5);
-    vTaskDelay(MSEC_TO_TICKS(100));
-    ledSet(LED_GREEN | LED_YELLOW | LED_RED);
-    buzzerSetFreq(NOTE_E5);
-    vTaskDelay(MSEC_TO_TICKS(100));
-    buzzerSetFreq(0);
-
-    oledClear();
-    oledDispStr("EEPROM read\n");
-
-    uint8_t eep[4] = { 0 };
-    eepromRead(0x0000, eep, 4);
-
-    usprintf(buf, "%02x %02x %02x %02x", eep[0], eep[1], eep[2], eep[3]);
-    oledDispStr(buf);
-
-    while (!GPIOPinRead(GPIO_PORTD_BASE, GPIO_PIN_0));
-    while (GPIOPinRead(GPIO_PORTD_BASE, GPIO_PIN_0));
-    while (!GPIOPinRead(GPIO_PORTD_BASE, GPIO_PIN_0));
-
-    initialized = true;
-    xSemaphoreGive(initMutex);
-    vTaskDelete(NULL);
-}
-
 static void ledTask(void *params)
 {
-    initWait();
-
     while (1)
     {
         ledSet(LED_RED);
@@ -111,8 +58,6 @@ static void ledTask(void *params)
 
 static void oledTask(void *params)
 {
-    initWait();
-
     uint8_t screen = 0;
     char buf[17];
 
@@ -123,6 +68,8 @@ static void oledTask(void *params)
     uint8_t i, state;
     float dist;
     float battery;
+
+    GpsMessage msg;
 
     const int NUM_SCREENS = 4;
 
@@ -196,9 +143,14 @@ static void oledTask(void *params)
             break;
 
         case 3:
-            oledSetPos(2, 0);
-            while (UARTCharsAvail(UART2_BASE))
-                oledDispChar((char)UARTCharGetNonBlocking(UART2_BASE));
+            oledDispStrAt("GPS NMEA", 2, 0);
+
+            if (gpsGetMessage(&msg))
+            {
+                oledClearRect(3, 0, 128, 5);
+                oledDispStrAt((char*)msg.command, 3, 0);
+                oledDispStrAt((char*)msg.data, 4, 0);
+            }
             break;
 
         default:
@@ -211,8 +163,6 @@ static void oledTask(void *params)
 
 static void buttonTask(void *params)
 {
-    initWait();
-
     uint8_t state = 0, curr;
     long lastPress = 0;
 
@@ -225,15 +175,15 @@ static void buttonTask(void *params)
             xQueueSendToBack(buttonQueue, &curr, 0);
         }
 
-        if (GPIOPinRead(GPIO_PORTD_BASE, GPIO_PIN_0) == state)
+        if (BUTTON_PRESSED() != state)
         {
             vTaskDelay(20);
 
-            curr = !GPIOPinRead(GPIO_PORTD_BASE, GPIO_PIN_0);
+            curr = BUTTON_PRESSED();
             if (curr != state)
             {
                 state = curr;
-                xQueueSendToBack(buttonQueue, &curr, 0);
+                xQueueSendToBack(buttonQueue, &curr, portMAX_DELAY);
 
                 lastPress = xTaskGetTickCount();
             }
@@ -241,6 +191,87 @@ static void buttonTask(void *params)
 
         vTaskDelay(20);
     }
+}
+
+xQueueHandle uartQueue;
+
+static void gpsTask(void *params)
+{
+    char c;
+
+    while (1)
+    {
+        if (xQueueReceive(uartQueue, &c, portMAX_DELAY))
+        {
+            UARTprintf("%c", c);
+            gpsParseNMEAChar(c);
+        }
+    }
+}
+
+void UART2IntHandler(void)
+{
+    portBASE_TYPE xHigherPriorityTaskWoken = pdFALSE;
+
+    unsigned long status = UARTIntStatus(UART2_BASE, true);
+    UARTIntClear(UART2_BASE, status);
+
+    if (status & UART_INT_RX)
+    {
+        char c;
+        while (UARTCharsAvail(UART2_BASE))
+        {
+            c = (char)UARTCharGetNonBlocking(UART2_BASE);
+            xQueueSendToBackFromISR(uartQueue, &c, &xHigherPriorityTaskWoken);
+        }
+    }
+
+    portEND_SWITCHING_ISR(xHigherPriorityTaskWoken);
+}
+
+static void initTask(void *params)
+{
+    oledInit();
+
+    if (BUTTON_PRESSED())
+    {
+        char buf[17];
+
+        ledSet(LED_GREEN);
+        buzzerSetFreq(NOTE_C5);
+        vTaskDelay(MSEC_TO_TICKS(100));
+        ledSet(LED_GREEN | LED_YELLOW);
+        buzzerSetFreq(NOTE_D5);
+        vTaskDelay(MSEC_TO_TICKS(100));
+        ledSet(LED_GREEN | LED_YELLOW | LED_RED);
+        buzzerSetFreq(NOTE_E5);
+        vTaskDelay(MSEC_TO_TICKS(100));
+        buzzerSetFreq(0);
+
+        oledClear();
+        oledDispStr("EEPROM read\n");
+
+        uint8_t eep[4] = { 0 };
+        eepromRead(0x0000, eep, 4);
+
+        usprintf(buf, "%02x %02x %02x %02x", eep[0], eep[1], eep[2], eep[3]);
+        oledDispStr(buf);
+
+        while (BUTTON_PRESSED());
+        while (!BUTTON_PRESSED());
+        while (BUTTON_PRESSED());
+    }
+
+    xTaskCreate(ledTask, (signed portCHAR*)"LED",
+                configMINIMAL_STACK_SIZE, NULL, 2, NULL);
+    xTaskCreate(oledTask, (signed portCHAR*)"OLED",
+                256, NULL, 2, NULL);
+    xTaskCreate(buttonTask, (signed portCHAR*)"BTN",
+                configMINIMAL_STACK_SIZE, NULL, 2, NULL);
+    xTaskCreate(gpsTask, (signed portCHAR*)"GPS",
+                configMINIMAL_STACK_SIZE, NULL, 1, NULL);
+
+    vTaskDelete(NULL);
 }
 
 //-----------------------------------------------------------------
@@ -267,6 +298,8 @@ void main(void)
     GPIOPinConfigure(GPIO_PA1_U0TX);
     GPIOPinTypeUART(GPIO_PORTA_BASE, GPIO_PIN_0 | GPIO_PIN_1);
 
+    uartQueue = xQueueCreate(256, sizeof(char));
+
     GPIOPinConfigure(GPIO_PD6_U2RX);
     GPIOPinConfigure(GPIO_PD7_U2TX);
     GPIOPinTypeUART(GPIO_PORTD_BASE, GPIO_PIN_6 | GPIO_PIN_7);
@@ -274,9 +307,15 @@ void main(void)
                         UART_CONFIG_WLEN_8 | UART_CONFIG_STOP_ONE |
                         UART_CONFIG_PAR_NONE);
 
+    UARTIntEnable(UART2_BASE, UART_INT_RX);
+    IntPrioritySet(INT_UART2, configKERNEL_INTERRUPT_PRIORITY);
+    IntEnable(INT_UART2);
+
 //    GPIOPinTypeGPIOInput(GPIO_PORTD_BASE, GPIO_PIN_0);
     GPIODirModeSet(GPIO_PORTD_BASE, GPIO_PIN_0, GPIO_DIR_MODE_IN);
     GPIOPadConfigSet(GPIO_PORTD_BASE, GPIO_PIN_0, GPIO_STRENGTH_2MA, GPIO_PIN_TYPE_STD_WPU);
+
+    UARTStdioInit(0);
 
     adcConfig();
     ultrasonicConfig();
@@ -296,14 +335,8 @@ void main(void)
 
     buttonQueue = xQueueCreate(10, sizeof(uint8_t));
 
-    xTaskCreate(initTask, (signed portCHAR*)"INIT", configMINIMAL_STACK_SIZE,
-                NULL, tskIDLE_PRIORITY + 1, NULL);
-    xTaskCreate(ledTask, (signed portCHAR*)"LED", configMINIMAL_STACK_SIZE,
-                NULL, tskIDLE_PRIORITY + 1, NULL);
-    xTaskCreate(oledTask, (signed portCHAR*)"OLED", 256,
-                NULL, tskIDLE_PRIORITY + 1, NULL);
-    xTaskCreate(buttonTask, (signed portCHAR*)"BTN", configMINIMAL_STACK_SIZE,
-                NULL, tskIDLE_PRIORITY + 1, NULL);
+    xTaskCreate(initTask, (signed portCHAR*)"INIT",
+                configMINIMAL_STACK_SIZE, NULL, 1, NULL);
 
     vTaskStartScheduler();
 
@@ -311,17 +344,10 @@ void main(void)
     {
     }
 
-//
-//    UARTStdioInit(0);
-//
 //    commConfig();
 //
 //    IMUConfig();
 //    IMUInit(0.1f, 100.0f);
-//
-//    oledConfig();
-//    if (oledInit())
-//        oledDispStr("Hello world!");
 //
 //    timersConfig();
 //
