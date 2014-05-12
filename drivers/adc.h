@@ -10,7 +10,7 @@
 
 //-----------------------------------------------------------------
 
-void adcConfig(void);
+void adcInit(void);
 
 unsigned long adcGetValue(void);
 

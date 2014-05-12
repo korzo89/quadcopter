@@ -10,7 +10,7 @@
 
 //-----------------------------------------------------------------
 
-#include <stdbool.h>
+#include <defs.h>
 
 //-----------------------------------------------------------------
 
@@ -22,12 +22,14 @@ typedef struct
 
 //-----------------------------------------------------------------
 
-void gpsConfig(void);
+void gpsInit(void);
 
 bool gpsParseNMEA(const char *data, unsigned int len);
 bool gpsParseNMEAChar(char c);
 
 bool gpsGetMessage(GpsMessage *msg);
+
+void gpsTask(void *params);
 
 //-----------------------------------------------------------------
 

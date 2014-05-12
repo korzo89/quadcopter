@@ -16,8 +16,10 @@
 
 //-----------------------------------------------------------------
 
-void ledConfig()
+void ledInit()
 {
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOE);
+
     GPIOPinTypeGPIOOutput(LED_GPIO, LED0_PIN | LED1_PIN | LED2_PIN);
     GPIOPinWrite(LED_GPIO, LED0_PIN | LED1_PIN | LED2_PIN, 0x00);
 }

@@ -15,7 +15,7 @@
 
 //-----------------------------------------------------------------
 
-void comI2CConfig(void);
+void comI2CInit(void);
 
 unsigned long comI2CWriteRegister(uint8_t addr, uint8_t reg, uint8_t data);
 unsigned long comI2CWriteRegisterBurst(uint8_t addr, uint8_t reg, uint8_t *buf, int len);

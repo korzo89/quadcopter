@@ -1,23 +1,22 @@
 /*
- * buzzer.h
+ * defs.h
  *
- *  Created on: 07-05-2014
+ *  Created on: 12-05-2014
  *      Author: Korzo
  */
 
-#ifndef BUZZER_H_
-#define BUZZER_H_
+#ifndef DEFS_H_
+#define DEFS_H_
 
 //-----------------------------------------------------------------
 
-#include <drivers/buzzer_notes.h>
+#include <stdint.h>
+#include <stdbool.h>
 
 //-----------------------------------------------------------------
 
-void buzzerInit(void);
-
-void buzzerSetFreq(unsigned int freq);
+#define PACK_STRUCT     __attribute__((packed))
 
 //-----------------------------------------------------------------
 
-#endif /* BUZZER_H_ */
+#endif /* DEFS_H_ */

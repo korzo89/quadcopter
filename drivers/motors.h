@@ -19,7 +19,6 @@
 
 //-----------------------------------------------------------------
 
-void motorsConfig(void);
 void motorsInit(void);
 
 bool motorsArmed(void);

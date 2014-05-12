@@ -15,7 +15,7 @@ static xSemaphoreHandle i2cSemaphore;
 
 //-----------------------------------------------------------------
 
-void comI2CConfig(void)
+void comI2CInit(void)
 {
     i2cSemaphore = xSemaphoreCreateMutex();
 

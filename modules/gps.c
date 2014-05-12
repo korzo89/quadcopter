@@ -7,12 +7,18 @@
 
 #include "gps.h"
 
-#include <stdint.h>
+#include <stellaris_config.h>
+#include <FreeRTOSConfig.h>
+#include <FreeRTOS.h>
+#include <task.h>
+#include <queue.h>
 
 //-----------------------------------------------------------------
 
 #define GPS_MAX_CMD_LEN         8
 #define GPS_MAX_DATA_LEN        256
+
+#define GPS_UART_BAUD           9600
 
 //-----------------------------------------------------------------
 
@@ -32,11 +38,65 @@ static int index;
 static uint8_t checksum, recvChecksum;
 static bool hasMessage = false;
 
+static xQueueHandle uartQueue;
+
 //-----------------------------------------------------------------
 
-void gpsConfig(void)
+void gpsInit(void)
 {
+    uartQueue = xQueueCreate(256, sizeof(char));
 
+    GPIOPinConfigure(GPIO_PD6_U2RX);
+    GPIOPinConfigure(GPIO_PD7_U2TX);
+    GPIOPinTypeUART(GPIO_PORTD_BASE, GPIO_PIN_6 | GPIO_PIN_7);
+    UARTConfigSetExpClk(UART2_BASE, SysCtlClockGet(), GPS_UART_BAUD,
+                        UART_CONFIG_WLEN_8 | UART_CONFIG_STOP_ONE |
+                        UART_CONFIG_PAR_NONE);
+
+    UARTIntEnable(UART2_BASE, UART_INT_RX);
+    IntPrioritySet(INT_UART2, configKERNEL_INTERRUPT_PRIORITY);
+    IntEnable(INT_UART2);
+
+    xTaskCreate(gpsTask, (signed portCHAR*)"GPS",
+                configMINIMAL_STACK_SIZE, NULL, 1, NULL);
+}
+
+//-----------------------------------------------------------------
+
+void UART2IntHandler(void)
+{
+    portBASE_TYPE woken = pdFALSE;
+
+    unsigned long status = UARTIntStatus(UART2_BASE, true);
+    UARTIntClear(UART2_BASE, status);
+
+    if (status & UART_INT_RX)
+    {
+        char c;
+        while (UARTCharsAvail(UART2_BASE))
+        {
+            c = (char)UARTCharGetNonBlocking(UART2_BASE);
+            xQueueSendToBackFromISR(uartQueue, &c, &woken);
+        }
+    }
+
+    portEND_SWITCHING_ISR(woken);
+}
+
+//-----------------------------------------------------------------
+
+void gpsTask(void *params)
+{
+    char c;
+
+    while (1)
+    {
+        if (xQueueReceive(uartQueue, &c, portMAX_DELAY))
+        {
+//            UARTprintf("%c", c);
+            gpsParseNMEAChar(c);
+        }
+    }
 }
 
 //-----------------------------------------------------------------

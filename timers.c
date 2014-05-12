@@ -48,42 +48,42 @@ void SysTickISR(void)
 
 void Timer2AIntHandler(void)
 {
-    float pitch, roll, yaw;
-    static int count = 0;
-    static char buf[30];
-
-    if (!TimerIntStatus(TIMER2_BASE, TIMER_TIMA_TIMEOUT))
-        return;
-
-    TimerIntClear(TIMER2_BASE, TIMER_TIMA_TIMEOUT);
-
-    count++;
-    ledToggle(LED_YELLOW, GPIOPinRead(GPIO_PORTD_BASE, GPIO_PIN_0) && count < 25);
-    if (count == 50)
-        count = 0;
-
-    lostCount++;
-    if (lostCount == 300)
-        motorsDisarm();
-
-    imuPollSensors();
-    imuUpdate();
-
-    imuGetEulerAngles(&pitch, &roll, &yaw);
-//    UARTprintf("%d %d %d\r\n", (int)pitch, (int)roll, (int)yaw);
-
-    if (count == 49)
-    {
-        usprintf(buf, "Pitch: %4d", (int)pitch);
-        oledDispStrAt(buf, 1, 0);
-        usprintf(buf, "Roll:  %4d", (int)roll);
-        oledDispStrAt(buf, 2, 0);
-        usprintf(buf, "Yaw:   %4d", (int)yaw);
-        oledDispStrAt(buf, 3, 0);
-
-        if (motorsArmed())
-            oledDispStrAt(" *** ARMED! *** ", 7, 0);
-        else
-            oledDispStrAt("                ", 7, 0);
-    }
+//    float pitch, roll, yaw;
+//    static int count = 0;
+//    static char buf[30];
+//
+//    if (!TimerIntStatus(TIMER2_BASE, TIMER_TIMA_TIMEOUT))
+//        return;
+//
+//    TimerIntClear(TIMER2_BASE, TIMER_TIMA_TIMEOUT);
+//
+//    count++;
+//    ledToggle(LED_YELLOW, GPIOPinRead(GPIO_PORTD_BASE, GPIO_PIN_0) && count < 25);
+//    if (count == 50)
+//        count = 0;
+//
+//    lostCount++;
+//    if (lostCount == 300)
+//        motorsDisarm();
+//
+//    imuPollSensors();
+//    imuUpdate();
+//
+//    imuGetEulerAngles(&pitch, &roll, &yaw);
+////    UARTprintf("%d %d %d\r\n", (int)pitch, (int)roll, (int)yaw);
+//
+//    if (count == 49)
+//    {
+//        usprintf(buf, "Pitch: %4d", (int)pitch);
+//        oledDispStrAt(buf, 1, 0);
+//        usprintf(buf, "Roll:  %4d", (int)roll);
+//        oledDispStrAt(buf, 2, 0);
+//        usprintf(buf, "Yaw:   %4d", (int)yaw);
+//        oledDispStrAt(buf, 3, 0);
+//
+//        if (motorsArmed())
+//            oledDispStrAt(" *** ARMED! *** ", 7, 0);
+//        else
+//            oledDispStrAt("                ", 7, 0);
+//    }
 }

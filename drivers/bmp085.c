@@ -108,7 +108,7 @@ int32_t BMP085_readPressure()
 int16_t BMP085_readUT()
 {
     I2CWriteRegister(BMP085_I2C_BASE, BMP085_I2C_ADDR, BMP085_CONTROL, BMP085_UT);
-    delay(6);
+    DELAY_MS(6);
 
     return BMP085_readInt(BMP085_DATA_MSB);
 }
@@ -118,7 +118,7 @@ int16_t BMP085_readUT()
 int32_t BMP085_readUP()
 {
     I2CWriteRegister(BMP085_I2C_BASE, BMP085_I2C_ADDR, BMP085_CONTROL, BMP085_UP + (BMP085_OSS << 6));
-    delay(3 + (3 << BMP085_OSS));
+    DELAY_MS(3 + (3 << BMP085_OSS));
 
     I2CReadRegisterBurst(BMP085_I2C_BASE, BMP085_I2C_ADDR, BMP085_DATA_MSB, buffer, 3);
     return (((int32_t) buffer[0] << 16) | ((int32_t) buffer[1] << 8) | buffer[2]) >> (8 - BMP085_OSS);

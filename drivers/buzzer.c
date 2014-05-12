@@ -20,8 +20,9 @@
 
 //-----------------------------------------------------------------
 
-void buzzerConfig(void)
+void buzzerInit(void)
 {
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOC);
     SysCtlPeripheralEnable(SYSCTL_PERIPH_WTIMER1);
 
     GPIOPinTypeGPIOOutput(GPIO_PORTC_BASE, GPIO_PIN_6);

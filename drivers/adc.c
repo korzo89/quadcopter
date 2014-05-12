@@ -15,7 +15,7 @@
 
 //-----------------------------------------------------------------
 
-void adcConfig(void)
+void adcInit(void)
 {
     SysCtlPeripheralEnable(SYSCTL_PERIPH_ADC0);
 

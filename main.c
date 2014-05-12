@@ -1,6 +1,5 @@
 #include <stellaris_config.h>
 
-#include "comm.h"
 #include "timers.h"
 
 #include <FreeRTOSConfig.h>
@@ -23,6 +22,7 @@
 #include <drivers/adc.h>
 #include <modules/imu.h>
 #include <modules/gps.h>
+#include <modules/rcp.h>
 
 //-----------------------------------------------------------------
 
@@ -193,42 +193,6 @@ static void buttonTask(void *params)
     }
 }
 
-xQueueHandle uartQueue;
-
-static void gpsTask(void *params)
-{
-    char c;
-
-    while (1)
-    {
-        if (xQueueReceive(uartQueue, &c, portMAX_DELAY))
-        {
-            UARTprintf("%c", c);
-            gpsParseNMEAChar(c);
-        }
-    }
-}
-
-void UART2IntHandler(void)
-{
-    portBASE_TYPE xHigherPriorityTaskWoken = pdFALSE;
-
-    unsigned long status = UARTIntStatus(UART2_BASE, true);
-    UARTIntClear(UART2_BASE, status);
-
-    if (status & UART_INT_RX)
-    {
-        char c;
-        while (UARTCharsAvail(UART2_BASE))
-        {
-            c = (char)UARTCharGetNonBlocking(UART2_BASE);
-            xQueueSendToBackFromISR(uartQueue, &c, &xHigherPriorityTaskWoken);
-        }
-    }
-
-    portEND_SWITCHING_ISR(xHigherPriorityTaskWoken);
-}
-
 static void initTask(void *params)
 {
     oledInit();
@@ -268,8 +232,8 @@ static void initTask(void *params)
                 256, NULL, 2, NULL);
     xTaskCreate(buttonTask, (signed portCHAR*)"BTN",
                 configMINIMAL_STACK_SIZE, NULL, 2, NULL);
-    xTaskCreate(gpsTask, (signed portCHAR*)"GPS",
-                configMINIMAL_STACK_SIZE, NULL, 1, NULL);
+
+    gpsInit();
 
     vTaskDelete(NULL);
 }
@@ -283,7 +247,6 @@ void main(void)
 
     SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);
     SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOB);
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOC);
     SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOD);
     SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOE);
     SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOF);
@@ -298,41 +261,26 @@ void main(void)
     GPIOPinConfigure(GPIO_PA1_U0TX);
     GPIOPinTypeUART(GPIO_PORTA_BASE, GPIO_PIN_0 | GPIO_PIN_1);
 
-    uartQueue = xQueueCreate(256, sizeof(char));
-
-    GPIOPinConfigure(GPIO_PD6_U2RX);
-    GPIOPinConfigure(GPIO_PD7_U2TX);
-    GPIOPinTypeUART(GPIO_PORTD_BASE, GPIO_PIN_6 | GPIO_PIN_7);
-    UARTConfigSetExpClk(UART2_BASE, SysCtlClockGet(), 9600,
-                        UART_CONFIG_WLEN_8 | UART_CONFIG_STOP_ONE |
-                        UART_CONFIG_PAR_NONE);
-
-    UARTIntEnable(UART2_BASE, UART_INT_RX);
-    IntPrioritySet(INT_UART2, configKERNEL_INTERRUPT_PRIORITY);
-    IntEnable(INT_UART2);
-
-//    GPIOPinTypeGPIOInput(GPIO_PORTD_BASE, GPIO_PIN_0);
     GPIODirModeSet(GPIO_PORTD_BASE, GPIO_PIN_0, GPIO_DIR_MODE_IN);
     GPIOPadConfigSet(GPIO_PORTD_BASE, GPIO_PIN_0, GPIO_STRENGTH_2MA, GPIO_PIN_TYPE_STD_WPU);
 
     UARTStdioInit(0);
 
-    adcConfig();
-    ultrasonicConfig();
-    buzzerConfig();
-    ledConfig();
+    adcInit();
+    ultrasonicInit();
+    buzzerInit();
+    ledInit();
 
     ledSet(LED_GREEN);
 
-    motorsConfig();
     motorsInit();
-
     motorsSetThrottle(500, 1000, 333, 0);
 
-    comI2CConfig();
+    imuInit(0.1f, 100.0f);
+
+    comI2CInit();
 
     mutex = xSemaphoreCreateMutex();
-
     buttonQueue = xQueueCreate(10, sizeof(uint8_t));
 
     xTaskCreate(initTask, (signed portCHAR*)"INIT",
@@ -343,16 +291,4 @@ void main(void)
     while (1)
     {
     }
-
-//    commConfig();
-//
-//    IMUConfig();
-//    IMUInit(0.1f, 100.0f);
-//
-//    timersConfig();
-//
-//    while (1)
-//    {
-//        commPollReceiver();
-//    }
 }

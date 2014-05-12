@@ -58,7 +58,7 @@ static bool armed = false;
 
 //-----------------------------------------------------------------
 
-void motorsConfig()
+void motorsInit()
 {
     SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER0);
     SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER1);
@@ -90,12 +90,7 @@ void motorsConfig()
 
     TimerPrescaleSet(TIMER1_BASE, TIMER_BOTH, ext);
     TimerLoadSet(TIMER1_BASE, TIMER_BOTH, period);
-}
 
-//-----------------------------------------------------------------
-
-void motorsInit()
-{
     TimerEnable(TIMER0_BASE, TIMER_BOTH);
     TimerEnable(TIMER1_BASE, TIMER_BOTH);
 

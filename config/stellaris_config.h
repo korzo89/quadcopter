@@ -20,6 +20,7 @@
 #include <driverlib/gpio.h>
 #include <driverlib/timer.h>
 #include <driverlib/i2c.h>
+#include <driverlib/ssi.h>
 #include <driverlib/adc.h>
 #include <driverlib/uart.h>
 #include <driverlib/interrupt.h>

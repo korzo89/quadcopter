@@ -37,7 +37,7 @@
 
 //-----------------------------------------------------------------
 
-void ultrasonicConfig(void)
+void ultrasonicInit(void)
 {
     SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOD);
 

@@ -30,7 +30,7 @@
 
 //-----------------------------------------------------------------
 
-void ledConfig();
+void ledInit();
 
 void ledTurnOn(unsigned char leds);
 void ledTurnOff(unsigned char leds);

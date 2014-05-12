@@ -14,7 +14,7 @@
 
 //-----------------------------------------------------------------
 
-void ultrasonicConfig(void);
+void ultrasonicInit(void);
 
 float ultrasonicGetDistance(void);
 

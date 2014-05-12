@@ -36,6 +36,7 @@ static void NmiSR(void);
 static void FaultISR(void);
 static void IntDefaultHandler(void);
 extern void UART2IntHandler(void);
+extern void GPIOCIntHandler(void);
 extern void SysTickISR(void);
 extern void Timer2AIntHandler(void);
 
@@ -92,7 +93,7 @@ void (* const g_pfnVectors[])(void) =
     xPortSysTickHandler,                    // The SysTick handler
     IntDefaultHandler,                      // GPIO Port A
     IntDefaultHandler,                      // GPIO Port B
-    IntDefaultHandler,                      // GPIO Port C
+    GPIOCIntHandler,                        // GPIO Port C
     IntDefaultHandler,                      // GPIO Port D
     IntDefaultHandler,                      // GPIO Port E
     IntDefaultHandler,                      // UART0 Rx and Tx

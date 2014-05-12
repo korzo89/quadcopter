@@ -30,30 +30,26 @@
 
 //-----------------------------------------------------------------
 
-int16_t accX, accY, accZ;       // raw accelerometer values
-int16_t gyroX, gyroY, gyroZ;    // raw gyroscope values
-int16_t magX, magY, magZ;       // raw magnetometer values
-int16_t temperature;            // raw temperature
-int32_t pressure;               // raw pressure
+static IMUSensorData currData;
 
 // quaternion values
-float q0 = 1.0f, q1, q2, q3;
+static float q0 = 1.0f, q1, q2, q3;
 
 // filter parameters
-float filterBeta = 0.1f;
-float sampleFreq = 100.0f;
+static float filterBeta = 0.1f;
+static float sampleFreq = 100.0f;
 
 // magnetometer calibration parameters
-const float magCal[] = { 0.697635, -0.00137475, 0.0264385,
-                        -0.00137475, 0.78445, 0.0287107,
-                         0.0264385, 0.0287107, 0.993896 };
-const float magOff[] = { -506.7, 472.552, 282.965 };
+static const float magCal[] = { 0.697635, -0.00137475, 0.0264385,
+                                -0.00137475, 0.78445, 0.0287107,
+                                0.0264385, 0.0287107, 0.993896 };
+static const float magOff[] = { -506.7, 472.552, 282.965 };
 
 volatile float pitch, roll, yaw;
 
 //-----------------------------------------------------------------
 
-void imuConfig(void)
+void imuInit(float beta, float freq)
 {
     // I2C config
     GPIOPinConfigure(GPIO_PB2_I2C0SCL);
@@ -69,12 +65,7 @@ void imuConfig(void)
     L3G4200D_init();
     HMC5883_init();
     BMP085_init();
-}
 
-//-----------------------------------------------------------------
-
-void imuInit(float beta, float freq)
-{
     q0 = 1.0f;
     q1 = 0.0f;
     q2 = 0.0f;
@@ -86,13 +77,13 @@ void imuInit(float beta, float freq)
 
 //-----------------------------------------------------------------
 
-void imuPollSensors(void)
+void imuPollSensors(IMUSensorData *data)
 {
-    ADXL345_getAcceleration(&accX, &accY, &accZ);
-    L3G4200D_readGyro(&gyroX, &gyroY, &gyroZ);
-    HMC5883_readMag(&magX, &magY, &magZ);
-//    temperature = BMP085_readTemperature();
-//    pressure = BMP085_readPressure();
+    ADXL345_getAcceleration(&data->accX, &data->accY, &data->accZ);
+    L3G4200D_readGyro(&data->gyroX, &data->gyroY, &data->gyroZ);
+    HMC5883_readMag(&data->magX, &data->magY, &data->magZ);
+    data->temperature = BMP085_readTemperature();
+    data->pressure = BMP085_readPressure();
 }
 
 //-----------------------------------------------------------------
@@ -101,17 +92,17 @@ void imuUpdate(void)
 {
     float ax, ay, az, gx, gy, gz, mx, my, mz, cx, cy, cz;
 
-    ax = (float) accX / 256.0;
-    ay = (float) accY / 256.0;
-    az = (float) accZ / 256.0;
+    ax = (float) currData.accX / 256.0;
+    ay = (float) currData.accY / 256.0;
+    az = (float) currData.accZ / 256.0;
 
-    gx = DEG_TO_RAD((float) gyroX * 70.0 / 1000.0);
-    gy = DEG_TO_RAD((float) gyroY * 70.0 / 1000.0);
-    gz = DEG_TO_RAD((float) gyroZ * 70.0 / 1000.0);
+    gx = DEG_TO_RAD((float) currData.gyroX * 70.0 / 1000.0);
+    gy = DEG_TO_RAD((float) currData.gyroY * 70.0 / 1000.0);
+    gz = DEG_TO_RAD((float) currData.gyroZ * 70.0 / 1000.0);
 
-    mx = (float) magX * 0.92 - magOff[0];
-    my = (float) magY * 0.92 - magOff[1];
-    mz = (float) magZ * 0.92 - magOff[2];
+    mx = (float) currData.magX * 0.92 - magOff[0];
+    my = (float) currData.magY * 0.92 - magOff[1];
+    mz = (float) currData.magZ * 0.92 - magOff[2];
 
     cx = magCal[0]*mx + magCal[1]*my + magCal[2]*mz;
     cy = magCal[3]*mx + magCal[4]*my + magCal[5]*mz;

@@ -25,14 +25,14 @@ bool oledInit(void)
         return false;
     oledSendCmd(0x2E);
     oledSendCmd(0xA4);
-    delay(10);
+    DELAY_MS(10);
     oledSendCmd(0xA1);
     oledSendCmd(0xC8);
     oledSendCmd(0xAF);
     oledSendCmd(0x20);
     oledSendCmd(0x02);
     oledSendCmd(0xA6);
-    delay(10);
+    DELAY_MS(10);
     oledClear();
 
     return true;
