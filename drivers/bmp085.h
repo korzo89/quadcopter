@@ -10,7 +10,7 @@
 
 //-----------------------------------------------------------------
 
-#include <stdint.h>
+#include <defs.h>
 
 //-----------------------------------------------------------------
 
@@ -51,15 +51,15 @@
 
 //-----------------------------------------------------------------
 
-void BMP085_init();
+void bmp085Init();
 
-int16_t BMP085_readTemperature();
-int32_t BMP085_readPressure();
+int16_t bmp085ReadTemperature();
+int32_t bmp085ReadPressure();
 
-int16_t BMP085_readUT();
-int32_t BMP085_readUP();
+int16_t bmp085ReadUT();
+int32_t bmp085ReadUP();
 
-int16_t BMP085_readInt(uint8_t reg);
+int16_t bmp085ReadInt(uint8_t reg);
 
 //-----------------------------------------------------------------
 

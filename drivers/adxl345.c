@@ -9,7 +9,6 @@
 
 #include "adxl345.h"
 #include <drivers/i2c.h>
-#include <stdlib.h>
 
 //-----------------------------------------------------------------
 
@@ -21,7 +20,7 @@ static uint8_t buffer[6];
 
 //-----------------------------------------------------------------
 
-void ADXL345_init()
+void adxl345Init()
 {
     I2CWriteRegister(ADXL345_I2C_BASE, ADXL345_I2C_ADDR, ADXL345_POWER_CTL, 0x00);
     I2CWriteRegister(ADXL345_I2C_BASE, ADXL345_I2C_ADDR, ADXL345_POWER_CTL, ADXL345_MEASURE);
@@ -29,7 +28,7 @@ void ADXL345_init()
 
 //-----------------------------------------------------------------
 
-void ADXL345_getAcceleration(int16_t *x, int16_t *y, int16_t *z)
+void adxl345GetAcceleration(int16_t *x, int16_t *y, int16_t *z)
 {
     I2CReadRegisterBurst(ADXL345_I2C_BASE, ADXL345_I2C_ADDR, ADXL345_DATAX0, buffer, 6);
 
@@ -40,7 +39,7 @@ void ADXL345_getAcceleration(int16_t *x, int16_t *y, int16_t *z)
 
 //-----------------------------------------------------------------
 
-ADXL345Range ADXL345_getRange()
+ADXL345Range adxl345GetRange()
 {
     return (ADXL345Range)(I2CReadRegister(ADXL345_I2C_BASE,
             ADXL345_I2C_ADDR, ADXL345_DATA_FORMAT, NULL) & ADXL345_RANGE_MASK);
@@ -48,7 +47,7 @@ ADXL345Range ADXL345_getRange()
 
 //-----------------------------------------------------------------
 
-void ADXL345_setRange(ADXL345Range range)
+void adxl345SetRange(ADXL345Range range)
 {
     uint8_t reg = I2CReadRegister(ADXL345_I2C_BASE, ADXL345_I2C_ADDR, ADXL345_POWER_CTL, NULL);
     reg = (reg & ~ADXL345_RANGE_MASK) | (uint8_t)range;
@@ -58,7 +57,7 @@ void ADXL345_setRange(ADXL345Range range)
 
 //-----------------------------------------------------------------
 
-void ADXL345_getOffsets(int8_t *x, int8_t *y, int8_t *z)
+void adxl345GetOffsets(int8_t *x, int8_t *y, int8_t *z)
 {
     I2CReadRegisterBurst(ADXL345_I2C_BASE, ADXL345_I2C_ADDR, ADXL345_OFSX, buffer, 3);
 
@@ -69,7 +68,7 @@ void ADXL345_getOffsets(int8_t *x, int8_t *y, int8_t *z)
 
 //-----------------------------------------------------------------
 
-void ADXL345_setOffsets(int8_t x, int8_t y, int8_t z)
+void adxl345SetOffsets(int8_t x, int8_t y, int8_t z)
 {
     I2CWriteRegister(ADXL345_I2C_BASE, ADXL345_I2C_ADDR, ADXL345_OFSX, x);
     I2CWriteRegister(ADXL345_I2C_BASE, ADXL345_I2C_ADDR, ADXL345_OFSY, y);
@@ -78,21 +77,21 @@ void ADXL345_setOffsets(int8_t x, int8_t y, int8_t z)
 
 //-----------------------------------------------------------------
 
-uint8_t ADXL345_getIntSource()
+uint8_t adxl345GetIntSource()
 {
     return I2CReadRegister(ADXL345_I2C_BASE, ADXL345_I2C_ADDR, ADXL345_INT_SOURCE, NULL);
 }
 
 //-----------------------------------------------------------------
 
-uint8_t ADXL345_getIntMapping()
+uint8_t adxl345GetIntMapping()
 {
     return I2CReadRegister(ADXL345_I2C_BASE, ADXL345_I2C_ADDR, ADXL345_INT_MAP, NULL);
 }
 
 //-----------------------------------------------------------------
 
-void ADXL345_setIntMapping(uint8_t map)
+void adxl345SetIntMapping(uint8_t map)
 {
     I2CWriteRegister(ADXL345_I2C_BASE, ADXL345_I2C_ADDR, ADXL345_INT_MAP, map);
 }

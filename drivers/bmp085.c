@@ -17,7 +17,7 @@
 
 //-----------------------------------------------------------------
 
-static int16_t ac1, ac2, ac3, b1, b2, mb, mc, md;
+static int16_t ac1, ac2, ac3, b1, b2, mc, md; // , mb
 static uint16_t ac4, ac5, ac6;
 static int32_t b5;
 
@@ -25,19 +25,19 @@ static uint8_t buffer[3];
 
 //-----------------------------------------------------------------
 
-void BMP085_init()
+void bmp085Init()
 {
-    ac1 = BMP085_readInt(BMP085_AC1_MSB);
-    ac2 = BMP085_readInt(BMP085_AC2_MSB);
-    ac3 = BMP085_readInt(BMP085_AC3_MSB);
-    ac4 = BMP085_readInt(BMP085_AC4_MSB);
-    ac5 = BMP085_readInt(BMP085_AC5_MSB);
-    ac6 = BMP085_readInt(BMP085_AC6_MSB);
-    b1 = BMP085_readInt(BMP085_B1_MSB);
-    b2 = BMP085_readInt(BMP085_B2_MSB);
-    mb = BMP085_readInt(BMP085_MB_MSB);
-    mc = BMP085_readInt(BMP085_MC_MSB);
-    md = BMP085_readInt(BMP085_MD_MSB);
+    ac1 = bmp085ReadInt(BMP085_AC1_MSB);
+    ac2 = bmp085ReadInt(BMP085_AC2_MSB);
+    ac3 = bmp085ReadInt(BMP085_AC3_MSB);
+    ac4 = bmp085ReadInt(BMP085_AC4_MSB);
+    ac5 = bmp085ReadInt(BMP085_AC5_MSB);
+    ac6 = bmp085ReadInt(BMP085_AC6_MSB);
+    b1 = bmp085ReadInt(BMP085_B1_MSB);
+    b2 = bmp085ReadInt(BMP085_B2_MSB);
+//    mb = bmp085ReadInt(BMP085_MB_MSB);
+    mc = bmp085ReadInt(BMP085_MC_MSB);
+    md = bmp085ReadInt(BMP085_MD_MSB);
 //    ac1 = 408;
 //    ac2 = -72;
 //    ac3 = -14383;
@@ -53,12 +53,12 @@ void BMP085_init()
 
 //-----------------------------------------------------------------
 
-int16_t BMP085_readTemperature()
+int16_t bmp085ReadTemperature()
 {
     int32_t x1, x2;
     int16_t ut;
 
-    ut = BMP085_readUT();
+    ut = bmp085ReadUT();
 //    ut = 27898;
 
     x1 = (((int32_t) ut - ac6) * ac5) >> 15;
@@ -70,12 +70,12 @@ int16_t BMP085_readTemperature()
 
 //-----------------------------------------------------------------
 
-int32_t BMP085_readPressure()
+int32_t bmp085ReadPressure()
 {
     int32_t x1, x2, x3, b3, b6, p, up;
     uint32_t b4, b7;
 
-    up = BMP085_readUP();
+    up = bmp085ReadUP();
 //    up = 23843;
 
     b6 = b5 - 4000;
@@ -105,17 +105,17 @@ int32_t BMP085_readPressure()
 
 //-----------------------------------------------------------------
 
-int16_t BMP085_readUT()
+int16_t bmp085ReadUT()
 {
     I2CWriteRegister(BMP085_I2C_BASE, BMP085_I2C_ADDR, BMP085_CONTROL, BMP085_UT);
     DELAY_MS(6);
 
-    return BMP085_readInt(BMP085_DATA_MSB);
+    return bmp085ReadInt(BMP085_DATA_MSB);
 }
 
 //-----------------------------------------------------------------
 
-int32_t BMP085_readUP()
+int32_t bmp085ReadUP()
 {
     I2CWriteRegister(BMP085_I2C_BASE, BMP085_I2C_ADDR, BMP085_CONTROL, BMP085_UP + (BMP085_OSS << 6));
     DELAY_MS(3 + (3 << BMP085_OSS));
@@ -126,7 +126,7 @@ int32_t BMP085_readUP()
 
 //-----------------------------------------------------------------
 
-int16_t BMP085_readInt(uint8_t reg)
+int16_t bmp085ReadInt(uint8_t reg)
 {
     I2CReadRegisterBurst(BMP085_I2C_BASE, BMP085_I2C_ADDR, reg, buffer, 2);
     return ((int16_t) buffer[0] << 8) | buffer[1];

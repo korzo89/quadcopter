@@ -18,14 +18,14 @@ static uint8_t buffer[6];
 
 //-----------------------------------------------------------------
 
-void HMC5883_init()
+void hmc5883Init()
 {
     I2CWriteRegister(HMC8553_I2C_BASE, HMC5883_I2C_ADDR, HMC5883_MODE, 0x00);
 }
 
 //-----------------------------------------------------------------
 
-void HMC5883_readMag(int16_t *x, int16_t *y, int16_t *z)
+void hmc5883ReadMag(int16_t *x, int16_t *y, int16_t *z)
 {
     I2CReadRegisterBurst(HMC8553_I2C_BASE, HMC5883_I2C_ADDR, HMC5883_OUT_X_MSB, buffer, 6);
 

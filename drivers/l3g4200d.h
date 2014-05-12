@@ -10,7 +10,7 @@
 
 //-----------------------------------------------------------------
 
-#include <stdint.h>
+#include <defs.h>
 
 //-----------------------------------------------------------------
 
@@ -45,14 +45,14 @@
 
 //-----------------------------------------------------------------
 
-void L3G4200D_init();
+void l3g4200dInit();
 
-void L3G4200D_readGyro(int16_t *x, int16_t *y, int16_t *z);
+void l3g4200dReadGyro(int16_t *x, int16_t *y, int16_t *z);
 
-void L3G4200D_writeRegister(uint8_t reg, uint8_t data);
+void l3g4200dWriteRegister(uint8_t reg, uint8_t data);
 
-uint8_t L3G4200D_readRegister(uint8_t reg);
-void L3G4200D_readRegisterBurst(uint8_t reg, uint8_t *buf, int len);
+uint8_t l3g4200dReadRegister(uint8_t reg);
+void l3g4200dReadRegisterBurst(uint8_t reg, uint8_t *buf, int len);
 
 //-----------------------------------------------------------------
 

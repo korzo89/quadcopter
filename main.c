@@ -20,6 +20,10 @@
 #include <drivers/motors.h>
 #include <drivers/ultrasonic.h>
 #include <drivers/adc.h>
+#include <drivers/adxl345.h>
+#include <drivers/l3g4200d.h>
+#include <drivers/hmc5883.h>
+#include <drivers/bmp085.h>
 #include <modules/imu.h>
 #include <modules/gps.h>
 #include <modules/rcp.h>
@@ -69,9 +73,10 @@ static void oledTask(void *params)
     float dist;
     float battery;
 
-    GpsMessage msg;
+    static GpsMessage msg;
+    static IMUSensorData sensors;
 
-    const int NUM_SCREENS = 4;
+    const int NUM_SCREENS = 8;
 
     while (1)
     {
@@ -143,6 +148,49 @@ static void oledTask(void *params)
             break;
 
         case 3:
+            adxl345GetAcceleration(&sensors.accX, &sensors.accY, &sensors.accZ);
+            oledDispStrAt("Accelerometer", 2, 0);
+            usprintf(buf, "X: %5d", sensors.accX);
+            oledDispStrAt(buf, 4, 0);
+            usprintf(buf, "Y: %5d", sensors.accY);
+            oledDispStrAt(buf, 5, 0);
+            usprintf(buf, "Z: %5d", sensors.accZ);
+            oledDispStrAt(buf, 6, 0);
+            break;
+
+        case 4:
+            l3g4200dReadGyro(&sensors.gyroX, &sensors.gyroY, &sensors.gyroZ);
+            oledDispStrAt("Gyroscope", 2, 0);
+            usprintf(buf, "X: %5d", sensors.gyroX);
+            oledDispStrAt(buf, 4, 0);
+            usprintf(buf, "Y: %5d", sensors.gyroY);
+            oledDispStrAt(buf, 5, 0);
+            usprintf(buf, "Z: %5d", sensors.gyroZ);
+            oledDispStrAt(buf, 6, 0);
+            break;
+
+        case 5:
+            hmc5883ReadMag(&sensors.magX, &sensors.magY, &sensors.magZ);
+            oledDispStrAt("Magnetometer", 2, 0);
+            usprintf(buf, "X: %5d", sensors.magX);
+            oledDispStrAt(buf, 4, 0);
+            usprintf(buf, "Y: %5d", sensors.magY);
+            oledDispStrAt(buf, 5, 0);
+            usprintf(buf, "Z: %5d", sensors.magZ);
+            oledDispStrAt(buf, 6, 0);
+            break;
+
+        case 6:
+            sensors.temperature = bmp085ReadTemperature();
+            sensors.pressure = bmp085ReadPressure();
+            oledDispStrAt("Barometer", 2, 0);
+            usprintf(buf, "T: %5d", sensors.temperature);
+            oledDispStrAt(buf, 4, 0);
+            usprintf(buf, "P: %8d", sensors.pressure);
+            oledDispStrAt(buf, 5, 0);
+            break;
+
+        case 7:
             oledDispStrAt("GPS NMEA", 2, 0);
 
             if (gpsGetMessage(&msg))

@@ -60,11 +60,11 @@ void imuInit(float beta, float freq)
     I2CMasterInitExpClk(I2C0_MASTER_BASE, SysCtlClockGet(), false);
 
     // init sensors
-    ADXL345_setOffsets(0, 0, 0);
-    ADXL345_init();
-    L3G4200D_init();
-    HMC5883_init();
-    BMP085_init();
+    adxl345SetOffsets(0, 0, 0);
+    adxl345Init();
+    l3g4200dInit();
+    hmc5883Init();
+    bmp085Init();
 
     q0 = 1.0f;
     q1 = 0.0f;
@@ -79,11 +79,11 @@ void imuInit(float beta, float freq)
 
 void imuPollSensors(IMUSensorData *data)
 {
-    ADXL345_getAcceleration(&data->accX, &data->accY, &data->accZ);
-    L3G4200D_readGyro(&data->gyroX, &data->gyroY, &data->gyroZ);
-    HMC5883_readMag(&data->magX, &data->magY, &data->magZ);
-    data->temperature = BMP085_readTemperature();
-    data->pressure = BMP085_readPressure();
+    adxl345GetAcceleration(&data->accX, &data->accY, &data->accZ);
+    l3g4200dReadGyro(&data->gyroX, &data->gyroY, &data->gyroZ);
+    hmc5883ReadMag(&data->magX, &data->magY, &data->magZ);
+//    data->temperature = bmp085ReadTemperature();
+//    data->pressure = bmp085ReadPressure();
 }
 
 //-----------------------------------------------------------------

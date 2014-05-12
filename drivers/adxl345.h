@@ -10,8 +10,7 @@
 
 //-----------------------------------------------------------------
 
-#include <stdint.h>
-#include <stdbool.h>
+#include <defs.h>
 
 //-----------------------------------------------------------------
 
@@ -73,28 +72,28 @@
 //-----------------------------------------------------------------
 
 typedef enum {
-    ADXL345Range2g  = 0x00,
-    ADXL345Range4g  = 0x01,
-    ADXL345Range8g  = 0x02,
-    ADXL345Range16g = 0x03
+    ADXL345_RANGE_2G    = 0x00,
+    ADXL345_RANGE_4G    = 0x01,
+    ADXL345_RANGE_8G    = 0x02,
+    ADXL345_RANGE_16G   = 0x03
 } ADXL345Range;
 
 //-----------------------------------------------------------------
 
-void ADXL345_init();
+void adxl345Init();
 
-void ADXL345_getAcceleration(int16_t *x, int16_t *y, int16_t *z);
+void adxl345GetAcceleration(int16_t *x, int16_t *y, int16_t *z);
 
-ADXL345Range ADXL345_getRange();
-void ADXL345_setRange(ADXL345Range range);
+ADXL345Range adxl345GetRange();
+void adxl345SetRange(ADXL345Range range);
 
-void ADXL345_getOffsets(int8_t *x, int8_t *y, int8_t *z);
-void ADXL345_setOffsets(int8_t x, int8_t y, int8_t z);
+void adxl345GetOffsets(int8_t *x, int8_t *y, int8_t *z);
+void adxl345SetOffsets(int8_t x, int8_t y, int8_t z);
 
-uint8_t ADXL345_getIntSource();
+uint8_t adxl345GetIntSource();
 
-uint8_t ADXL345_getIntMapping();
-void ADXL345_setIntMapping(uint8_t map);
+uint8_t adxl345GetIntMapping();
+void adxl345SetIntMapping(uint8_t map);
 
 //-----------------------------------------------------------------
 

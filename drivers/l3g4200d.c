@@ -7,7 +7,6 @@
 
 #include "l3g4200d.h"
 #include <drivers/i2c.h>
-#include <stdlib.h>
 
 //-----------------------------------------------------------------
 
@@ -19,17 +18,17 @@ static uint8_t buffer[6];
 
 //-----------------------------------------------------------------
 
-void L3G4200D_init()
+void l3g4200dInit()
 {
-    L3G4200D_writeRegister(L3G4200D_CTRL_REG4, 0xA0);
-    L3G4200D_writeRegister(L3G4200D_CTRL_REG1, 0x4F);
+    l3g4200dWriteRegister(L3G4200D_CTRL_REG4, 0xA0);
+    l3g4200dWriteRegister(L3G4200D_CTRL_REG1, 0x4F);
 }
 
 //-----------------------------------------------------------------
 
-void L3G4200D_readGyro(int16_t *x, int16_t *y, int16_t *z)
+void l3g4200dReadGyro(int16_t *x, int16_t *y, int16_t *z)
 {
-    L3G4200D_readRegisterBurst(L3G4200D_OUT_X_L, buffer, 6);
+    l3g4200dReadRegisterBurst(L3G4200D_OUT_X_L, buffer, 6);
 
     *x = ((int16_t) buffer[1] << 8) | buffer[0];
     *y = ((int16_t) buffer[3] << 8) | buffer[2];
@@ -38,21 +37,21 @@ void L3G4200D_readGyro(int16_t *x, int16_t *y, int16_t *z)
 
 //-----------------------------------------------------------------
 
-void L3G4200D_writeRegister(uint8_t reg, uint8_t data)
+void l3g4200dWriteRegister(uint8_t reg, uint8_t data)
 {
     I2CWriteRegister(L3G4200_I2C_BASE, L3G4200D_I2C_ADDR, reg, data);
 }
 
 //-----------------------------------------------------------------
 
-uint8_t L3G4200D_readRegister(uint8_t reg)
+uint8_t l3g4200dReadRegister(uint8_t reg)
 {
     return I2CReadRegister(L3G4200_I2C_BASE, L3G4200D_I2C_ADDR, reg, NULL);
 }
 
 //-----------------------------------------------------------------
 
-void L3G4200D_readRegisterBurst(uint8_t reg, uint8_t *buf, int len)
+void l3g4200dReadRegisterBurst(uint8_t reg, uint8_t *buf, int len)
 {
     I2CReadRegisterBurst(L3G4200_I2C_BASE, L3G4200D_I2C_ADDR, reg | 0x80, buf, len);
 }
