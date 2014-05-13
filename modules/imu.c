@@ -14,9 +14,10 @@
 #include <inc/hw_ints.h>
 #include <driverlib/pin_map.h>
 #include <driverlib/gpio.h>
-#include <driverlib/i2c.h>
 #include <driverlib/timer.h>
 #include <driverlib/interrupt.h>
+
+#include <drivers/imu_i2c.h>
 #include <drivers/adxl345.h>
 #include <drivers/l3g4200d.h>
 #include <drivers/hmc5883.h>
@@ -51,13 +52,7 @@ volatile float pitch, roll, yaw;
 
 void imuInit(float beta, float freq)
 {
-    // I2C config
-    GPIOPinConfigure(GPIO_PB2_I2C0SCL);
-    GPIOPinConfigure(GPIO_PB3_I2C0SDA);
-    GPIOPinTypeI2CSCL(GPIO_PORTB_BASE, GPIO_PIN_2);
-    GPIOPinTypeI2C(GPIO_PORTB_BASE, GPIO_PIN_3);
-
-    I2CMasterInitExpClk(I2C0_MASTER_BASE, SysCtlClockGet(), false);
+    imuI2CInit();
 
     // init sensors
     adxl345SetOffsets(0, 0, 0);

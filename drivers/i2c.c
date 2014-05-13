@@ -6,12 +6,12 @@
 
 //-----------------------------------------------------------------
 
-unsigned long I2CWriteRegister(unsigned long base, uint8_t addr, uint8_t reg, uint8_t data)
+unsigned long i2cWriteRegister(unsigned long base, uint8_t addr, uint8_t reg, uint8_t data)
 {
     unsigned long err;
 
     I2CMasterSlaveAddrSet(base, addr, false);
-    if ((err = I2CDataPut(base, reg, I2C_MASTER_CMD_BURST_SEND_START)) != I2C_MASTER_ERR_NONE)
+    if ((err = i2cDataPut(base, reg, I2C_MASTER_CMD_BURST_SEND_START)) != I2C_MASTER_ERR_NONE)
         return err;
 
     I2CMasterDataPut(base, data);
@@ -23,13 +23,13 @@ unsigned long I2CWriteRegister(unsigned long base, uint8_t addr, uint8_t reg, ui
 
 //-----------------------------------------------------------------
 
-unsigned long I2CWriteRegisterBurst(unsigned long base, uint8_t addr, uint8_t reg, uint8_t *buf, int len)
+unsigned long i2cWriteRegisterBurst(unsigned long base, uint8_t addr, uint8_t reg, uint8_t *buf, int len)
 {
     int i;
     unsigned long err;
 
     I2CMasterSlaveAddrSet(base, addr, false);
-    if ((err = I2CDataPut(base, reg, I2C_MASTER_CMD_BURST_SEND_START)) != I2C_MASTER_ERR_NONE)
+    if ((err = i2cDataPut(base, reg, I2C_MASTER_CMD_BURST_SEND_START)) != I2C_MASTER_ERR_NONE)
         return err;
 
     for (i = 0; i < len - 1; i++)
@@ -50,12 +50,12 @@ unsigned long I2CWriteRegisterBurst(unsigned long base, uint8_t addr, uint8_t re
 
 //-----------------------------------------------------------------
 
-uint8_t I2CReadRegister(unsigned long base, uint8_t addr, uint8_t reg, unsigned long *res)
+uint8_t i2cReadRegister(unsigned long base, uint8_t addr, uint8_t reg, unsigned long *res)
 {
     unsigned long err;
 
     I2CMasterSlaveAddrSet(base, addr, false);
-    if ((err = I2CDataPut(base, reg, I2C_MASTER_CMD_SINGLE_SEND)) != I2C_MASTER_ERR_NONE)
+    if ((err = i2cDataPut(base, reg, I2C_MASTER_CMD_SINGLE_SEND)) != I2C_MASTER_ERR_NONE)
     {
         if (res)
             *res = err;
@@ -73,13 +73,13 @@ uint8_t I2CReadRegister(unsigned long base, uint8_t addr, uint8_t reg, unsigned 
 
 //-----------------------------------------------------------------
 
-unsigned long I2CReadRegisterBurst(unsigned long base, uint8_t addr, uint8_t reg, uint8_t *buf, int len)
+unsigned long i2cReadRegisterBurst(unsigned long base, uint8_t addr, uint8_t reg, uint8_t *buf, int len)
 {
     int i;
     unsigned long err;
 
     I2CMasterSlaveAddrSet(base, addr, false);
-    if ((err = I2CDataPut(base, reg, I2C_MASTER_CMD_BURST_SEND_START)) != I2C_MASTER_ERR_NONE)
+    if ((err = i2cDataPut(base, reg, I2C_MASTER_CMD_BURST_SEND_START)) != I2C_MASTER_ERR_NONE)
         return err;
 
     I2CMasterSlaveAddrSet(base, addr, true);
@@ -109,7 +109,7 @@ unsigned long I2CReadRegisterBurst(unsigned long base, uint8_t addr, uint8_t reg
 
 //-----------------------------------------------------------------
 
-unsigned long I2CDataPut(unsigned long base, uint8_t data, unsigned long control)
+unsigned long i2cDataPut(unsigned long base, uint8_t data, unsigned long control)
 {
     I2CMasterDataPut(base, data);
     I2CMasterControl(base, control);

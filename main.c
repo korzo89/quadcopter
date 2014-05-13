@@ -301,7 +301,6 @@ void main(void)
     SysCtlPeripheralEnable(SYSCTL_PERIPH_UART0);
     SysCtlPeripheralEnable(SYSCTL_PERIPH_UART2);
     SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER2);
-    SysCtlPeripheralEnable(SYSCTL_PERIPH_I2C0);
 
     IntMasterEnable();
 

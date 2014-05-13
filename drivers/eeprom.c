@@ -24,9 +24,9 @@
 static bool eepromWriteStart(uint16_t addr)
 {
     I2CMasterSlaveAddrSet(COMMON_I2C_BASE, EEPROM_I2C_ADDR, false);
-    if (I2CDataPut(COMMON_I2C_BASE, addr >> 8, I2C_MASTER_CMD_BURST_SEND_START) != I2C_MASTER_ERR_NONE)
+    if (i2cDataPut(COMMON_I2C_BASE, addr >> 8, I2C_MASTER_CMD_BURST_SEND_START) != I2C_MASTER_ERR_NONE)
         return false;
-    if (I2CDataPut(COMMON_I2C_BASE, addr & 0xFF, I2C_MASTER_CMD_BURST_SEND_CONT) != I2C_MASTER_ERR_NONE)
+    if (i2cDataPut(COMMON_I2C_BASE, addr & 0xFF, I2C_MASTER_CMD_BURST_SEND_CONT) != I2C_MASTER_ERR_NONE)
         return false;
 
     return true;

@@ -16,6 +16,8 @@
 
 #define RCP_PAYLOAD_SIZE        32
 
+#define IS_VALID_CMD(x)         ( (int)(x) >= (int)RCP_CMD_OK && (int)(x) < (int)RCP_CMD_NUM )
+
 //-----------------------------------------------------------------
 
 typedef enum
@@ -44,11 +46,13 @@ typedef void (*RCPCallback)(RCPMessage*);
 
 void rcpInit(void);
 
-void rcpSendMessage(RCPMessage *msg);
-void rcpRegisterCallback(RCPCommand cmd, RCPCallback callback);
+bool rcpSendMessage(RCPMessage *msg);
+void rcpRegisterCallback(RCPCommand cmd, RCPCallback callback, bool query);
 
 void rcpEnableRx(void);
 void rcpEnableTx(void);
+
+void rcpProcessMessage(RCPMessage *msg);
 
 //-----------------------------------------------------------------
 

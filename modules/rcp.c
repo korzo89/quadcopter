@@ -45,7 +45,8 @@ volatile int lostCount = 0;
 static xSemaphoreHandle rcpReady;
 static xQueueHandle txQueue;
 
-static RCPCallback callbacks[RCP_CMD_NUM] = { 0 };
+static RCPCallback cmdCallbacks[RCP_CMD_NUM] = { 0 };
+static RCPCallback queryCallbacks[RCP_CMD_NUM] = { 0 };
 
 //-----------------------------------------------------------------
 
@@ -92,8 +93,7 @@ void rcpTask(void *args)
         while (!(nrfGetFIFOStatus() & NRF_FIFO_STATUS_RX_EMPTY))
         {
             nrfReadRxPayload(msg.raw, RCP_PAYLOAD_SIZE);
-
-            // TODO: process RCP message
+            rcpProcessMessage(&msg);
         }
         nrfClearIRQ(NRF_IRQ_RX_DR);
 
@@ -112,16 +112,19 @@ void rcpTask(void *args)
 
 //-----------------------------------------------------------------
 
-void rcpSendMessage(RCPMessage *msg)
+bool rcpSendMessage(RCPMessage *msg)
 {
-    xQueueSend(txQueue, msg, portMAX_DELAY);
+    return xQueueSend(txQueue, msg, portMAX_DELAY) == pdTRUE;
 }
 
 //-----------------------------------------------------------------
 
-void rcpRegisterCallback(RCPCommand cmd, RCPCallback callback)
+void rcpRegisterCallback(RCPCommand cmd, RCPCallback callback, bool query)
 {
-    callbacks[(int)cmd] = callback;
+    if (query)
+        queryCallbacks[(int)cmd] = callback;
+    else
+        cmdCallbacks[(int)cmd] = callback;
 }
 
 //-----------------------------------------------------------------
@@ -140,6 +143,22 @@ void rcpEnableTx(void)
     nrfSetTxAddr((unsigned char*)ADDR_TX, RCP_ADDR_LEN);
     nrfSetRxAddr((unsigned char*)ADDR_TX, RCP_ADDR_LEN, 0);
     nrfSetAsTx();
+}
+
+//-----------------------------------------------------------------
+
+void rcpProcessMessage(RCPMessage *msg)
+{
+    if (!msg || !IS_VALID_CMD(msg->cmd))
+        return;
+
+    RCPCallback callback = cmdCallbacks[(int)msg->cmd];
+    if (callback)
+        callback(msg);
+
+    callback = queryCallbacks[(int)msg->query];
+    if (callback)
+        callback(msg);
 }
 
 //-----------------------------------------------------------------

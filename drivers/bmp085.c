@@ -8,12 +8,8 @@
 //-----------------------------------------------------------------
 
 #include "bmp085.h"
-#include <drivers/i2c.h>
+#include <drivers/imu_i2c.h>
 #include <utils/delay.h>
-
-//-----------------------------------------------------------------
-
-#define BMP085_I2C_BASE        I2C0_MASTER_BASE
 
 //-----------------------------------------------------------------
 
@@ -107,7 +103,7 @@ int32_t bmp085ReadPressure()
 
 int16_t bmp085ReadUT()
 {
-    I2CWriteRegister(BMP085_I2C_BASE, BMP085_I2C_ADDR, BMP085_CONTROL, BMP085_UT);
+    imuI2CWriteRegister(BMP085_I2C_ADDR, BMP085_CONTROL, BMP085_UT);
     DELAY_MS(6);
 
     return bmp085ReadInt(BMP085_DATA_MSB);
@@ -117,10 +113,10 @@ int16_t bmp085ReadUT()
 
 int32_t bmp085ReadUP()
 {
-    I2CWriteRegister(BMP085_I2C_BASE, BMP085_I2C_ADDR, BMP085_CONTROL, BMP085_UP + (BMP085_OSS << 6));
+    imuI2CWriteRegister(BMP085_I2C_ADDR, BMP085_CONTROL, BMP085_UP + (BMP085_OSS << 6));
     DELAY_MS(3 + (3 << BMP085_OSS));
 
-    I2CReadRegisterBurst(BMP085_I2C_BASE, BMP085_I2C_ADDR, BMP085_DATA_MSB, buffer, 3);
+    imuI2CReadRegisterBurst(BMP085_I2C_ADDR, BMP085_DATA_MSB, buffer, 3);
     return (((int32_t) buffer[0] << 16) | ((int32_t) buffer[1] << 8) | buffer[2]) >> (8 - BMP085_OSS);
 }
 
@@ -128,7 +124,7 @@ int32_t bmp085ReadUP()
 
 int16_t bmp085ReadInt(uint8_t reg)
 {
-    I2CReadRegisterBurst(BMP085_I2C_BASE, BMP085_I2C_ADDR, reg, buffer, 2);
+    imuI2CReadRegisterBurst(BMP085_I2C_ADDR, reg, buffer, 2);
     return ((int16_t) buffer[0] << 8) | buffer[1];
 }
 

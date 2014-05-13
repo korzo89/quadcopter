@@ -6,11 +6,7 @@
  */
 
 #include "hmc5883.h"
-#include <drivers/i2c.h>
-
-//-----------------------------------------------------------------
-
-#define HMC8553_I2C_BASE        I2C0_MASTER_BASE
+#include <drivers/imu_i2c.h>
 
 //-----------------------------------------------------------------
 
@@ -20,14 +16,14 @@ static uint8_t buffer[6];
 
 void hmc5883Init()
 {
-    I2CWriteRegister(HMC8553_I2C_BASE, HMC5883_I2C_ADDR, HMC5883_MODE, 0x00);
+    imuI2CWriteRegister(HMC5883_I2C_ADDR, HMC5883_MODE, 0x00);
 }
 
 //-----------------------------------------------------------------
 
 void hmc5883ReadMag(int16_t *x, int16_t *y, int16_t *z)
 {
-    I2CReadRegisterBurst(HMC8553_I2C_BASE, HMC5883_I2C_ADDR, HMC5883_OUT_X_MSB, buffer, 6);
+    imuI2CReadRegisterBurst(HMC5883_I2C_ADDR, HMC5883_OUT_X_MSB, buffer, 6);
 
     *x = ((int16_t) buffer[0] << 8) | buffer[1];
     *z = ((int16_t) buffer[2] << 8) | buffer[3];
