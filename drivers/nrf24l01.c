@@ -26,13 +26,15 @@
 #define NRF_IRQ_PORT          GPIO_PORTC_BASE
 #define NRF_IRQ_PIN           GPIO_PIN_7
 
-#define NRF_SPI_BASE          SSI0_BASE
+#define NRF_SPI               SSI0_BASE
 
 #define CE_SET()              GPIOPinWrite(NRF_CE_PORT, NRF_CE_PIN, 0xFF)
 #define CE_CLEAR()            GPIOPinWrite(NRF_CE_PORT, NRF_CE_PIN, 0x00)
 
 #define CSN_SET()             GPIOPinWrite(NRF_CSN_PORT, NRF_CSN_PIN, 0xFF)
 #define CSN_CLEAR()           GPIOPinWrite(NRF_CSN_PORT, NRF_CSN_PIN, 0x00)
+
+#define READ_IRQ_PIN()        GPIOPinRead(NRF_IRQ_PORT, NRF_IRQ_PIN)
 
 #define NRF_DELAY_MS(x)       DELAY_MS(x)
 
@@ -47,7 +49,7 @@ void GPIOCIntHandler(void)
     unsigned long status = GPIOPinIntStatus(NRF_IRQ_PORT, true);
     GPIOPinIntClear(NRF_IRQ_PORT, status);
 
-    if (status & NRF_IRQ_PIN && nrfIRQCallback)
+    if ((status & NRF_IRQ_PIN) && nrfIRQCallback)
         nrfIRQCallback();
 }
 
@@ -55,6 +57,7 @@ void GPIOCIntHandler(void)
 
 void nrfInit(void)
 {
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);
     SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOC);
     SysCtlPeripheralEnable(SYSCTL_PERIPH_SSI0);
 
@@ -64,7 +67,6 @@ void nrfInit(void)
     GPIOPinConfigure(GPIO_PA5_SSI0TX);
 
     GPIOPinTypeGPIOOutput(GPIO_PORTA_BASE, GPIO_PIN_3 | GPIO_PIN_7);
-    GPIOPinWrite(GPIO_PORTA_BASE, GPIO_PIN_7, GPIO_PIN_7);
     GPIOPinTypeSSI(GPIO_PORTA_BASE, GPIO_PIN_5 | GPIO_PIN_4 | GPIO_PIN_2);
 
     CSN_SET();
@@ -72,16 +74,16 @@ void nrfInit(void)
 
     // config IRQ pin
     GPIOPinTypeGPIOInput(NRF_IRQ_PORT, NRF_IRQ_PIN);
-    GPIOIntTypeSet(NRF_IRQ_PORT, NRF_IRQ_PIN, GPIO_LOW_LEVEL);
+    GPIOIntTypeSet(NRF_IRQ_PORT, NRF_IRQ_PIN, GPIO_FALLING_EDGE);
     GPIOPinIntEnable(NRF_IRQ_PORT, NRF_IRQ_PIN);
 
     IntPrioritySet(INT_GPIOC, configKERNEL_INTERRUPT_PRIORITY);
     IntEnable(INT_GPIOC);
 
     // config SPI
-    SSIConfigSetExpClk(NRF_SPI_BASE, SysCtlClockGet(),
+    SSIConfigSetExpClk(NRF_SPI, SysCtlClockGet(),
                        SSI_FRF_MOTO_MODE_0, SSI_MODE_MASTER, 1000000, 8);
-    SSIEnable(NRF_SPI_BASE);
+    SSIEnable(NRF_SPI);
 }
 
 //-----------------------------------------------------------------
@@ -90,9 +92,9 @@ static uint8_t nrfSPISendByte(uint8_t data)
 {
     unsigned long result;
 
-    SSIDataPut(NRF_SPI_BASE, data);
-    while (SSIBusy(NRF_SPI_BASE));
-    SSIDataGet(NRF_SPI_BASE, &result);
+    SSIDataPut(NRF_SPI, data);
+    while (SSIBusy(NRF_SPI));
+    SSIDataGet(NRF_SPI, &result);
 
     return (uint8_t)result;
 }
@@ -158,7 +160,7 @@ void nrfPowerUp(void)
         return;
 
     config |= NRF_CONFIG_PWR_UP;
-    nrfWriteRegister(NRF_CONFIG, &config, 1);
+    nrfWriteRegisterByte(NRF_CONFIG, config);
 }
 
 //-----------------------------------------------------------------
@@ -211,28 +213,28 @@ uint8_t nrfNop(void)
 
 void nrfSetAsRx(void)
 {
+    CE_SET();
+
     uint8_t config = nrfReadRegisterByte(NRF_CONFIG);
     if (config & NRF_CONFIG_PRIM_RX)
         return;
 
     config |= NRF_CONFIG_PRIM_RX;
     nrfWriteRegisterByte(NRF_CONFIG, config);
-
-    CE_SET();
 }
 
 //-----------------------------------------------------------------
 
 void nrfSetAsTx(void)
 {
+    CE_CLEAR();
+
     uint8_t config = nrfReadRegisterByte(NRF_CONFIG);
     if (!(config & NRF_CONFIG_PRIM_RX))
         return;
 
     config &= ~NRF_CONFIG_PRIM_RX;
     nrfWriteRegisterByte(NRF_CONFIG, config);
-
-    CE_CLEAR();
 }
 
 //-----------------------------------------------------------------
@@ -372,6 +374,13 @@ void nrfTransmit(void)
     CE_SET();
     NRF_DELAY_MS(1);
     CE_CLEAR();
+}
+
+//-----------------------------------------------------------------
+
+bool nrfIsIRQActive(void)
+{
+    return !READ_IRQ_PIN();
 }
 
 //-----------------------------------------------------------------

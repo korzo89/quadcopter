@@ -141,6 +141,19 @@ static void oledTask(void *params)
             usprintf(buf, "Dist: %7d mm", (int)(dist * 10));
             oledDispStrAt(buf, 2, 0);
 
+            if (buttonCounter % 2) {
+                if (dist < 10.0f)
+                    buzzerSetFreq(NOTE_E6);
+                else if (dist < 20.0f)
+                    buzzerSetFreq(NOTE_D6);
+                else if (dist < 30.0f)
+                    buzzerSetFreq(NOTE_C6);
+                else
+                    buzzerSetFreq(0);
+            } else {
+                buzzerSetFreq(0);
+            }
+
             battery = (float)adcGetValue() * 3.3 / 4095.0 * 78.0 / 10.0;
             usprintf(buf, "Battery: %2d.%1d V", (int)battery, (int)(battery * 10) % 10);
             oledDispStrAt(buf, 3, 0);
@@ -241,6 +254,17 @@ static void buttonTask(void *params)
     }
 }
 
+#include <comm.h>
+
+void commTask(void *params)
+{
+    commConfig();
+    while (1)
+    {
+        commPollReceiver();
+    }
+}
+
 static void initTask(void *params)
 {
     oledInit();
@@ -281,6 +305,10 @@ static void initTask(void *params)
     xTaskCreate(buttonTask, (signed portCHAR*)"BTN",
                 configMINIMAL_STACK_SIZE, NULL, 2, NULL);
 
+    xTaskCreate(commTask, (signed portCHAR*)"COMM",
+                    configMINIMAL_STACK_SIZE, NULL, 2, NULL);
+
+//    rcpInit();
     gpsInit();
 
     vTaskDelete(NULL);

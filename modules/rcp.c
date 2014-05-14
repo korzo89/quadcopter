@@ -60,6 +60,55 @@ static void rcpRadioIRQCallback(void)
 
 //-----------------------------------------------------------------
 
+static void rcpTask(void *args)
+{
+    RCPMessage msg;
+
+    xSemaphoreTake(rcpReady, 0);
+
+    while (1)
+    {
+//        rcpEnableRx();
+//
+//        char addr[6];
+//        nrfReadRegister(NRF_RX_ADDR_P0, addr, 5);
+//        addr[5] = '\0';
+//        UARTprintf("%s\n", addr);
+//
+//        while (!nrfIsIRQActive());
+//        uint8_t status = nrfGetStatus();
+//
+//        // wait for IRQ
+//        xSemaphoreTake(rcpReady, portMAX_DELAY);
+//
+//        // get all available RX payload data
+//        while (!(nrfGetFIFOStatus() & NRF_FIFO_STATUS_RX_EMPTY))
+//        {
+//            nrfReadRxPayload(msg.raw, RCP_PAYLOAD_SIZE);
+//            rcpProcessMessage(&msg);
+//        }
+//        nrfClearIRQ(NRF_IRQ_RX_DR);
+//
+//        // send all pending messages
+//        rcpEnableTx();
+//        while (uxQueueMessagesWaiting(txQueue) > 0)
+//        {
+//            xQueueReceive(txQueue, &msg, 0);
+//
+//            nrfWriteTxPayload(msg.raw, RCP_PAYLOAD_SIZE, true);
+//
+//            // TODO: wait for TX interrupt
+//        }
+
+        rcpEnableRx();
+        while (!(nrfIsIRQActive() && NRF_CHECK_STATUS(NRF_IRQ_RX_DR)));
+        nrfReadRxPayload(msg.raw, RCP_PAYLOAD_SIZE);
+        nrfClearAllIRQ();
+    }
+}
+
+//-----------------------------------------------------------------
+
 void rcpInit(void)
 {
     vSemaphoreCreateBinary(rcpReady);
@@ -72,42 +121,22 @@ void rcpInit(void)
     nrfAutoAckEnable(RCP_PIPE);
     nrfSetIRQCallback(rcpRadioIRQCallback);
 
+    nrfSetTxAddr((unsigned char*)ADDR_TX, RCP_ADDR_LEN);
+    nrfSetRxAddr((unsigned char*)ADDR_RX, RCP_ADDR_LEN, RCP_PIPE);
+
+    uint8_t reg, temp;
+    for (reg = 0x00; reg <= 0x17; ++reg)
+    {
+        temp = nrfReadRegisterByte(reg);
+        UARTprintf("reg 0x%02x: 0x%02x (%d)\r\n", reg, temp, temp);
+    }
+
     DELAY_MS(2);
     nrfPowerUp();
     nrfClearFlush();
-}
 
-//-----------------------------------------------------------------
-
-void rcpTask(void *args)
-{
-    RCPMessage msg;
-
-    while (1)
-    {
-        // wait for IRQ
-        xSemaphoreTake(rcpReady, portMAX_DELAY);
-
-        // get all available RX payload data
-        rcpEnableRx();
-        while (!(nrfGetFIFOStatus() & NRF_FIFO_STATUS_RX_EMPTY))
-        {
-            nrfReadRxPayload(msg.raw, RCP_PAYLOAD_SIZE);
-            rcpProcessMessage(&msg);
-        }
-        nrfClearIRQ(NRF_IRQ_RX_DR);
-
-        // send all pending messages
-        rcpEnableTx();
-        while (uxQueueMessagesWaiting(txQueue) > 0)
-        {
-            xQueueReceive(txQueue, &msg, 0);
-
-            nrfWriteTxPayload(msg.raw, RCP_PAYLOAD_SIZE, true);
-
-            // TODO: wait for TX interrupt
-        }
-    }
+    xTaskCreate(rcpTask, (signed portCHAR*)"RCP",
+                configMINIMAL_STACK_SIZE, NULL, 1, NULL);
 }
 
 //-----------------------------------------------------------------
@@ -160,53 +189,3 @@ void rcpProcessMessage(RCPMessage *msg)
     if (callback)
         callback(msg);
 }
-
-//-----------------------------------------------------------------
-
-//void rcpPollReceiver(void)
-//{
-//    nrfSetRxAddr((unsigned char*)ADDR_RX, RCP_ADDR_LEN, RCP_PIPE);
-//    nrfSetAsRx();
-//
-//    if (xSemaphoreTake)
-//    while (!(nrf24_irqPinActive() && nrf24_irq_RX_DR()));
-//
-//    nrf24_readRxPayload(buffer.data, PAYLOAD_SIZE);
-//    nrf24_irqClearAll();
-//
-//    rcpProcessData();
-//}
-//
-//bool rcpSendPayload(void)
-//{
-//    nrf24_setTxAddr((unsigned char*) ADDR_TX, 5);
-//    nrf24_setRxAddr((unsigned char*) ADDR_TX, 5, 0);
-//
-//    nrf24_delay(1);
-//
-//    nrf24_flushTx();
-//
-//    nrf24_setAsTx();
-//    nrf24_delay(1);
-//    nrf24_writeTxPayload(buffer.data, PAYLOAD_SIZE, true);
-//
-//    while (!(nrf24_irqPinActive() && (nrf24_irq_TX_DS() || nrf24_irq_MAX_RT())));
-//    nrf24_irqClearAll();
-//
-//    return true;
-//}
-//
-//void rcpProcessData(void)
-//{
-//    commBufferReadHeader(&buffer);
-//    if (buffer.start != MSG_START)
-//        return;
-//
-//    commHandleMessage();
-//
-//    ledTurnOn(LED_RED);
-//    commSendPayload();
-//    ledTurnOff(LED_RED);
-//
-//    lostCount = 0;
-//}

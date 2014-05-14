@@ -10,7 +10,7 @@
 
 //-----------------------------------------------------------------
 
-void vApplicationStackOverflowHook(xTaskHandle *pxTask, signed char *pcTaskName)
+void vApplicationStackOverflowHook()
 {
     //
     // This function can not return, so loop forever.  Interrupts are disabled

@@ -17,6 +17,10 @@
 
 //-----------------------------------------------------------------
 
+#define NRF_CHECK_STATUS(x)     ( nrfGetStatus() & (x) )
+
+//-----------------------------------------------------------------
+
 typedef void (*IRQCallback)(void);
 
 //-----------------------------------------------------------------
@@ -63,6 +67,7 @@ void nrfClearFlush(void);
 
 void nrfTransmit(void);
 
+bool nrfIsIRQActive(void);
 void nrfSetIRQCallback(IRQCallback callback);
 
 //-----------------------------------------------------------------
