@@ -34,9 +34,11 @@ typedef union
 
     struct PACK_STRUCT
     {
+    	uint8_t header;
+    	uint8_t length;
         uint8_t cmd;
         uint8_t query;
-        uint8_t data[RCP_PAYLOAD_SIZE - 2];
+        uint8_t data[RCP_PAYLOAD_SIZE - 4];
     };
 } RCPMessage;
 

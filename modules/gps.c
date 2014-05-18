@@ -12,6 +12,7 @@
 #include <FreeRTOS.h>
 #include <task.h>
 #include <queue.h>
+#include <semphr.h>
 
 //-----------------------------------------------------------------
 
@@ -19,6 +20,7 @@
 #define GPS_MAX_DATA_LEN        256
 
 #define GPS_UART_BAUD           9600
+#define GPS_UART_BUFFER_LEN		256
 
 //-----------------------------------------------------------------
 
@@ -31,6 +33,9 @@ typedef enum
     GPS_STATE_CHECKSUM2
 } GpsParserState;
 
+static char uartBuffer[GPS_UART_BUFFER_LEN];
+static int uartStart = 0, uartEnd = 0;
+
 static GpsParserState parserState = GPS_STATE_SOM;
 static char command[GPS_MAX_CMD_LEN] = "";
 static char data[GPS_MAX_DATA_LEN] = "";
@@ -39,12 +44,14 @@ static uint8_t checksum, recvChecksum;
 static bool hasMessage = false;
 
 static xQueueHandle uartQueue;
+static xSemaphoreHandle uartReady;
 
 //-----------------------------------------------------------------
 
 void gpsInit(void)
 {
     uartQueue = xQueueCreate(256, sizeof(char));
+    vSemaphoreCreateBinary(uartReady);
 
     GPIOPinConfigure(GPIO_PD6_U2RX);
     GPIOPinConfigure(GPIO_PD7_U2TX);
@@ -75,9 +82,13 @@ void UART2IntHandler(void)
         char c;
         while (UARTCharsAvail(UART2_BASE))
         {
-            c = (char)UARTCharGetNonBlocking(UART2_BASE);
-            xQueueSendToBackFromISR(uartQueue, &c, &woken);
+//            c = (char)UARTCharGetNonBlocking(UART2_BASE);
+//            xQueueSendToBackFromISR(uartQueue, &c, &woken);
+        	uartBuffer[uartEnd] = (char)UARTCharGetNonBlocking(UART2_BASE);
+        	uartEnd = (uartEnd + 1) % GPS_UART_BUFFER_LEN;
         }
+
+        xSemaphoreGiveFromISR(uartReady, woken);
     }
 
     portEND_SWITCHING_ISR(woken);
@@ -89,13 +100,27 @@ void gpsTask(void *params)
 {
     char c;
 
+    xSemaphoreTake(uartReady, 0);
+
     while (1)
     {
-        if (xQueueReceive(uartQueue, &c, portMAX_DELAY))
-        {
-//            UARTprintf("%c", c);
-            gpsParseNMEAChar(c);
-        }
+    	if (xSemaphoreTake(uartReady, portMAX_DELAY) == pdPASS)
+    	{
+    		int end = uartEnd;
+    		while (uartStart != end)
+    		{
+    			gpsParseNMEAChar(uartBuffer[uartStart]);
+    			uartStart = (uartStart + 1) % GPS_UART_BUFFER_LEN;
+    		}
+
+    		xSemaphoreTake(uartReady, 0);
+    	}
+
+//        if (xQueueReceive(uartQueue, &c, portMAX_DELAY))
+//        {
+////            UARTprintf("%c", c);
+//            gpsParseNMEAChar(c);
+//        }
     }
 }
 

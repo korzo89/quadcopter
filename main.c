@@ -47,8 +47,8 @@ static void ledTask(void *params)
 {
     while (1)
     {
-        ledSet(LED_RED);
-        vTaskDelay(MSEC_TO_TICKS(150));
+//        ledSet(LED_RED);
+//        vTaskDelay(MSEC_TO_TICKS(150));
         ledSet(LED_YELLOW);
         vTaskDelay(MSEC_TO_TICKS(150));
         ledSet(LED_GREEN);
@@ -305,10 +305,10 @@ static void initTask(void *params)
     xTaskCreate(buttonTask, (signed portCHAR*)"BTN",
                 configMINIMAL_STACK_SIZE, NULL, 2, NULL);
 
-    xTaskCreate(commTask, (signed portCHAR*)"COMM",
-                    configMINIMAL_STACK_SIZE, NULL, 2, NULL);
+//    xTaskCreate(commTask, (signed portCHAR*)"COMM",
+//                    configMINIMAL_STACK_SIZE, NULL, 2, NULL);
 
-//    rcpInit();
+    rcpInit();
     gpsInit();
 
     vTaskDelete(NULL);

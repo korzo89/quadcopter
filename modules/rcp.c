@@ -64,7 +64,7 @@ static void rcpTask(void *args)
 {
     RCPMessage msg;
 
-    xSemaphoreTake(rcpReady, 0);
+//    xSemaphoreTake(rcpReady, 0);
 
     while (1)
     {
@@ -100,10 +100,45 @@ static void rcpTask(void *args)
 //            // TODO: wait for TX interrupt
 //        }
 
+    	ledTurnOn(LED_RED);
+
         rcpEnableRx();
-        while (!(nrfIsIRQActive() && NRF_CHECK_STATUS(NRF_IRQ_RX_DR)));
-        nrfReadRxPayload(msg.raw, RCP_PAYLOAD_SIZE);
-        nrfClearAllIRQ();
+        // wait for ready interrupt
+        xSemaphoreTake(rcpReady, 0);
+        xSemaphoreTake(rcpReady, portMAX_DELAY);
+        if (NRF_CHECK_STATUS(NRF_IRQ_RX_DR))
+        {
+        	nrfReadRxPayload(msg.raw, RCP_PAYLOAD_SIZE);
+//        	rcpProcessMessage(&msg);
+
+			nrfClearIRQ(NRF_IRQ_RX_DR);
+
+			static int cc = 0;
+			memset(msg.data, cc++, 10);
+			msg.cmd = 0x05;
+			msg.query = 0x00;
+			rcpSendMessage(&msg);
+
+//			static bool on = false;
+//			ledToggle(LED_RED, on);
+//			on = !on;
+        }
+
+		// send all pending messages
+		rcpEnableTx();
+		while (uxQueueMessagesWaiting(txQueue) > 0)
+		{
+			xQueueReceive(txQueue, &msg, 0);
+
+			xSemaphoreTake(rcpReady, 0);
+			nrfWriteTxPayload(msg.raw, RCP_PAYLOAD_SIZE, true);
+
+			xSemaphoreTake(rcpReady, portMAX_DELAY);
+			if (NRF_CHECK_STATUS(NRF_IRQ_TX_DS | NRF_IRQ_MAX_RT))
+				nrfClearIRQ(NRF_IRQ_TX_DS | NRF_IRQ_MAX_RT);
+		}
+
+		ledTurnOff(LED_RED);
     }
 }
 

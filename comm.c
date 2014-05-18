@@ -8,6 +8,7 @@
 #include "comm.h"
 #include <drivers/nrf24l01.h>
 #include <utils/delay.h>
+#include <drivers/led.h>
 
 //-----------------------------------------------------------------
 
@@ -99,8 +100,10 @@ void commResponseOK(void)
 
 void commProcessData(void)
 {
+	ledTurnOn(LED_RED);
     commResponseOK();
     commSendPayload();
+    ledTurnOff(LED_RED);
 }
 
 
