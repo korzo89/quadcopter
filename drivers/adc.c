@@ -15,7 +15,7 @@
 
 //-----------------------------------------------------------------
 
-void adcInit(void)
+void adc_init(void)
 {
     SysCtlPeripheralEnable(SYSCTL_PERIPH_ADC0);
 
@@ -31,7 +31,7 @@ void adcInit(void)
 
 //-----------------------------------------------------------------
 
-unsigned long adcGetValue(void)
+unsigned long adc_get_value(void)
 {
     ADCIntClear(ADC0_BASE, 0);
     ADCProcessorTrigger(ADC0_BASE, 0);

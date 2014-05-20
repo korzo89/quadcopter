@@ -11,7 +11,6 @@
 #include <FreeRTOSConfig.h>
 #include <FreeRTOS.h>
 #include <task.h>
-#include <queue.h>
 #include <semphr.h>
 
 //-----------------------------------------------------------------
@@ -24,34 +23,32 @@
 
 //-----------------------------------------------------------------
 
-typedef enum
+enum gps_parser_state
 {
     GPS_STATE_SOM,
     GPS_STATE_CMD,
     GPS_STATE_DATA,
     GPS_STATE_CHECKSUM1,
     GPS_STATE_CHECKSUM2
-} GpsParserState;
+};
 
-static char uartBuffer[GPS_UART_BUFFER_LEN];
-static int uartStart = 0, uartEnd = 0;
+static char uart_buffer[GPS_UART_BUFFER_LEN];
+static int uart_start = 0, uart_end = 0;
 
-static GpsParserState parserState = GPS_STATE_SOM;
+static enum gps_parser_state parser_state = GPS_STATE_SOM;
 static char command[GPS_MAX_CMD_LEN] = "";
 static char data[GPS_MAX_DATA_LEN] = "";
 static int index;
-static uint8_t checksum, recvChecksum;
-static bool hasMessage = false;
+static uint8_t checksum, recv_checksum;
+static bool has_message = false;
 
-//static xQueueHandle uartQueue;
-static xSemaphoreHandle uartReady;
+static xSemaphoreHandle uart_ready;
 
 //-----------------------------------------------------------------
 
-void gpsInit(void)
+void gps_init(void)
 {
-//    uartQueue = xQueueCreate(256, sizeof(char));
-    vSemaphoreCreateBinary(uartReady);
+    vSemaphoreCreateBinary(uart_ready);
 
     GPIOPinConfigure(GPIO_PD6_U2RX);
     GPIOPinConfigure(GPIO_PD7_U2TX);
@@ -64,7 +61,7 @@ void gpsInit(void)
     IntPrioritySet(INT_UART2, configKERNEL_INTERRUPT_PRIORITY);
     IntEnable(INT_UART2);
 
-    xTaskCreate(gpsTask, (signed portCHAR*)"GPS",
+    xTaskCreate(gps_task, (signed portCHAR*)"GPS",
                 configMINIMAL_STACK_SIZE, NULL, 1, NULL);
 }
 
@@ -79,16 +76,13 @@ void UART2IntHandler(void)
 
     if (status & UART_INT_RX)
     {
-//        char c;
         while (UARTCharsAvail(UART2_BASE))
         {
-//            c = (char)UARTCharGetNonBlocking(UART2_BASE);
-//            xQueueSendToBackFromISR(uartQueue, &c, &woken);
-        	uartBuffer[uartEnd] = (char)UARTCharGetNonBlocking(UART2_BASE);
-        	uartEnd = (uartEnd + 1) % GPS_UART_BUFFER_LEN;
+        	uart_buffer[uart_end] = (char)UARTCharGetNonBlocking(UART2_BASE);
+        	uart_end = (uart_end + 1) % GPS_UART_BUFFER_LEN;
         }
 
-        xSemaphoreGiveFromISR(uartReady, &woken);
+        xSemaphoreGiveFromISR(uart_ready, &woken);
     }
 
     portEND_SWITCHING_ISR(woken);
@@ -96,60 +90,52 @@ void UART2IntHandler(void)
 
 //-----------------------------------------------------------------
 
-void gpsTask(void *params)
+void gps_task(void *params)
 {
-//    char c;
-
-    xSemaphoreTake(uartReady, 0);
+    xSemaphoreTake(uart_ready, 0);
 
     while (1)
     {
-    	if (xSemaphoreTake(uartReady, portMAX_DELAY) == pdTRUE)
-    	{
-    		int end = uartEnd;
-    		while (uartStart != end)
-    		{
-    			gpsParseNMEAChar(uartBuffer[uartStart]);
-    			uartStart = (uartStart + 1) % GPS_UART_BUFFER_LEN;
-    		}
+        if (xSemaphoreTake(uart_ready, portMAX_DELAY) == pdTRUE)
+        {
+            int end = uart_end;
+            while (uart_start != end)
+            {
+                gps_parse_nmea_char(uart_buffer[uart_start]);
+                uart_start = (uart_start + 1) % GPS_UART_BUFFER_LEN;
+            }
 
-    		xSemaphoreTake(uartReady, 0);
-    	}
-
-//        if (xQueueReceive(uartQueue, &c, portMAX_DELAY))
-//        {
-////            UARTprintf("%c", c);
-//            gpsParseNMEAChar(c);
-//        }
+            xSemaphoreTake(uart_ready, 0);
+        }
     }
 }
 
 //-----------------------------------------------------------------
 
-bool gpsParseNMEA(const char *data, unsigned int len)
+bool gps_parse_nmea(const char *data, unsigned int len)
 {
     bool res = false;
 
     unsigned int i;
     for (i = 0; i < len; ++i)
-        res |= gpsParseNMEAChar(data[i]);
+        res |= gps_parse_nmea_char(data[i]);
 
     return res;
 }
 
 //-----------------------------------------------------------------
 
-bool gpsParseNMEAChar(char c)
+bool gps_parse_nmea_char(char c)
 {
-    switch (parserState)
+    switch (parser_state)
     {
     case GPS_STATE_SOM:
         if (c == '$')
         {
             checksum = 0;
             index = 0;
-            hasMessage = false;
-            parserState = GPS_STATE_CMD;
+            has_message = false;
+            parser_state = GPS_STATE_CMD;
         }
         break;
 
@@ -159,13 +145,13 @@ bool gpsParseNMEAChar(char c)
         {
             command[index++] = c;
             if (index >= GPS_MAX_CMD_LEN)
-                parserState = GPS_STATE_SOM;
+                parser_state = GPS_STATE_SOM;
         }
         else
         {
             command[index] = '\0';
             index = 0;
-            parserState = GPS_STATE_DATA;
+            parser_state = GPS_STATE_DATA;
         }
         break;
 
@@ -173,45 +159,45 @@ bool gpsParseNMEAChar(char c)
         if (c == '*')
         {
             data[index] = '\0';
-            parserState = GPS_STATE_CHECKSUM1;
+            parser_state = GPS_STATE_CHECKSUM1;
         }
         else
         {
             if (c == '\r')
             {
                 data[index] = '\0';
-                parserState = GPS_STATE_SOM;
-                hasMessage = true;
+                parser_state = GPS_STATE_SOM;
+                has_message = true;
                 return true;
             }
 
             checksum ^= c;
             data[index++] = c;
             if (index >= GPS_MAX_DATA_LEN)
-                parserState = GPS_STATE_SOM;
+                parser_state = GPS_STATE_SOM;
         }
         break;
 
     case GPS_STATE_CHECKSUM1:
         if ((c - '0') <= 9)
-            recvChecksum = (c - '0') << 4;
+            recv_checksum = (c - '0') << 4;
         else
-            recvChecksum = (c - 'A' + 10) << 4;
+            recv_checksum = (c - 'A' + 10) << 4;
 
-        parserState = GPS_STATE_CHECKSUM2;
+        parser_state = GPS_STATE_CHECKSUM2;
         break;
 
     case GPS_STATE_CHECKSUM2:
         if ((c - '0') <= 9)
-            recvChecksum |= c - '0';
+            recv_checksum |= c - '0';
         else
-            recvChecksum |= c - 'A' + 10;
+            recv_checksum |= c - 'A' + 10;
 
-        parserState = GPS_STATE_SOM;
+        parser_state = GPS_STATE_SOM;
 
-        if (checksum == recvChecksum)
+        if (checksum == recv_checksum)
         {
-            hasMessage = true;
+            has_message = true;
             return true;
         }
 
@@ -223,9 +209,9 @@ bool gpsParseNMEAChar(char c)
 
 //-----------------------------------------------------------------
 
-bool gpsGetMessage(GpsMessage *msg)
+bool gps_get_message(gps_message_t *msg)
 {
-    if (!hasMessage)
+    if (!has_message)
         return false;
 
     msg->command = (const char*)command;

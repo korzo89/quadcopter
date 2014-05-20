@@ -28,7 +28,7 @@ typedef enum
     RCP_CMD_RAW_IMU		= 0x04,
 
     RCP_CMD_NUM
-} RCPCommand;
+} rcp_command_t;
 
 typedef union
 {
@@ -42,21 +42,21 @@ typedef union
         uint8_t query;
         uint8_t data[RCP_PAYLOAD_SIZE - 4];
     };
-} RCPMessage;
+} rcp_message_t;
 
-typedef void (*RCPCallback)(RCPMessage*);
+typedef void (*rcp_callback_t)(rcp_message_t*);
 
 //-----------------------------------------------------------------
 
-void rcpInit(void);
+void rcp_init(void);
 
-bool rcpSendMessage(RCPMessage *msg);
-void rcpRegisterCallback(RCPCommand cmd, RCPCallback callback, bool query);
+bool rcp_send_message(rcp_message_t *msg);
+void rcp_register_callback(rcp_command_t cmd, rcp_callback_t callback, bool query);
 
-void rcpEnableRx(void);
-void rcpEnableTx(void);
+void rcp_enable_rx(void);
+void rcp_enable_tx(void);
 
-void rcpProcessMessage(RCPMessage *msg);
+void rcp_process_message(rcp_message_t *msg);
 
 //-----------------------------------------------------------------
 

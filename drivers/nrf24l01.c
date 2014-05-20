@@ -40,7 +40,7 @@
 
 //-----------------------------------------------------------------
 
-static IRQCallback nrfIRQCallback = NULL;
+static irq_callback_t nrf_irq_callback = NULL;
 
 //-----------------------------------------------------------------
 
@@ -49,13 +49,13 @@ void GPIOCIntHandler(void)
     unsigned long status = GPIOPinIntStatus(NRF_IRQ_PORT, true);
     GPIOPinIntClear(NRF_IRQ_PORT, status);
 
-    if ((status & NRF_IRQ_PIN) && nrfIRQCallback)
-        nrfIRQCallback();
+    if ((status & NRF_IRQ_PIN) && nrf_irq_callback)
+        nrf_irq_callback();
 }
 
 //-----------------------------------------------------------------
 
-void nrfInit(void)
+void nrf_init(void)
 {
     SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA);
     SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOC);
@@ -88,7 +88,7 @@ void nrfInit(void)
 
 //-----------------------------------------------------------------
 
-static uint8_t nrfSPISendByte(uint8_t data)
+static uint8_t nrf_spi_send_byte(uint8_t data)
 {
     unsigned long result;
 
@@ -101,17 +101,17 @@ static uint8_t nrfSPISendByte(uint8_t data)
 
 //-----------------------------------------------------------------
 
-uint8_t nrfExecCmd(uint8_t cmd, uint8_t *data, unsigned int len, bool read)
+uint8_t nrf_exec_cmd(uint8_t cmd, uint8_t *data, unsigned int len, bool read)
 {
     unsigned int i;
     uint8_t status, temp;
 
     CSN_CLEAR();
 
-    status = nrfSPISendByte(cmd);
+    status = nrf_spi_send_byte(cmd);
     for (i = 0; i < len; i++)
     {
-        temp = nrfSPISendByte(data[i]);
+        temp = nrf_spi_send_byte(data[i]);
         if (read)
             data[i] = temp;
     }
@@ -123,66 +123,66 @@ uint8_t nrfExecCmd(uint8_t cmd, uint8_t *data, unsigned int len, bool read)
 
 //-----------------------------------------------------------------
 
-uint8_t nrfWriteRegister(uint8_t reg, uint8_t *data, unsigned int len)
+uint8_t nrf_write_register(uint8_t reg, uint8_t *data, unsigned int len)
 {
-    return nrfExecCmd(NRF_W_REGISTER | (reg & NRF_W_REGISTER_MASK), data, len, false);
+    return nrf_exec_cmd(NRF_W_REGISTER | (reg & NRF_W_REGISTER_MASK), data, len, false);
 }
 
 //-----------------------------------------------------------------
 
-uint8_t nrfWriteRegisterByte(uint8_t reg, uint8_t data)
+uint8_t nrf_write_register_byte(uint8_t reg, uint8_t data)
 {
-    return nrfWriteRegister(reg, &data, 1);
+    return nrf_write_register(reg, &data, 1);
 }
 
 //-----------------------------------------------------------------
 
-uint8_t nrfReadRegister(uint8_t reg, uint8_t *data, unsigned int len)
+uint8_t nrf_read_register(uint8_t reg, uint8_t *data, unsigned int len)
 {
-    return nrfExecCmd(NRF_R_REGISTER | (reg & NRF_R_REGISTER_MASK), data, len, true);
+    return nrf_exec_cmd(NRF_R_REGISTER | (reg & NRF_R_REGISTER_MASK), data, len, true);
 }
 
 //-----------------------------------------------------------------
 
-uint8_t nrfReadRegisterByte(uint8_t reg)
+uint8_t nrf_read_register_byte(uint8_t reg)
 {
     uint8_t res;
-    nrfReadRegister(reg, &res, 1);
+    nrf_read_register(reg, &res, 1);
     return res;
 }
 
 //-----------------------------------------------------------------
 
-void nrfPowerUp(void)
+void nrf_power_up(void)
 {
-    uint8_t config = nrfReadRegisterByte(NRF_CONFIG);
+    uint8_t config = nrf_read_register_byte(NRF_CONFIG);
     if (config & NRF_CONFIG_PWR_UP)
         return;
 
     config |= NRF_CONFIG_PWR_UP;
-    nrfWriteRegisterByte(NRF_CONFIG, config);
+    nrf_write_register_byte(NRF_CONFIG, config);
 }
 
 //-----------------------------------------------------------------
 
-uint8_t nrfWriteTxPayload(uint8_t *data, unsigned int len, bool transmit)
+uint8_t nrf_write_tx_payload(uint8_t *data, unsigned int len, bool transmit)
 {
-    uint8_t status = nrfExecCmd(NRF_W_TX_PAYLOAD, data, len, false);
+    uint8_t status = nrf_exec_cmd(NRF_W_TX_PAYLOAD, data, len, false);
 
     if (transmit)
-        nrfTransmit();
+        nrf_transmit();
 
     return status;
 }
 
 //-----------------------------------------------------------------
 
-uint8_t nrfReadRxPayload(uint8_t *data, unsigned int len)
+uint8_t nrf_read_rx_payload(uint8_t *data, unsigned int len)
 {
     uint8_t status;
 
     CE_CLEAR();
-    status = nrfExecCmd(NRF_R_RX_PAYLOAD, data, len, true);
+    status = nrf_exec_cmd(NRF_R_RX_PAYLOAD, data, len, true);
     CE_SET();
 
     return status;
@@ -190,186 +190,186 @@ uint8_t nrfReadRxPayload(uint8_t *data, unsigned int len)
 
 //-----------------------------------------------------------------
 
-uint8_t nrfFlushTx(void)
+uint8_t nrf_flush_tx(void)
 {
-    return nrfExecCmd(NRF_FLUSH_TX, NULL, 0, false);
+    return nrf_exec_cmd(NRF_FLUSH_TX, NULL, 0, false);
 }
 
 //-----------------------------------------------------------------
 
-uint8_t nrfFlushRx(void)
+uint8_t nrf_flush_rx(void)
 {
-    return nrfExecCmd(NRF_FLUSH_RX, NULL, 0, false);
+    return nrf_exec_cmd(NRF_FLUSH_RX, NULL, 0, false);
 }
 
 //-----------------------------------------------------------------
 
-uint8_t nrfNop(void)
+uint8_t nrf_nop(void)
 {
-    return nrfExecCmd(NRF_NOP, NULL, 0, false);
+    return nrf_exec_cmd(NRF_NOP, NULL, 0, false);
 }
 
 //-----------------------------------------------------------------
 
-void nrfSetAsRx(void)
+void nrf_set_as_rx(void)
 {
     CE_SET();
 
-    uint8_t config = nrfReadRegisterByte(NRF_CONFIG);
+    uint8_t config = nrf_read_register_byte(NRF_CONFIG);
     if (config & NRF_CONFIG_PRIM_RX)
         return;
 
     config |= NRF_CONFIG_PRIM_RX;
-    nrfWriteRegisterByte(NRF_CONFIG, config);
+    nrf_write_register_byte(NRF_CONFIG, config);
 }
 
 //-----------------------------------------------------------------
 
-void nrfSetAsTx(void)
+void nrf_set_as_tx(void)
 {
     CE_CLEAR();
 
-    uint8_t config = nrfReadRegisterByte(NRF_CONFIG);
+    uint8_t config = nrf_read_register_byte(NRF_CONFIG);
     if (!(config & NRF_CONFIG_PRIM_RX))
         return;
 
     config &= ~NRF_CONFIG_PRIM_RX;
-    nrfWriteRegisterByte(NRF_CONFIG, config);
+    nrf_write_register_byte(NRF_CONFIG, config);
 }
 
 //-----------------------------------------------------------------
 
-void nrfSetConfig(uint8_t config)
+void nrf_set_config(uint8_t config)
 {
-    nrfWriteRegisterByte(NRF_CONFIG, config);
+    nrf_write_register_byte(NRF_CONFIG, config);
 }
 
 //-----------------------------------------------------------------
 
-void nrfSetRFChannel(uint8_t channel)
+void nrf_set_rf_channel(uint8_t channel)
 {
     channel &= ~NRF_RF_CH_RESERVED;
-    nrfWriteRegisterByte(NRF_RF_CH, channel);
+    nrf_write_register_byte(NRF_RF_CH, channel);
 }
 
 //-----------------------------------------------------------------
 
-uint8_t nrfGetStatus(void)
+uint8_t nrf_get_status(void)
 {
-    return nrfNop();
+    return nrf_nop();
 }
 
 //-----------------------------------------------------------------
 
 uint8_t nrfGetObserveTx(void)
 {
-    return nrfReadRegisterByte(NRF_OBSERVE_TX);
+    return nrf_read_register_byte(NRF_OBSERVE_TX);
 }
 
 //-----------------------------------------------------------------
 
-void nrfSetRxAddr(uint8_t *addr, unsigned int len, uint8_t pipe)
+void nrf_set_rx_addr(uint8_t *addr, unsigned int len, uint8_t pipe)
 {
     if (pipe > 5)
         return;
 
-    nrfWriteRegister(NRF_RX_ADDR_P0 + pipe, addr, len);
+    nrf_write_register(NRF_RX_ADDR_P0 + pipe, addr, len);
 }
 
 //-----------------------------------------------------------------
 
-void nrfSetTxAddr(uint8_t *addr, unsigned int len)
+void nrf_set_tx_addr(uint8_t *addr, unsigned int len)
 {
-    nrfWriteRegister(NRF_TX_ADDR, addr, len);
+    nrf_write_register(NRF_TX_ADDR, addr, len);
 }
 
 //-----------------------------------------------------------------
 
-void nrfSetPayloadWidth(uint8_t width, uint8_t pipe)
+void nrf_set_payload_width(uint8_t width, uint8_t pipe)
 {
     if (pipe > 5 || width > 32)
         return;
 
-    nrfWriteRegisterByte(NRF_RX_PW_P0 + pipe, width);
+    nrf_write_register_byte(NRF_RX_PW_P0 + pipe, width);
 }
 
 //-----------------------------------------------------------------
 
-uint8_t nrfGetFIFOStatus(void)
+uint8_t nrf_get_fifo_status(void)
 {
-    return nrfReadRegisterByte(NRF_FIFO_STATUS);
+    return nrf_read_register_byte(NRF_FIFO_STATUS);
 }
 
 //-----------------------------------------------------------------
 
-void nrfAutoAckEnable(uint8_t pipe)
-{
-    if (pipe > 5)
-        return;
-
-    uint8_t data = nrfReadRegisterByte(NRF_EN_AA);
-    if (data & (1 << pipe))
-        return;
-
-    data |= 1 << pipe;
-    nrfWriteRegisterByte(NRF_EN_AA, data);
-}
-
-//-----------------------------------------------------------------
-
-void nrfPipeEnable(uint8_t pipe)
+void nrf_auto_ack_enable(uint8_t pipe)
 {
     if (pipe > 5)
         return;
 
-    uint8_t data = nrfReadRegisterByte(NRF_EN_RXADDR);
+    uint8_t data = nrf_read_register_byte(NRF_EN_AA);
     if (data & (1 << pipe))
         return;
 
     data |= 1 << pipe;
-    nrfWriteRegisterByte(NRF_EN_RXADDR, data);
+    nrf_write_register_byte(NRF_EN_AA, data);
 }
 
 //-----------------------------------------------------------------
 
-bool nrfCarrierDetect(void)
+void nrf_pipe_nable(uint8_t pipe)
 {
-    return nrfReadRegisterByte(NRF_CD);
+    if (pipe > 5)
+        return;
+
+    uint8_t data = nrf_read_register_byte(NRF_EN_RXADDR);
+    if (data & (1 << pipe))
+        return;
+
+    data |= 1 << pipe;
+    nrf_write_register_byte(NRF_EN_RXADDR, data);
 }
 
 //-----------------------------------------------------------------
 
-uint8_t nrfGetRxPipe(void)
+bool nrf_carrier_detect(void)
 {
-    return (nrfGetStatus() & NRF_STATUS_RX_P_NO) >> 1;
+    return nrf_read_register_byte(NRF_CD);
 }
 
 //-----------------------------------------------------------------
 
-void nrfClearIRQ(uint8_t irq)
+uint8_t nrf_get_rx_pipe(void)
 {
-    nrfWriteRegisterByte(NRF_STATUS, irq);
+    return (nrf_get_status() & NRF_STATUS_RX_P_NO) >> 1;
 }
 
 //-----------------------------------------------------------------
 
-void nrfClearAllIRQ(void)
+void nrf_clear_irq(uint8_t irq)
 {
-    nrfClearIRQ(NRF_STATUS_RX_DR | NRF_STATUS_TX_DS | NRF_STATUS_MAX_RT);
+    nrf_write_register_byte(NRF_STATUS, irq);
 }
 
 //-----------------------------------------------------------------
 
-void nrfClearFlush(void)
+void nrf_clear_all_irq(void)
 {
-    nrfClearAllIRQ();
-    nrfFlushRx();
-    nrfFlushTx();
+    nrf_clear_irq(NRF_STATUS_RX_DR | NRF_STATUS_TX_DS | NRF_STATUS_MAX_RT);
 }
 
 //-----------------------------------------------------------------
 
-void nrfTransmit(void)
+void nrf_clear_flush(void)
+{
+    nrf_clear_all_irq();
+    nrf_flush_rx();
+    nrf_flush_tx();
+}
+
+//-----------------------------------------------------------------
+
+void nrf_transmit(void)
 {
     CE_SET();
     NRF_DELAY_MS(1);
@@ -378,14 +378,14 @@ void nrfTransmit(void)
 
 //-----------------------------------------------------------------
 
-bool nrfIsIRQActive(void)
+bool nrf_is_irq_active(void)
 {
     return !READ_IRQ_PIN();
 }
 
 //-----------------------------------------------------------------
 
-void nrfSetIRQCallback(IRQCallback callback)
+void nrf_set_irq_callback(irq_callback_t callback)
 {
-    nrfIRQCallback = callback;
+    nrf_irq_callback = callback;
 }

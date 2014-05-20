@@ -30,12 +30,12 @@
 
 //-----------------------------------------------------------------
 
-void ledInit();
+void led_init(void);
 
-void ledTurnOn(unsigned char leds);
-void ledTurnOff(unsigned char leds);
-void ledToggle(unsigned char leds, bool on);
-void ledSet(unsigned char leds);
+void led_turn_on(unsigned char leds);
+void led_turn_off(unsigned char leds);
+void led_toggle(unsigned char leds, bool on);
+void led_set(unsigned char leds);
 
 //-----------------------------------------------------------------
 

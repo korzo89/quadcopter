@@ -58,7 +58,7 @@ static bool armed = false;
 
 //-----------------------------------------------------------------
 
-void motorsInit()
+void motors_init()
 {
     SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER0);
     SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER1);
@@ -94,50 +94,50 @@ void motorsInit()
     TimerEnable(TIMER0_BASE, TIMER_BOTH);
     TimerEnable(TIMER1_BASE, TIMER_BOTH);
 
-    motorsDisarm();
+    motors_disarm();
 }
 
 //-----------------------------------------------------------------
 
-bool motorsArmed(void)
+bool motors_armed(void)
 {
     return armed;
 }
 
 //-----------------------------------------------------------------
 
-void motorsArm(void)
+void motors_arm(void)
 {
     armed = true;
 
-    ledTurnOff(LED_GREEN);
-    ledTurnOn(LED_RED);
+    led_turn_off(LED_GREEN);
+    led_turn_on(LED_RED);
 }
 
 //-----------------------------------------------------------------
 
-void motorsDisarm(void)
+void motors_disarm(void)
 {
     armed = false;
-    motorsSetThrottle(0.0f, 0.0f, 0.0f, 0.0f);
+    motors_set_throttle(0.0f, 0.0f, 0.0f, 0.0f);
 
-    ledTurnOn(LED_GREEN);
-    ledTurnOff(LED_RED);
+    led_turn_on(LED_GREEN);
+    led_turn_off(LED_RED);
 }
 
 //-----------------------------------------------------------------
 
-void motorsSetThrottle(float m1, float m2, float m3, float m4)
+void motors_set_throttle(float m1, float m2, float m3, float m4)
 {
-    motorsServoPulse(MOTOR1_BASE, MOTOR1_TIMER, THROTTLE_TO_PULSE(m1));
-    motorsServoPulse(MOTOR2_BASE, MOTOR2_TIMER, THROTTLE_TO_PULSE(m2));
-    motorsServoPulse(MOTOR3_BASE, MOTOR3_TIMER, THROTTLE_TO_PULSE(m3));
-    motorsServoPulse(MOTOR4_BASE, MOTOR4_TIMER, THROTTLE_TO_PULSE(m4));
+    motors_servo_pulse(MOTOR1_BASE, MOTOR1_TIMER, THROTTLE_TO_PULSE(m1));
+    motors_servo_pulse(MOTOR2_BASE, MOTOR2_TIMER, THROTTLE_TO_PULSE(m2));
+    motors_servo_pulse(MOTOR3_BASE, MOTOR3_TIMER, THROTTLE_TO_PULSE(m3));
+    motors_servo_pulse(MOTOR4_BASE, MOTOR4_TIMER, THROTTLE_TO_PULSE(m4));
 }
 
 //-----------------------------------------------------------------
 
-void motorsServoPulse(uint32_t base, uint32_t timer, uint16_t pulse)
+void motors_servo_pulse(uint32_t base, uint32_t timer, uint16_t pulse)
 {
     uint32_t period = cycle20ms * pulse / 20000;
     uint8_t ext = period >> 16;

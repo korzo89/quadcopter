@@ -10,13 +10,13 @@
 
 //-----------------------------------------------------------------
 
-#include <drivers/buzzer_notes.h>
+#include "buzzer_notes.h"
 
 //-----------------------------------------------------------------
 
-void buzzerInit(void);
+void buzzer_init(void);
 
-void buzzerSetFreq(unsigned int freq);
+void buzzer_set_freq(unsigned int freq);
 
 //-----------------------------------------------------------------
 

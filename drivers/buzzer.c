@@ -20,7 +20,7 @@
 
 //-----------------------------------------------------------------
 
-void buzzerInit(void)
+void buzzer_init(void)
 {
     SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOC);
     SysCtlPeripheralEnable(SYSCTL_PERIPH_WTIMER1);
@@ -34,12 +34,12 @@ void buzzerInit(void)
     TimerConfigure(BUZZER_TIMER, TIMER_CFG_SPLIT_PAIR | TIMER_CFG_A_PWM);
     TimerControlLevel(BUZZER_TIMER, TIMER_A, true);
 
-    buzzerSetFreq(0);
+    buzzer_set_freq(0);
 }
 
 //-----------------------------------------------------------------
 
-void buzzerSetFreq(unsigned int freq)
+void buzzer_set_freq(unsigned int freq)
 {
     uint32_t cycle = SysCtlClockGet() / freq;
     uint32_t period = cycle;

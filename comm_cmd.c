@@ -77,7 +77,7 @@ void cmdControl(void)
 {
     uint16_t m1, m2, m3, m4;
 
-    if (!motorsArmed())
+    if (!motors_armed())
         return;
 
     commBufferResetRead(&buffer);
@@ -86,21 +86,21 @@ void cmdControl(void)
     COMM_BUFFER_READ_T(&buffer, &m3, uint16_t);
     COMM_BUFFER_READ_T(&buffer, &m4, uint16_t);
 
-    motorsSetThrottle((float)m1, (float)m2, (float)m3, (float)m4);
+    motors_set_throttle((float)m1, (float)m2, (float)m3, (float)m4);
 }
 
 //-----------------------------------------------------------------
 
 void cmdArm(void)
 {
-    motorsArm();
+    motors_arm();
 }
 
 //-----------------------------------------------------------------
 
 void cmdDisarm(void)
 {
-    motorsDisarm();
+    motors_disarm();
 }
 
 //-----------------------------------------------------------------
@@ -183,7 +183,7 @@ void respAngles(void)
 {
     float pitch, roll, yaw;
 
-    imuGetEulerAngles(&pitch, &roll, &yaw);
+    imu_get_euler_angles(&pitch, &roll, &yaw);
 
     commBufferResetWrite(&buffer);
     COMM_BUFFER_WRITE_T(&buffer, &pitch, float);

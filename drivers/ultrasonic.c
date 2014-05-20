@@ -37,7 +37,7 @@
 
 //-----------------------------------------------------------------
 
-void ultrasonicInit(void)
+void ultrasonic_init(void)
 {
     SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOD);
 
@@ -55,7 +55,7 @@ void ultrasonicInit(void)
 
 //-----------------------------------------------------------------
 
-float ultrasonicGetDistance(void)
+float ultrasonic_get_distance(void)
 {
     TRIG_CLEAR();
 

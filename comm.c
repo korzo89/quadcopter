@@ -40,30 +40,30 @@ void commConfig(void)
 //    nrf24_setRxAddr((unsigned char*)ADDR_TX, 5, 0);
 //    nrf24_setTxAddr((unsigned char*)ADDR_RX, 5);
 
-    nrfInit();
-    nrfSetRFChannel(23);
-    nrfSetPayloadWidth(PAYLOAD_SIZE, 0);
-    nrfAutoAckEnable(0);
-    nrfSetTxAddr((unsigned char*)CADDR_TX, 5);
-    nrfSetRxAddr((unsigned char*)CADDR_RX, 5, 0);
-    nrfPowerUp();
-    nrfSetAsTx();
+    nrf_init();
+    nrf_set_rf_channel(23);
+    nrf_set_payload_width(PAYLOAD_SIZE, 0);
+    nrf_auto_ack_enable(0);
+    nrf_set_tx_addr((unsigned char*)CADDR_TX, 5);
+    nrf_set_rx_addr((unsigned char*)CADDR_RX, 5, 0);
+    nrf_power_up();
+    nrf_set_as_tx();
     DELAY_MS(2);
-    nrfClearFlush();
+    nrf_clear_flush();
 }
 
 //-----------------------------------------------------------------
 
 void commPollReceiver(void)
 {
-    nrfSetRxAddr((unsigned char*)CADDR_RX, 5, 0);
+    nrf_set_rx_addr((unsigned char*)CADDR_RX, 5, 0);
 
-    nrfSetAsRx();
+    nrf_set_as_rx();
 
-    while (!(nrfIsIRQActive() && NRF_CHECK_STATUS(NRF_IRQ_RX_DR)));
+    while (!(nrf_is_irq_active() && NRF_CHECK_STATUS(NRF_IRQ_RX_DR)));
 
-    nrfReadRxPayload(dataBuffer, PAYLOAD_SIZE);
-    nrfClearAllIRQ();
+    nrf_read_rx_payload(dataBuffer, PAYLOAD_SIZE);
+    nrf_clear_all_irq();
 
     commProcessData();
 }
@@ -72,19 +72,19 @@ void commPollReceiver(void)
 
 bool commSendPayload(void)
 {
-    nrfSetTxAddr((unsigned char*)CADDR_TX, 5);
-    nrfSetRxAddr((unsigned char*)CADDR_TX, 5, 0);
+    nrf_set_tx_addr((unsigned char*)CADDR_TX, 5);
+    nrf_set_rx_addr((unsigned char*)CADDR_TX, 5, 0);
 
     DELAY_MS(1);
 
-    nrfFlushTx();
+    nrf_flush_tx();
 
-    nrfSetAsTx();
+    nrf_set_as_tx();
     DELAY_MS(1);
-    nrfWriteTxPayload(dataBuffer, PAYLOAD_SIZE, true);
+    nrf_write_tx_payload(dataBuffer, PAYLOAD_SIZE, true);
 
-    while (!(nrfIsIRQActive() && NRF_CHECK_STATUS(NRF_IRQ_TX_DS | NRF_IRQ_MAX_RT)));
-    nrfClearAllIRQ();
+    while (!(nrf_is_irq_active() && NRF_CHECK_STATUS(NRF_IRQ_TX_DS | NRF_IRQ_MAX_RT)));
+    nrf_clear_all_irq();
 
     return true;
 }
@@ -100,10 +100,10 @@ void commResponseOK(void)
 
 void commProcessData(void)
 {
-	ledTurnOn(LED_RED);
+	led_turn_on(LED_RED);
     commResponseOK();
     commSendPayload();
-    ledTurnOff(LED_RED);
+    led_turn_off(LED_RED);
 }
 
 

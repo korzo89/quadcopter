@@ -16,7 +16,7 @@
 
 //-----------------------------------------------------------------
 
-void ledInit()
+void led_init()
 {
     SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOE);
 
@@ -26,28 +26,28 @@ void ledInit()
 
 //-----------------------------------------------------------------
 
-void ledTurnOn(unsigned char leds)
+void led_turn_on(unsigned char leds)
 {
     GPIOPinWrite(LED_GPIO, leds & LED_MASK, 0xFF);
 }
 
 //-----------------------------------------------------------------
 
-void ledTurnOff(unsigned char leds)
+void led_turn_off(unsigned char leds)
 {
     GPIOPinWrite(LED_GPIO, leds & LED_MASK, 0x00);
 }
 
 //-----------------------------------------------------------------
 
-void ledToggle(unsigned char leds, bool on)
+void led_toggle(unsigned char leds, bool on)
 {
     GPIOPinWrite(LED_GPIO, leds & LED_MASK, on ? 0xFF : 0x00);
 }
 
 //-----------------------------------------------------------------
 
-void ledSet(unsigned char leds)
+void led_set(unsigned char leds)
 {
     GPIOPinWrite(LED_GPIO, LED0_PIN | LED1_PIN | LED2_PIN, leds);
 }

@@ -17,59 +17,59 @@
 
 //-----------------------------------------------------------------
 
-#define NRF_CHECK_STATUS(x)     ( nrfGetStatus() & (x) )
-#define NRF_CHECK_FIFO(x)		( nrfGetFIFOStatus() & (x) )
+#define NRF_CHECK_STATUS(x)     ( nrf_get_status() & (x) )
+#define NRF_CHECK_FIFO(x)		( nrf_get_fifo_status() & (x) )
 
 //-----------------------------------------------------------------
 
-typedef void (*IRQCallback)(void);
+typedef void (*irq_callback_t)(void);
 
 //-----------------------------------------------------------------
 
-void nrfInit(void);
+void nrf_init(void);
 
-uint8_t nrfExecCmd(uint8_t cmd, uint8_t *data, unsigned int len, bool read);
+uint8_t nrf_exec_cmd(uint8_t cmd, uint8_t *data, unsigned int len, bool read);
 
-uint8_t nrfWriteRegister(uint8_t reg, uint8_t *data, unsigned int len);
-uint8_t nrfWriteRegisterByte(uint8_t reg, uint8_t data);
+uint8_t nrf_write_register(uint8_t reg, uint8_t *data, unsigned int len);
+uint8_t nrf_write_register_byte(uint8_t reg, uint8_t data);
 
-uint8_t nrfReadRegister(uint8_t reg, uint8_t *data, unsigned int len);
-uint8_t nrfReadRegisterByte(uint8_t reg);
+uint8_t nrf_read_register(uint8_t reg, uint8_t *data, unsigned int len);
+uint8_t nrf_read_register_byte(uint8_t reg);
 
-void nrfPowerUp(void);
+void nrf_power_up(void);
 
-uint8_t nrfWriteTxPayload(uint8_t *data, unsigned int len, bool transmit);
-uint8_t nrfReadRxPayload(uint8_t *data, unsigned int len);
-uint8_t nrfFlushTx(void);
-uint8_t nrfFlushRx(void);
-uint8_t nrfNop(void);
+uint8_t nrf_write_tx_payload(uint8_t *data, unsigned int len, bool transmit);
+uint8_t nrf_read_rx_payload(uint8_t *data, unsigned int len);
+uint8_t nrf_flush_tx(void);
+uint8_t nrf_flush_rx(void);
+uint8_t nrf_nop(void);
 
-void nrfSetAsRx(void);
-void nrfSetAsTx(void);
+void nrf_set_as_rx(void);
+void nrf_set_as_tx(void);
 
-void nrfSetConfig(uint8_t config);
-void nrfSetRFChannel(uint8_t channel);
-uint8_t nrfGetStatus(void);
+void nrf_set_config(uint8_t config);
+void nrf_set_rf_channel(uint8_t channel);
+uint8_t nrf_get_status(void);
 uint8_t nrfGetObserveTx(void);
-void nrfSetRxAddr(uint8_t *addr, unsigned int len, uint8_t pipe);
-void nrfSetTxAddr(uint8_t *addr, unsigned int len);
-void nrfSetPayloadWidth(uint8_t width, uint8_t pipe);
-uint8_t nrfGetFIFOStatus(void);
+void nrf_set_rx_addr(uint8_t *addr, unsigned int len, uint8_t pipe);
+void nrf_set_tx_addr(uint8_t *addr, unsigned int len);
+void nrf_set_payload_width(uint8_t width, uint8_t pipe);
+uint8_t nrf_get_fifo_status(void);
 
-void nrfAutoAckEnable(uint8_t pipe);
-void nrfPipeEnable(uint8_t pipe);
+void nrf_auto_ack_enable(uint8_t pipe);
+void nrf_pipe_nable(uint8_t pipe);
 
-bool nrfCarrierDetect(void);
-uint8_t nrfGetRxPipe(void);
+bool nrf_carrier_detect(void);
+uint8_t nrf_get_rx_pipe(void);
 
-void nrfClearIRQ(uint8_t irq);
-void nrfClearAllIRQ(void);
-void nrfClearFlush(void);
+void nrf_clear_irq(uint8_t irq);
+void nrf_clear_all_irq(void);
+void nrf_clear_flush(void);
 
-void nrfTransmit(void);
+void nrf_transmit(void);
 
-bool nrfIsIRQActive(void);
-void nrfSetIRQCallback(IRQCallback callback);
+bool nrf_is_irq_active(void);
+void nrf_set_irq_callback(irq_callback_t callback);
 
 //-----------------------------------------------------------------
 

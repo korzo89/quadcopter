@@ -10,9 +10,9 @@
 
 //-----------------------------------------------------------------
 
-void adcInit(void);
+void adc_init(void);
 
-unsigned long adcGetValue(void);
+unsigned long adc_get_value(void);
 
 //-----------------------------------------------------------------
 

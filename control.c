@@ -58,10 +58,10 @@ void controlUpdate(float dt)
         m4 = control.throttle;
     }
 
-    if (motorsArmed())
-        motorsSetThrottle(m1, m2, m3, m4);
+    if (motors_armed())
+        motors_set_throttle(m1, m2, m3, m4);
     else
-        motorsSetThrottle(0.0f, 0.0f, 0.0f, 0.0f);
+        motors_set_throttle(0.0f, 0.0f, 0.0f, 0.0f);
 }
 
 //-----------------------------------------------------------------

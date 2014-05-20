@@ -45,18 +45,18 @@ CommBuffer buffer;
 
 volatile int lostCount = 0;
 
-static xSemaphoreHandle rcpReady;
-static xQueueHandle txQueue;
+static xSemaphoreHandle rcp_ready;
+static xQueueHandle tx_queue;
 
-static RCPCallback cmdCallbacks[RCP_CMD_NUM] = { 0 };
-static RCPCallback queryCallbacks[RCP_CMD_NUM] = { 0 };
+static rcp_callback_t cmd_callbacks[RCP_CMD_NUM] = { 0 };
+static rcp_callback_t query_callbacks[RCP_CMD_NUM] = { 0 };
 
 //-----------------------------------------------------------------
 
 static void rcpRadioIRQCallback(void)
 {
     portBASE_TYPE woken = pdFALSE;
-    xSemaphoreGiveFromISR(rcpReady, &woken);
+    xSemaphoreGiveFromISR(rcp_ready, &woken);
 
     portEND_SWITCHING_ISR(woken);
 }
@@ -65,7 +65,7 @@ static void rcpRadioIRQCallback(void)
 
 static void rcpTask(void *args)
 {
-    RCPMessage msg;
+    rcp_message_t msg;
     portBASE_TYPE res;
 
 //    xSemaphoreTake(rcpReady, 0);
@@ -73,73 +73,73 @@ static void rcpTask(void *args)
     while (1)
     {
     	// switch to RX mode
-    	xSemaphoreTake(rcpReady, 0);
-        rcpEnableRx();
+    	xSemaphoreTake(rcp_ready, 0);
+        rcp_enable_rx();
         // wait for ready interrupt
-        res = xSemaphoreTake(rcpReady, MSEC_TO_TICKS(RCP_RX_MAX_DELAY));
+        res = xSemaphoreTake(rcp_ready, MSEC_TO_TICKS(RCP_RX_MAX_DELAY));
         // check for RX interrupt or timeout
 		if (res == pdTRUE && NRF_CHECK_STATUS(NRF_IRQ_RX_DR))
         {
-			nrfClearIRQ(NRF_IRQ_RX_DR);
+			nrf_clear_irq(NRF_IRQ_RX_DR);
 
 			// read all pending messages
         	while (!NRF_CHECK_FIFO(NRF_FIFO_STATUS_RX_EMPTY))
         	{
-        		ledTurnOn(LED_RED);
+        		led_turn_on(LED_RED);
 
-				nrfReadRxPayload(msg.raw, RCP_PAYLOAD_SIZE);
-	        	rcpProcessMessage(&msg);
+				nrf_read_rx_payload(msg.raw, RCP_PAYLOAD_SIZE);
+	        	rcp_process_message(&msg);
 
-	        	ledTurnOff(LED_RED);
+	        	led_turn_off(LED_RED);
         	}
         }
 
 		// send all pending messages
-		rcpEnableTx();
-		while (uxQueueMessagesWaiting(txQueue) > 0)
+		rcp_enable_tx();
+		while (uxQueueMessagesWaiting(tx_queue) > 0)
 		{
-			xQueueReceive(txQueue, &msg, 0);
+			xQueueReceive(tx_queue, &msg, 0);
 
-			ledTurnOn(LED_YELLOW);
+			led_turn_on(LED_YELLOW);
 
-			xSemaphoreTake(rcpReady, 0);
-			nrfWriteTxPayload(msg.raw, RCP_PAYLOAD_SIZE, true);
+			xSemaphoreTake(rcp_ready, 0);
+			nrf_write_tx_payload(msg.raw, RCP_PAYLOAD_SIZE, true);
 
 			// wait for interrupt
-			res = xSemaphoreTake(rcpReady, MSEC_TO_TICKS(RCP_TX_MAX_DELAY));
+			res = xSemaphoreTake(rcp_ready, MSEC_TO_TICKS(RCP_TX_MAX_DELAY));
 			if (res == pdTRUE)
 			{
 				if (NRF_CHECK_STATUS(NRF_IRQ_TX_DS | NRF_IRQ_MAX_RT))
-					nrfClearIRQ(NRF_IRQ_TX_DS | NRF_IRQ_MAX_RT);
+					nrf_clear_irq(NRF_IRQ_TX_DS | NRF_IRQ_MAX_RT);
 			}
 
-			ledTurnOff(LED_YELLOW);
+			led_turn_off(LED_YELLOW);
 		}
 
-		nrfClearAllIRQ();
+		nrf_clear_all_irq();
     }
 }
 
 //-----------------------------------------------------------------
 
-void rcpInit(void)
+void rcp_init(void)
 {
-    vSemaphoreCreateBinary(rcpReady);
-    txQueue = xQueueCreate(RCP_TX_QUEUE_SIZE, sizeof(RCPMessage));
+    vSemaphoreCreateBinary(rcp_ready);
+    tx_queue = xQueueCreate(RCP_TX_QUEUE_SIZE, sizeof(rcp_message_t));
 
     // nRF24 radio init
-    nrfInit();
-    nrfSetRFChannel(RCP_RF_CHANNEL);
-    nrfSetPayloadWidth(RCP_PAYLOAD_SIZE, RCP_PIPE);
-    nrfAutoAckEnable(RCP_PIPE);
-    nrfSetIRQCallback(rcpRadioIRQCallback);
+    nrf_init();
+    nrf_set_rf_channel(RCP_RF_CHANNEL);
+    nrf_set_payload_width(RCP_PAYLOAD_SIZE, RCP_PIPE);
+    nrf_auto_ack_enable(RCP_PIPE);
+    nrf_set_irq_callback(rcpRadioIRQCallback);
 
-    nrfSetTxAddr((unsigned char*)ADDR_TX, RCP_ADDR_LEN);
-    nrfSetRxAddr((unsigned char*)ADDR_RX, RCP_ADDR_LEN, RCP_PIPE);
+    nrf_set_tx_addr((unsigned char*)ADDR_TX, RCP_ADDR_LEN);
+    nrf_set_rx_addr((unsigned char*)ADDR_RX, RCP_ADDR_LEN, RCP_PIPE);
 
     DELAY_MS(2);
-    nrfPowerUp();
-    nrfClearFlush();
+    nrf_power_up();
+    nrf_clear_flush();
 
     xTaskCreate(rcpTask, (signed portCHAR*)"RCP",
                 configMINIMAL_STACK_SIZE, NULL, 1, NULL);
@@ -147,53 +147,53 @@ void rcpInit(void)
 
 //-----------------------------------------------------------------
 
-bool rcpSendMessage(RCPMessage *msg)
+bool rcp_send_message(rcp_message_t *msg)
 {
-    return xQueueSend(txQueue, msg, portMAX_DELAY) == pdTRUE;
+    return xQueueSend(tx_queue, msg, portMAX_DELAY) == pdTRUE;
 }
 
 //-----------------------------------------------------------------
 
-void rcpRegisterCallback(RCPCommand cmd, RCPCallback callback, bool query)
+void rcp_register_callback(rcp_command_t cmd, rcp_callback_t callback, bool query)
 {
     if (query)
-        queryCallbacks[(int)cmd] = callback;
+        query_callbacks[(int)cmd] = callback;
     else
-        cmdCallbacks[(int)cmd] = callback;
+        cmd_callbacks[(int)cmd] = callback;
 }
 
 //-----------------------------------------------------------------
 
-void rcpEnableRx(void)
+void rcp_enable_rx(void)
 {
-    nrfSetRxAddr((unsigned char*)ADDR_RX, RCP_ADDR_LEN, RCP_PIPE);
-    nrfSetAsRx();
+    nrf_set_rx_addr((unsigned char*)ADDR_RX, RCP_ADDR_LEN, RCP_PIPE);
+    nrf_set_as_rx();
     DELAY_MS(1);
 }
 
 //-----------------------------------------------------------------
 
-void rcpEnableTx(void)
+void rcp_enable_tx(void)
 {
-    nrfSetTxAddr((unsigned char*)ADDR_TX, RCP_ADDR_LEN);
-    nrfSetRxAddr((unsigned char*)ADDR_TX, RCP_ADDR_LEN, 0);
-    nrfSetAsTx();
+    nrf_set_tx_addr((unsigned char*)ADDR_TX, RCP_ADDR_LEN);
+    nrf_set_rx_addr((unsigned char*)ADDR_TX, RCP_ADDR_LEN, 0);
+    nrf_set_as_tx();
 }
 
 //-----------------------------------------------------------------
 
-void rcpProcessMessage(RCPMessage *msg)
+void rcp_process_message(rcp_message_t *msg)
 {
     if (!msg || !IS_VALID_CMD(msg->cmd))
         return;
 
-    RCPCallback callback = cmdCallbacks[(int)msg->cmd];
+    rcp_callback_t callback = cmd_callbacks[(int)msg->cmd];
     if (callback)
         callback(msg);
 
     if (IS_VALID_CMD(msg->query))
     {
-		callback = queryCallbacks[(int)msg->query];
+		callback = query_callbacks[(int)msg->query];
 		if (callback)
 			callback(msg);
     }
