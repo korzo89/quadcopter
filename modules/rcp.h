@@ -25,6 +25,8 @@ typedef enum
     RCP_CMD_OK          = 0x00,
     RCP_CMD_CONTROL     = 0x01,
 
+    RCP_CMD_RAW_IMU		= 0x04,
+
     RCP_CMD_NUM
 } RCPCommand;
 

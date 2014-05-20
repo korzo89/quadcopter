@@ -14,13 +14,13 @@
 
 //-----------------------------------------------------------------
 
-typedef struct
+typedef struct PACK_STRUCT
 {
     int16_t accX, accY, accZ;       // raw accelerometer values
     int16_t gyroX, gyroY, gyroZ;    // raw gyroscope values
     int16_t magX, magY, magZ;       // raw magnetometer values
-    int16_t temperature;            // raw temperature
     int32_t pressure;               // raw pressure
+    int16_t temperature;            // raw temperature
 } IMUSensorData;
 
 //-----------------------------------------------------------------

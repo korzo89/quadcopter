@@ -43,14 +43,14 @@ static int index;
 static uint8_t checksum, recvChecksum;
 static bool hasMessage = false;
 
-static xQueueHandle uartQueue;
+//static xQueueHandle uartQueue;
 static xSemaphoreHandle uartReady;
 
 //-----------------------------------------------------------------
 
 void gpsInit(void)
 {
-    uartQueue = xQueueCreate(256, sizeof(char));
+//    uartQueue = xQueueCreate(256, sizeof(char));
     vSemaphoreCreateBinary(uartReady);
 
     GPIOPinConfigure(GPIO_PD6_U2RX);
@@ -79,7 +79,7 @@ void UART2IntHandler(void)
 
     if (status & UART_INT_RX)
     {
-        char c;
+//        char c;
         while (UARTCharsAvail(UART2_BASE))
         {
 //            c = (char)UARTCharGetNonBlocking(UART2_BASE);
@@ -88,7 +88,7 @@ void UART2IntHandler(void)
         	uartEnd = (uartEnd + 1) % GPS_UART_BUFFER_LEN;
         }
 
-        xSemaphoreGiveFromISR(uartReady, woken);
+        xSemaphoreGiveFromISR(uartReady, &woken);
     }
 
     portEND_SWITCHING_ISR(woken);
@@ -98,13 +98,13 @@ void UART2IntHandler(void)
 
 void gpsTask(void *params)
 {
-    char c;
+//    char c;
 
     xSemaphoreTake(uartReady, 0);
 
     while (1)
     {
-    	if (xSemaphoreTake(uartReady, portMAX_DELAY) == pdPASS)
+    	if (xSemaphoreTake(uartReady, portMAX_DELAY) == pdTRUE)
     	{
     		int end = uartEnd;
     		while (uartStart != end)

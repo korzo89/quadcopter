@@ -10,16 +10,17 @@
 
 //-----------------------------------------------------------------
 
-#include <stdint.h>
-#include <stdbool.h>
+#include <defs.h>
 
 //-----------------------------------------------------------------
 
-bool eepromWrite(uint16_t addr, uint8_t *buf, unsigned int len);
-bool eepromWriteByte(uint16_t addr, uint8_t data);
+void eeprom_init(void);
 
-bool eepromRead(uint16_t addr, uint8_t *buf, unsigned int len);
-uint8_t eepromReadByte(uint16_t addr, bool *res);
+result_t eeprom_write(uint16_t addr, uint8_t *buf, unsigned int len);
+result_t eeprom_write_byte(uint16_t addr, uint8_t data);
+
+result_t eeprom_read(uint16_t addr, uint8_t *buf, unsigned int len);
+result_t eeprom_read_byte(uint16_t addr, uint8_t *data);
 
 //-----------------------------------------------------------------
 

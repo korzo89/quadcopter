@@ -22,6 +22,7 @@
 #include <drivers/l3g4200d.h>
 #include <drivers/hmc5883.h>
 #include <drivers/bmp085.h>
+#include <modules/rcp.h>
 
 //-----------------------------------------------------------------
 
@@ -41,14 +42,27 @@ static float filterBeta = 0.1f;
 static float sampleFreq = 100.0f;
 
 // magnetometer calibration parameters
-static const float magCal[] = { 0.697635, -0.00137475, 0.0264385,
-                                -0.00137475, 0.78445, 0.0287107,
-                                0.0264385, 0.0287107, 0.993896 };
-static const float magOff[] = { -506.7, 472.552, 282.965 };
+static const float magCal[] = { 0.727006, 0.0054922, 0.0269476,
+								0.0054922, 0.764489, 0.0283214,
+								0.0269476, 0.0283214, 0.993801 };
+static const float magOff[] = { -739.7, 334.691, 278.869 };
 
 volatile float pitch, roll, yaw;
 
 //-----------------------------------------------------------------
+
+static void imuRCPCallback(RCPMessage *msg)
+{
+	RCPMessage resp;
+	resp.header = 0x99;
+	resp.length = 26;
+	resp.cmd = RCP_CMD_RAW_IMU;
+	resp.query = RCP_CMD_OK;
+
+	imuPollSensors((IMUSensorData*)resp.data);
+
+	rcpSendMessage(&resp);
+}
 
 void imuInit(float beta, float freq)
 {
@@ -68,6 +82,8 @@ void imuInit(float beta, float freq)
 
     filterBeta = beta;
     sampleFreq = freq;
+
+    rcpRegisterCallback(RCP_CMD_RAW_IMU, imuRCPCallback, true);
 }
 
 //-----------------------------------------------------------------

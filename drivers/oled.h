@@ -13,18 +13,18 @@
 
 //-----------------------------------------------------------------
 
-bool oledInit(void);
+bool oled_init(void);
 
-void oledClear(void);
-void oledClearRect(uint8_t row, uint8_t col, uint8_t width, uint8_t height);
-void oledSetPos(uint8_t row, uint8_t col);
+void oled_clear(void);
+void oled_clear_rect(uint8_t row, uint8_t col, uint8_t width, uint8_t height);
+void oled_set_pos(uint8_t row, uint8_t col);
 
-void oledDispStr(char *str);
-void oledDispStrAt(char *str, uint8_t row, uint8_t col);
-void oledDispChar(char c);
+void oled_disp_str(char *str);
+void oled_disp_str_at(char *str, uint8_t row, uint8_t col);
+void oled_disp_char(char c);
 
-bool oledSendData(uint8_t data);
-bool oledSendCmd(uint8_t cmd);
+bool oled_send_data(uint8_t data);
+bool oled_send_cmd(uint8_t cmd);
 
 //-----------------------------------------------------------------
 

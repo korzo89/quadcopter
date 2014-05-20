@@ -31,6 +31,9 @@
 
 #define RCP_TX_QUEUE_SIZE       3
 
+#define RCP_RX_MAX_DELAY		500
+#define RCP_TX_MAX_DELAY		100
+
 //-----------------------------------------------------------------
 
 const unsigned char ADDR_RX[] = RCP_LOCAL_ADDR;
@@ -63,65 +66,32 @@ static void rcpRadioIRQCallback(void)
 static void rcpTask(void *args)
 {
     RCPMessage msg;
+    portBASE_TYPE res;
 
 //    xSemaphoreTake(rcpReady, 0);
 
     while (1)
     {
-//        rcpEnableRx();
-//
-//        char addr[6];
-//        nrfReadRegister(NRF_RX_ADDR_P0, addr, 5);
-//        addr[5] = '\0';
-//        UARTprintf("%s\n", addr);
-//
-//        while (!nrfIsIRQActive());
-//        uint8_t status = nrfGetStatus();
-//
-//        // wait for IRQ
-//        xSemaphoreTake(rcpReady, portMAX_DELAY);
-//
-//        // get all available RX payload data
-//        while (!(nrfGetFIFOStatus() & NRF_FIFO_STATUS_RX_EMPTY))
-//        {
-//            nrfReadRxPayload(msg.raw, RCP_PAYLOAD_SIZE);
-//            rcpProcessMessage(&msg);
-//        }
-//        nrfClearIRQ(NRF_IRQ_RX_DR);
-//
-//        // send all pending messages
-//        rcpEnableTx();
-//        while (uxQueueMessagesWaiting(txQueue) > 0)
-//        {
-//            xQueueReceive(txQueue, &msg, 0);
-//
-//            nrfWriteTxPayload(msg.raw, RCP_PAYLOAD_SIZE, true);
-//
-//            // TODO: wait for TX interrupt
-//        }
-
-    	ledTurnOn(LED_RED);
-
+    	// switch to RX mode
+    	xSemaphoreTake(rcpReady, 0);
         rcpEnableRx();
         // wait for ready interrupt
-        xSemaphoreTake(rcpReady, 0);
-        xSemaphoreTake(rcpReady, portMAX_DELAY);
-        if (NRF_CHECK_STATUS(NRF_IRQ_RX_DR))
+        res = xSemaphoreTake(rcpReady, MSEC_TO_TICKS(RCP_RX_MAX_DELAY));
+        // check for RX interrupt or timeout
+		if (res == pdTRUE && NRF_CHECK_STATUS(NRF_IRQ_RX_DR))
         {
-        	nrfReadRxPayload(msg.raw, RCP_PAYLOAD_SIZE);
-//        	rcpProcessMessage(&msg);
-
 			nrfClearIRQ(NRF_IRQ_RX_DR);
 
-			static int cc = 0;
-			memset(msg.data, cc++, 10);
-			msg.cmd = 0x05;
-			msg.query = 0x00;
-			rcpSendMessage(&msg);
+			// read all pending messages
+        	while (!NRF_CHECK_FIFO(NRF_FIFO_STATUS_RX_EMPTY))
+        	{
+        		ledTurnOn(LED_RED);
 
-//			static bool on = false;
-//			ledToggle(LED_RED, on);
-//			on = !on;
+				nrfReadRxPayload(msg.raw, RCP_PAYLOAD_SIZE);
+	        	rcpProcessMessage(&msg);
+
+	        	ledTurnOff(LED_RED);
+        	}
         }
 
 		// send all pending messages
@@ -130,15 +100,23 @@ static void rcpTask(void *args)
 		{
 			xQueueReceive(txQueue, &msg, 0);
 
+			ledTurnOn(LED_YELLOW);
+
 			xSemaphoreTake(rcpReady, 0);
 			nrfWriteTxPayload(msg.raw, RCP_PAYLOAD_SIZE, true);
 
-			xSemaphoreTake(rcpReady, portMAX_DELAY);
-			if (NRF_CHECK_STATUS(NRF_IRQ_TX_DS | NRF_IRQ_MAX_RT))
-				nrfClearIRQ(NRF_IRQ_TX_DS | NRF_IRQ_MAX_RT);
+			// wait for interrupt
+			res = xSemaphoreTake(rcpReady, MSEC_TO_TICKS(RCP_TX_MAX_DELAY));
+			if (res == pdTRUE)
+			{
+				if (NRF_CHECK_STATUS(NRF_IRQ_TX_DS | NRF_IRQ_MAX_RT))
+					nrfClearIRQ(NRF_IRQ_TX_DS | NRF_IRQ_MAX_RT);
+			}
+
+			ledTurnOff(LED_YELLOW);
 		}
 
-		ledTurnOff(LED_RED);
+		nrfClearAllIRQ();
     }
 }
 
@@ -158,13 +136,6 @@ void rcpInit(void)
 
     nrfSetTxAddr((unsigned char*)ADDR_TX, RCP_ADDR_LEN);
     nrfSetRxAddr((unsigned char*)ADDR_RX, RCP_ADDR_LEN, RCP_PIPE);
-
-    uint8_t reg, temp;
-    for (reg = 0x00; reg <= 0x17; ++reg)
-    {
-        temp = nrfReadRegisterByte(reg);
-        UARTprintf("reg 0x%02x: 0x%02x (%d)\r\n", reg, temp, temp);
-    }
 
     DELAY_MS(2);
     nrfPowerUp();
@@ -220,7 +191,10 @@ void rcpProcessMessage(RCPMessage *msg)
     if (callback)
         callback(msg);
 
-    callback = queryCallbacks[(int)msg->query];
-    if (callback)
-        callback(msg);
+    if (IS_VALID_CMD(msg->query))
+    {
+		callback = queryCallbacks[(int)msg->query];
+		if (callback)
+			callback(msg);
+    }
 }

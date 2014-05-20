@@ -1,13 +1,7 @@
 #include "oled.h"
 #include "oled_font.h"
-#include <drivers/common_i2c.h>
+#include <drivers/ext_i2c.h>
 #include <utils/delay.h>
-
-#include <inc/hw_types.h>
-#include <inc/hw_memmap.h>
-#include <driverlib/pin_map.h>
-#include <driverlib/gpio.h>
-#include <driverlib/i2c.h>
 
 //-----------------------------------------------------------------
 
@@ -15,113 +9,117 @@
 
 //-----------------------------------------------------------------
 
-static uint8_t currRow = 0, currCol = 0;
+static i2c_t *i2c_if;
+
+static uint8_t curr_row = 0, curr_col = 0;
 
 //-----------------------------------------------------------------
 
-bool oledInit(void)
+bool oled_init(void)
 {
-    if (!oledSendCmd(0xAE))
+    i2c_if = ext_i2c_get_if();
+
+    if (!oled_send_cmd(0xAE))
         return false;
-    oledSendCmd(0x2E);
-    oledSendCmd(0xA4);
+    oled_send_cmd(0x2E);
+    oled_send_cmd(0xA4);
     DELAY_MS(10);
-    oledSendCmd(0xA1);
-    oledSendCmd(0xC8);
-    oledSendCmd(0xAF);
-    oledSendCmd(0x20);
-    oledSendCmd(0x02);
-    oledSendCmd(0xA6);
+    oled_send_cmd(0xA1);
+    oled_send_cmd(0xC8);
+    oled_send_cmd(0xAF);
+    oled_send_cmd(0x20);
+    oled_send_cmd(0x02);
+    oled_send_cmd(0xA6);
     DELAY_MS(10);
-    oledClear();
+    oled_clear();
 
     return true;
 }
 
 //-----------------------------------------------------------------
 
-void oledClear(void)
+void oled_clear(void)
 {
     int i, j;
     for (i = 0; i < 8; ++i)
     {
-        oledSetPos(i, 0);
+        oled_set_pos(i, 0);
         for (j = 0; j < 128; ++j)
-            oledSendData(0x00);
+            oled_send_data(0x00);
     }
-    oledSetPos(0, 0);
+    oled_set_pos(0, 0);
 }
 
 //-----------------------------------------------------------------
 
-void oledClearRect(uint8_t row, uint8_t col, uint8_t width, uint8_t height)
+void oled_clear_rect(uint8_t row, uint8_t col, uint8_t width, uint8_t height)
 {
-    uint8_t tempRow = currRow, tempCol = currCol;
+    uint8_t temp_row = curr_row, temp_col = curr_col;
 
     int i, j;
     for (i = 0; i < height; ++i)
     {
-        oledSetPos(row + i, col);
+        oled_set_pos(row + i, col);
         for (j = 0; j < width; ++j)
-            oledSendData(0x00);
+            oled_send_data(0x00);
     }
 
-    oledSetPos(tempRow, tempCol);
+    oled_set_pos(temp_row, temp_col);
 }
 
 //-----------------------------------------------------------------
 
-void oledSetPos(uint8_t row, uint8_t col)
+void oled_set_pos(uint8_t row, uint8_t col)
 {
-    currRow = row % OLED_ROWS;
-    currCol = col % OLED_COLS;
+    curr_row = row % OLED_ROWS;
+    curr_col = col % OLED_COLS;
 
-    oledSendCmd(0xB0 + currRow);
-    oledSendCmd(0x00 + (8 * currCol & 0x0F));
-    oledSendCmd(0x10 + ((8 * currCol >> 4) & 0x0F));
+    oled_send_cmd(0xB0 + curr_row);
+    oled_send_cmd(0x00 + (8 * curr_col & 0x0F));
+    oled_send_cmd(0x10 + ((8 * curr_col >> 4) & 0x0F));
 }
 
 //-----------------------------------------------------------------
 
-void oledDispStr(char *str)
+void oled_disp_str(char *str)
 {
     char c;
     while (c = *str++)
-        oledDispChar(c);
+        oled_disp_char(c);
 }
 
 //-----------------------------------------------------------------
 
-void oledDispStrAt(char *str, uint8_t row, uint8_t col)
+void oled_disp_str_at(char *str, uint8_t row, uint8_t col)
 {
-    oledSetPos(row, col);
-    oledDispStr(str);
+    oled_set_pos(row, col);
+    oled_disp_str(str);
 }
 
 //-----------------------------------------------------------------
 
-void oledDispChar(char c)
+void oled_disp_char(char c)
 {
     if (c == '\n')
     {
-        oledSetPos(currRow + 1, 0);
+        oled_set_pos(curr_row + 1, 0);
         return;
     }
 
     int i;
     for (i = 0; i < 8; ++i)
-        oledSendData(OLED_FONT[c - 0x20][i]);
+        oled_send_data(OLED_FONT[c - 0x20][i]);
 }
 
 //-----------------------------------------------------------------
 
-bool oledSendData(uint8_t data)
+bool oled_send_data(uint8_t data)
 {
-    if (comI2CWriteRegister(OLED_ADDRESS, 0x40, data) == I2C_MASTER_ERR_NONE)
+    if (i2c_write_reg(i2c_if, OLED_ADDRESS, 0x40, &data, 1) == RES_OK)
     {
-        currCol++;
-        if (currCol == OLED_COLS)
-            oledSetPos(currRow + 1, 0);
+        curr_col++;
+        if (curr_col == OLED_COLS)
+            oled_set_pos(curr_row + 1, 0);
         return true;
     }
     return false;
@@ -129,8 +127,8 @@ bool oledSendData(uint8_t data)
 
 //-----------------------------------------------------------------
 
-bool oledSendCmd(uint8_t cmd)
+bool oled_send_cmd(uint8_t cmd)
 {
-    return comI2CWriteRegister(OLED_ADDRESS, 0x80, cmd) == I2C_MASTER_ERR_NONE;
+    return i2c_write_reg(i2c_if, OLED_ADDRESS, 0x80, &cmd, 1) == RES_OK;
 }
 
