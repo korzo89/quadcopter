@@ -12,21 +12,29 @@
 
 //-----------------------------------------------------------------
 
+#define ADXL345_ADDR        0x53
+
+//-----------------------------------------------------------------
+
+static i2c_t *i2c_if;
+
 static uint8_t buffer[6];
 
 //-----------------------------------------------------------------
 
-void adxl345Init()
+void adxl345_init(void)
 {
-    imuI2CWriteRegister(ADXL345_I2C_ADDR, ADXL345_POWER_CTL, 0x00);
-    imuI2CWriteRegister(ADXL345_I2C_ADDR, ADXL345_POWER_CTL, ADXL345_MEASURE);
+    i2c_if = imu_i2c_get_if();
+
+    i2c_write_reg_byte(i2c_if, ADXL345_ADDR, ADXL345_POWER_CTL, 0x00);
+    i2c_write_reg_byte(i2c_if, ADXL345_ADDR, ADXL345_POWER_CTL, ADXL345_MEASURE);
 }
 
 //-----------------------------------------------------------------
 
-void adxl345GetAcceleration(int16_t *x, int16_t *y, int16_t *z)
+void adxl345_get_accel(int16_t *x, int16_t *y, int16_t *z)
 {
-    imuI2CReadRegisterBurst(ADXL345_I2C_ADDR, ADXL345_DATAX0, buffer, 6);
+    i2c_read_reg(i2c_if, ADXL345_ADDR, ADXL345_DATAX0, buffer, 6);
 
     *x = ((int16_t)buffer[1] << 8) | buffer[0];
     *y = ((int16_t)buffer[3] << 8) | buffer[2];
@@ -35,27 +43,27 @@ void adxl345GetAcceleration(int16_t *x, int16_t *y, int16_t *z)
 
 //-----------------------------------------------------------------
 
-ADXL345Range adxl345GetRange()
+adxl345_range_t adxl345_get_range()
 {
-    return (ADXL345Range)(imuI2CReadRegister(ADXL345_I2C_ADDR,
-            ADXL345_DATA_FORMAT, NULL) & ADXL345_RANGE_MASK);
+    uint8_t range = i2c_read_reg_byte(i2c_if, ADXL345_ADDR, ADXL345_DATA_FORMAT, NULL);
+    return (adxl345_range_t)(range & ADXL345_RANGE_MASK);
 }
 
 //-----------------------------------------------------------------
 
-void adxl345SetRange(ADXL345Range range)
+void adxl345_set_range(adxl345_range_t range)
 {
-    uint8_t reg = imuI2CReadRegister(ADXL345_I2C_ADDR, ADXL345_POWER_CTL, NULL);
+    uint8_t reg = i2c_read_reg_byte(i2c_if, ADXL345_ADDR, ADXL345_POWER_CTL, NULL);
     reg = (reg & ~ADXL345_RANGE_MASK) | (uint8_t)range;
 
-    imuI2CWriteRegister(ADXL345_I2C_ADDR, ADXL345_POWER_CTL, reg);
+    i2c_write_reg_byte(i2c_if, ADXL345_ADDR, ADXL345_POWER_CTL, reg);
 }
 
 //-----------------------------------------------------------------
 
-void adxl345GetOffsets(int8_t *x, int8_t *y, int8_t *z)
+void adxl345_get_offsets(int8_t *x, int8_t *y, int8_t *z)
 {
-    imuI2CReadRegisterBurst(ADXL345_I2C_ADDR, ADXL345_OFSX, buffer, 3);
+    i2c_read_reg(i2c_if, ADXL345_ADDR, ADXL345_OFSX, buffer, 3);
 
     *x = (int8_t)buffer[0];
     *y = (int8_t)buffer[1];
@@ -64,30 +72,30 @@ void adxl345GetOffsets(int8_t *x, int8_t *y, int8_t *z)
 
 //-----------------------------------------------------------------
 
-void adxl345SetOffsets(int8_t x, int8_t y, int8_t z)
+void adxl345_set_offsets(int8_t x, int8_t y, int8_t z)
 {
-    imuI2CWriteRegister(ADXL345_I2C_ADDR, ADXL345_OFSX, x);
-    imuI2CWriteRegister(ADXL345_I2C_ADDR, ADXL345_OFSY, y);
-    imuI2CWriteRegister(ADXL345_I2C_ADDR, ADXL345_OFSZ, z);
+    i2c_write_reg_byte(i2c_if, ADXL345_ADDR, ADXL345_OFSX, x);
+    i2c_write_reg_byte(i2c_if, ADXL345_ADDR, ADXL345_OFSY, y);
+    i2c_write_reg_byte(i2c_if, ADXL345_ADDR, ADXL345_OFSZ, z);
 }
 
 //-----------------------------------------------------------------
 
-uint8_t adxl345GetIntSource()
+uint8_t adxl345_get_int_source()
 {
-    return imuI2CReadRegister(ADXL345_I2C_ADDR, ADXL345_INT_SOURCE, NULL);
+    return i2c_read_reg_byte(i2c_if, ADXL345_ADDR, ADXL345_INT_SOURCE, NULL);
 }
 
 //-----------------------------------------------------------------
 
-uint8_t adxl345GetIntMapping()
+uint8_t adxl345_get_int_mapping()
 {
-    return imuI2CReadRegister(ADXL345_I2C_ADDR, ADXL345_INT_MAP, NULL);
+    return i2c_read_reg_byte(i2c_if, ADXL345_ADDR, ADXL345_INT_MAP, NULL);
 }
 
 //-----------------------------------------------------------------
 
-void adxl345SetIntMapping(uint8_t map)
+void adxl345_set_int_mapping(uint8_t map)
 {
-    imuI2CWriteRegister(ADXL345_I2C_ADDR, ADXL345_INT_MAP, map);
+    i2c_write_reg_byte(i2c_if, ADXL345_ADDR, ADXL345_INT_MAP, map);
 }

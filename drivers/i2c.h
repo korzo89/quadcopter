@@ -55,16 +55,11 @@ result_t i2c_transfer(i2c_t *obj, uint8_t addr,
 result_t i2c_read_reg(i2c_t *obj, uint8_t addr, uint8_t reg, uint8_t *rd, uint32_t rd_len);
 result_t i2c_write_reg(i2c_t *obj, uint8_t addr, uint8_t reg, uint8_t *wr, uint32_t wr_len);
 
+uint8_t i2c_read_reg_byte(i2c_t *obj, uint8_t addr, uint8_t reg, result_t *res);
+result_t i2c_write_reg_byte(i2c_t *obj, uint8_t addr, uint8_t reg, uint8_t data);
+
 result_t i2c_read_reg16(i2c_t *obj, uint8_t addr, uint16_t reg, uint8_t *rd, uint32_t rd_len);
 result_t i2c_write_reg16(i2c_t *obj, uint8_t addr, uint16_t reg, uint8_t *wr, uint32_t wr_len);
-
-unsigned long i2cWriteRegister(unsigned long base, uint8_t addr, uint8_t reg, uint8_t data);
-unsigned long i2cWriteRegisterBurst(unsigned long base, uint8_t addr, uint8_t reg, uint8_t *buf, int len);
-
-uint8_t i2cReadRegister(unsigned long base, uint8_t addr, uint8_t reg, unsigned long *res);
-unsigned long i2cReadRegisterBurst(unsigned long base, uint8_t addr, uint8_t reg, uint8_t *buf, int len);
-
-unsigned long i2cDataPut(unsigned long base, uint8_t data, unsigned long control);
 
 //-----------------------------------------------------------------
 

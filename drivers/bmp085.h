@@ -14,8 +14,6 @@
 
 //-----------------------------------------------------------------
 
-#define BMP085_I2C_ADDR	        0x77
-
 #define BMP085_AC1_MSB          0xAA
 #define BMP085_AC1_LSB          0xAB
 #define BMP085_AC2_MSB          0xAC
@@ -51,15 +49,15 @@
 
 //-----------------------------------------------------------------
 
-void bmp085Init();
+void bmp085_init(void);
 
-int16_t bmp085ReadTemperature();
-int32_t bmp085ReadPressure();
+int16_t bmp085_read_temp();
+int32_t bmp085_read_pressure();
 
-int16_t bmp085ReadUT();
-int32_t bmp085ReadUP();
+int16_t bmp085_read_ut();
+int32_t bmp085_read_up();
 
-int16_t bmp085ReadInt(uint8_t reg);
+int16_t bmp085_read_int(uint8_t reg);
 
 //-----------------------------------------------------------------
 

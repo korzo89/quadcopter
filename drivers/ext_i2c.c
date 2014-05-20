@@ -11,7 +11,7 @@
 
 //-----------------------------------------------------------------
 
-static i2c_t ext_i2c = {
+static i2c_t i2c_if = {
     .conf = {
          .fast = true,
          .base = I2C2_MASTER_BASE,
@@ -35,12 +35,12 @@ static i2c_t ext_i2c = {
 
 void ext_i2c_init(void)
 {
-    i2c_init(&ext_i2c);
+    i2c_init(&i2c_if);
 }
 
 //-----------------------------------------------------------------
 
 i2c_t* ext_i2c_get_if(void)
 {
-    return &ext_i2c;
+    return &i2c_if;
 }

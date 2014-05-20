@@ -14,8 +14,6 @@
 
 //-----------------------------------------------------------------
 
-#define ADXL345_I2C_ADDR        0x53
-
 // ADXL345 registers
 #define ADXL345_DEVID           0x00
 #define ADXL345_THRESH_TAP      0x1D
@@ -71,29 +69,30 @@
 
 //-----------------------------------------------------------------
 
-typedef enum {
+typedef enum
+{
     ADXL345_RANGE_2G    = 0x00,
     ADXL345_RANGE_4G    = 0x01,
     ADXL345_RANGE_8G    = 0x02,
     ADXL345_RANGE_16G   = 0x03
-} ADXL345Range;
+} adxl345_range_t;
 
 //-----------------------------------------------------------------
 
-void adxl345Init();
+void adxl345_init(void);
 
-void adxl345GetAcceleration(int16_t *x, int16_t *y, int16_t *z);
+void adxl345_get_accel(int16_t *x, int16_t *y, int16_t *z);
 
-ADXL345Range adxl345GetRange();
-void adxl345SetRange(ADXL345Range range);
+adxl345_range_t adxl345_get_range();
+void adxl345_set_range(adxl345_range_t range);
 
-void adxl345GetOffsets(int8_t *x, int8_t *y, int8_t *z);
-void adxl345SetOffsets(int8_t x, int8_t y, int8_t z);
+void adxl345_get_offsets(int8_t *x, int8_t *y, int8_t *z);
+void adxl345_set_offsets(int8_t x, int8_t y, int8_t z);
 
-uint8_t adxl345GetIntSource();
+uint8_t adxl345_get_int_source();
 
-uint8_t adxl345GetIntMapping();
-void adxl345SetIntMapping(uint8_t map);
+uint8_t adxl345_get_int_mapping();
+void adxl345_set_int_mapping(uint8_t map);
 
 //-----------------------------------------------------------------
 

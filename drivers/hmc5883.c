@@ -10,20 +10,28 @@
 
 //-----------------------------------------------------------------
 
+#define HMC5883_ADDR        0x1E
+
+//-----------------------------------------------------------------
+
+static i2c_t *i2c_if;
+
 static uint8_t buffer[6];
 
 //-----------------------------------------------------------------
 
-void hmc5883Init()
+void hmc5883_init()
 {
-    imuI2CWriteRegister(HMC5883_I2C_ADDR, HMC5883_MODE, 0x00);
+    i2c_if = imu_i2c_get_if();
+
+    i2c_write_reg_byte(i2c_if, HMC5883_ADDR, HMC5883_MODE, 0x00);
 }
 
 //-----------------------------------------------------------------
 
-void hmc5883ReadMag(int16_t *x, int16_t *y, int16_t *z)
+void hmc5883_read_mag(int16_t *x, int16_t *y, int16_t *z)
 {
-    imuI2CReadRegisterBurst(HMC5883_I2C_ADDR, HMC5883_OUT_X_MSB, buffer, 6);
+    i2c_read_reg(i2c_if, HMC5883_ADDR, HMC5883_OUT_X_MSB, buffer, 6);
 
     *x = ((int16_t) buffer[0] << 8) | buffer[1];
     *z = ((int16_t) buffer[2] << 8) | buffer[3];

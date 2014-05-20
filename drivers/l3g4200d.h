@@ -14,8 +14,6 @@
 
 //-----------------------------------------------------------------
 
-#define L3G4200D_I2C_ADDR       0x69
-
 #define L3G4200D_WHO_AM_I       0x0F
 #define L3G4200D_CTRL_REG1      0x20
 #define L3G4200D_CTRL_REG2      0x21
@@ -45,14 +43,14 @@
 
 //-----------------------------------------------------------------
 
-void l3g4200dInit();
+void l3g4200d_init(void);
 
-void l3g4200dReadGyro(int16_t *x, int16_t *y, int16_t *z);
+void l3g4200d_read_gyro(int16_t *x, int16_t *y, int16_t *z);
 
-void l3g4200dWriteRegister(uint8_t reg, uint8_t data);
+void l3g4200d_write_register(uint8_t reg, uint8_t data);
 
-uint8_t l3g4200dReadRegister(uint8_t reg);
-void l3g4200dReadRegisterBurst(uint8_t reg, uint8_t *buf, int len);
+uint8_t l3g4200d_read_register_byte(uint8_t reg);
+void l3g4200d_read_register(uint8_t reg, uint8_t *buf, int len);
 
 //-----------------------------------------------------------------
 
