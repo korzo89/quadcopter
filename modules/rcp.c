@@ -6,8 +6,6 @@
  */
 
 #include "rcp.h"
-#include "comm_buffer.h"
-#include "comm_cmd.h"
 
 #include <drivers/nrf24l01.h>
 #include <drivers/led.h>
@@ -41,19 +39,15 @@ const unsigned char ADDR_TX[] = RCP_REMOTE_ADDR;
 
 //-----------------------------------------------------------------
 
-CommBuffer buffer;
-
-volatile int lostCount = 0;
-
 static xSemaphoreHandle rcp_ready;
 static xQueueHandle tx_queue;
 
-static rcp_callback_t cmd_callbacks[RCP_CMD_NUM] = { 0 };
-static rcp_callback_t query_callbacks[RCP_CMD_NUM] = { 0 };
+static rcp_callback_t cmd_callbacks[RCP_CMD_NUM]    = { 0 };
+static rcp_callback_t query_callbacks[RCP_CMD_NUM]  = { 0 };
 
 //-----------------------------------------------------------------
 
-static void rcpRadioIRQCallback(void)
+static void rcp_radio_irq_callback(void)
 {
     portBASE_TYPE woken = pdFALSE;
     xSemaphoreGiveFromISR(rcp_ready, &woken);
@@ -63,60 +57,58 @@ static void rcpRadioIRQCallback(void)
 
 //-----------------------------------------------------------------
 
-static void rcpTask(void *args)
+static void rcp_task(void *args)
 {
     rcp_message_t msg;
     portBASE_TYPE res;
 
-//    xSemaphoreTake(rcpReady, 0);
-
     while (1)
     {
-    	// switch to RX mode
-    	xSemaphoreTake(rcp_ready, 0);
+        // switch to RX mode
+        xSemaphoreTake(rcp_ready, 0);
         rcp_enable_rx();
         // wait for ready interrupt
         res = xSemaphoreTake(rcp_ready, MSEC_TO_TICKS(RCP_RX_MAX_DELAY));
         // check for RX interrupt or timeout
-		if (res == pdTRUE && NRF_CHECK_STATUS(NRF_IRQ_RX_DR))
+        if (res == pdTRUE && NRF_CHECK_STATUS(NRF_IRQ_RX_DR))
         {
-			nrf_clear_irq(NRF_IRQ_RX_DR);
+            nrf_clear_irq(NRF_IRQ_RX_DR);
 
-			// read all pending messages
-        	while (!NRF_CHECK_FIFO(NRF_FIFO_STATUS_RX_EMPTY))
-        	{
-        		led_turn_on(LED_RED);
+            // read all pending messages
+            while (!NRF_CHECK_FIFO(NRF_FIFO_STATUS_RX_EMPTY))
+            {
+                led_turn_on(LED_RED);
 
-				nrf_read_rx_payload(msg.raw, RCP_PAYLOAD_SIZE);
-	        	rcp_process_message(&msg);
+                nrf_read_rx_payload(msg.raw, RCP_PAYLOAD_SIZE);
+                rcp_process_message(&msg);
 
-	        	led_turn_off(LED_RED);
-        	}
+                led_turn_off(LED_RED);
+            }
         }
 
-		// send all pending messages
-		rcp_enable_tx();
-		while (uxQueueMessagesWaiting(tx_queue) > 0)
-		{
-			xQueueReceive(tx_queue, &msg, 0);
+        // send all pending messages
+        rcp_enable_tx();
+        while (uxQueueMessagesWaiting(tx_queue) > 0)
+        {
+            xQueueReceive(tx_queue, &msg, 0);
 
-			led_turn_on(LED_YELLOW);
+            led_turn_on(LED_YELLOW);
 
-			xSemaphoreTake(rcp_ready, 0);
-			nrf_write_tx_payload(msg.raw, RCP_PAYLOAD_SIZE, true);
+            xSemaphoreTake(rcp_ready, 0);
+            nrf_write_tx_payload(msg.raw, RCP_PAYLOAD_SIZE, true);
 
-			// wait for interrupt
-			res = xSemaphoreTake(rcp_ready, MSEC_TO_TICKS(RCP_TX_MAX_DELAY));
-			if (res == pdTRUE)
-			{
-				if (NRF_CHECK_STATUS(NRF_IRQ_TX_DS | NRF_IRQ_MAX_RT))
-					nrf_clear_irq(NRF_IRQ_TX_DS | NRF_IRQ_MAX_RT);
-			}
+            // wait for interrupt
+            res = xSemaphoreTake(rcp_ready, MSEC_TO_TICKS(RCP_TX_MAX_DELAY));
+            if (res == pdTRUE)
+            {
+                if (NRF_CHECK_STATUS(NRF_IRQ_TX_DS | NRF_IRQ_MAX_RT))
+                    nrf_clear_irq(NRF_IRQ_TX_DS | NRF_IRQ_MAX_RT);
+            }
 
-			led_turn_off(LED_YELLOW);
-		}
+            led_turn_off(LED_YELLOW);
+        }
 
-		nrf_clear_all_irq();
+        nrf_clear_all_irq();
     }
 }
 
@@ -132,7 +124,7 @@ void rcp_init(void)
     nrf_set_rf_channel(RCP_RF_CHANNEL);
     nrf_set_payload_width(RCP_PAYLOAD_SIZE, RCP_PIPE);
     nrf_auto_ack_enable(RCP_PIPE);
-    nrf_set_irq_callback(rcpRadioIRQCallback);
+    nrf_set_irq_callback(rcp_radio_irq_callback);
 
     nrf_set_tx_addr((unsigned char*)ADDR_TX, RCP_ADDR_LEN);
     nrf_set_rx_addr((unsigned char*)ADDR_RX, RCP_ADDR_LEN, RCP_PIPE);
@@ -141,7 +133,7 @@ void rcp_init(void)
     nrf_power_up();
     nrf_clear_flush();
 
-    xTaskCreate(rcpTask, (signed portCHAR*)"RCP",
+    xTaskCreate(rcp_task, (signed portCHAR*)"RCP",
                 configMINIMAL_STACK_SIZE, NULL, 1, NULL);
 }
 
@@ -193,8 +185,8 @@ void rcp_process_message(rcp_message_t *msg)
 
     if (IS_VALID_CMD(msg->query))
     {
-		callback = query_callbacks[(int)msg->query];
-		if (callback)
-			callback(msg);
+        callback = query_callbacks[(int)msg->query];
+        if (callback)
+            callback(msg);
     }
 }

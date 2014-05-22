@@ -1,7 +1,5 @@
 #include <stellaris_config.h>
 
-#include "timers.h"
-
 #include <FreeRTOSConfig.h>
 #include <FreeRTOS.h>
 #include <portmacro.h>

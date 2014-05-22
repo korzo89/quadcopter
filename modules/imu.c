@@ -54,8 +54,6 @@ volatile float pitch, roll, yaw;
 static void imu_rcp_callback(rcp_message_t *msg)
 {
 	rcp_message_t resp;
-	resp.header = 0x99;
-	resp.length = 26;
 	resp.cmd = RCP_CMD_RAW_IMU;
 	resp.query = RCP_CMD_OK;
 

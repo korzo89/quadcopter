@@ -34,6 +34,7 @@ void buzzer_init(void)
     TimerConfigure(BUZZER_TIMER, TIMER_CFG_SPLIT_PAIR | TIMER_CFG_A_PWM);
     TimerControlLevel(BUZZER_TIMER, TIMER_A, true);
 
+    buzzer_set_freq(10);
     buzzer_set_freq(0);
 }
 
