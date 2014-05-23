@@ -34,8 +34,8 @@
 
 //-----------------------------------------------------------------
 
-const unsigned char ADDR_RX[] = RCP_LOCAL_ADDR;
-const unsigned char ADDR_TX[] = RCP_REMOTE_ADDR;
+static const unsigned char ADDR_RX[] = RCP_LOCAL_ADDR;
+static const unsigned char ADDR_TX[] = RCP_REMOTE_ADDR;
 
 //-----------------------------------------------------------------
 
@@ -176,16 +176,16 @@ void rcp_enable_tx(void)
 
 void rcp_process_message(rcp_message_t *msg)
 {
-    if (!msg || !IS_VALID_CMD(msg->cmd))
+    if (!msg || !IS_VALID_CMD(msg->packet.cmd))
         return;
 
-    rcp_callback_t callback = cmd_callbacks[(int)msg->cmd];
+    rcp_callback_t callback = cmd_callbacks[(int)msg->packet.cmd];
     if (callback)
         callback(msg);
 
-    if (IS_VALID_CMD(msg->query))
+    if (IS_VALID_CMD(msg->packet.query))
     {
-        callback = query_callbacks[(int)msg->query];
+        callback = query_callbacks[(int)msg->packet.query];
         if (callback)
             callback(msg);
     }

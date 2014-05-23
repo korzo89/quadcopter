@@ -30,16 +30,17 @@ typedef enum
     RCP_CMD_NUM
 } rcp_command_t;
 
+typedef struct PACK_STRUCT
+{
+    uint8_t cmd;
+    uint8_t query;
+    uint8_t data[RCP_PAYLOAD_SIZE - 2];
+} rcp_packet_t;
+
 typedef union
 {
     uint8_t raw[RCP_PAYLOAD_SIZE];
-
-    struct PACK_STRUCT
-    {
-        uint8_t cmd;
-        uint8_t query;
-        uint8_t data[RCP_PAYLOAD_SIZE - 2];
-    };
+    rcp_packet_t packet;
 } rcp_message_t;
 
 typedef void (*rcp_callback_t)(rcp_message_t*);

@@ -54,10 +54,10 @@ volatile float pitch, roll, yaw;
 static void imu_rcp_callback(rcp_message_t *msg)
 {
 	rcp_message_t resp;
-	resp.cmd = RCP_CMD_RAW_IMU;
-	resp.query = RCP_CMD_OK;
+	resp.packet.cmd = RCP_CMD_RAW_IMU;
+	resp.packet.query = RCP_CMD_OK;
 
-	imu_poll_sensors((imu_sensor_data_t*)resp.data);
+	imu_poll_sensors((imu_sensor_data_t*)resp.packet.data);
 
 	rcp_send_message(&resp);
 }
