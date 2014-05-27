@@ -93,8 +93,8 @@ void imu_poll_sensors(imu_sensor_data_t *data)
     adxl345_get_accel(&data->acc.x, &data->acc.y, &data->acc.z);
     l3g4200d_read_gyro(&data->gyro.x, &data->gyro.y, &data->gyro.z);
     hmc5883_read_mag(&data->mag.x, &data->mag.y, &data->mag.z);
-//    data->temperature = bmp085ReadTemperature();
-//    data->pressure = bmp085ReadPressure();
+    data->temperature = bmp085_read_temp();
+    data->pressure = bmp085_read_pressure();
 }
 
 //-----------------------------------------------------------------

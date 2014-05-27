@@ -43,6 +43,8 @@ static xQueueHandle button_queue;
 static int led_counter = 0;
 static int button_counter = 0;
 
+static char buf[17];
+
 //-----------------------------------------------------------------
 
 static void gui_task(void *params);
@@ -51,10 +53,24 @@ static void button_task(void *params);
 
 //-----------------------------------------------------------------
 
-static uint16_t control = 0;
+typedef struct PACK_STRUCT
+{
+    uint16_t throttle;
+    uint16_t pitch;
+    uint16_t roll;
+    uint16_t yaw;
+    struct
+    {
+        uint8_t sw1 : 1;
+        uint8_t sw2 : 2;
+        uint8_t sw3 : 3;
+    } flags;
+} control_t;
+
+static control_t control;
 static void rcp_callback(rcp_message_t *msg)
 {
-    control = *((uint16_t*)msg->data);
+    memcpy((uint8_t*)&control, msg->packet.data, sizeof(control_t));
 }
 
 result_t gui_init(void)
@@ -132,10 +148,22 @@ static void button_task(void *params)
 
 //-----------------------------------------------------------------
 
+static void gui_disp_control(const char *name, uint16_t val, int row)
+{
+    usprintf(buf, "%5s %4d ", name, val);
+    oled_disp_str_at(buf, row, 0);
+
+    const int num = 5;
+    uint32_t len = (uint32_t)val * 100 / 4095;
+    len = len * num / 100;
+    int i;
+    for (i = 0; i < num; ++i)
+        oled_disp_char(i < len ? '=' : '.');
+}
+
 static void gui_task(void *params)
 {
     uint8_t screen = 0;
-    char buf[17];
 
     oled_clear();
     oled_disp_str("Hello world!");
@@ -181,16 +209,14 @@ static void gui_task(void *params)
         switch (screen)
         {
         case 0:
-            xSemaphoreTake(mutex, portMAX_DELAY);
-            usprintf(buf, "Count: %4d", led_counter);
-            xSemaphoreGive(mutex);
-            oled_disp_str_at(buf, 2, 0);
-
-            usprintf(buf, "Button: %3d", button_counter);
-            oled_disp_str_at(buf, 3, 0);
-
-            usprintf(buf, "LT_X: %6d", control);
-            oled_disp_str_at(buf, 5, 0);
+            gui_disp_control("1 Thr", control.throttle, 2);
+            gui_disp_control("2 Pit", control.pitch, 3);
+            gui_disp_control("3 Rol", control.roll, 4);
+            gui_disp_control("4 Yaw", control.yaw, 5);
+            oled_set_pos(6, 0);
+            oled_disp_char(control.flags.sw1 ? 'X' : '_');
+            oled_disp_char(control.flags.sw2 ? 'X' : '_');
+            oled_disp_char(control.flags.sw3 ? 'X' : '_');
             break;
 
         case 1:
@@ -287,6 +313,16 @@ static void gui_task(void *params)
                 oled_disp_str_at((char*)msg.command, 3, 0);
                 oled_disp_str_at((char*)msg.data, 4, 0);
             }
+            break;
+
+        case 8:
+            xSemaphoreTake(mutex, portMAX_DELAY);
+            usprintf(buf, "Count: %4d", led_counter);
+            xSemaphoreGive(mutex);
+            oled_disp_str_at(buf, 2, 0);
+
+            usprintf(buf, "Button: %3d", button_counter);
+            oled_disp_str_at(buf, 3, 0);
             break;
 
         default:
