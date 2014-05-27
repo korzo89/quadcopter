@@ -25,6 +25,7 @@
 
 #include <modules/gps.h>
 #include <modules/imu.h>
+#include <modules/rcp.h>
 
 #include <utils/delay.h>
 #include <utils/ustdlib.h>
@@ -50,6 +51,12 @@ static void button_task(void *params);
 
 //-----------------------------------------------------------------
 
+static uint16_t control = 0;
+static void rcp_callback(rcp_message_t *msg)
+{
+    control = *((uint16_t*)msg->data);
+}
+
 result_t gui_init(void)
 {
     mutex = xSemaphoreCreateMutex();
@@ -66,6 +73,8 @@ result_t gui_init(void)
     if (xTaskCreate(gui_task, (signed portCHAR*)"GUI",
             GUI_TASK_STACK_SIZE, NULL, GUI_TASK_PRIORITY, NULL) != pdPASS)
         return RES_ERR_FATAL;
+
+    rcp_register_callback(RCP_CMD_CONTROL, rcp_callback, false);
 
     return RES_OK;
 }
@@ -179,6 +188,9 @@ static void gui_task(void *params)
 
             usprintf(buf, "Button: %3d", button_counter);
             oled_disp_str_at(buf, 3, 0);
+
+            usprintf(buf, "LT_X: %6d", control);
+            oled_disp_str_at(buf, 5, 0);
             break;
 
         case 1:

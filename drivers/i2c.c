@@ -5,7 +5,8 @@
 
 //-----------------------------------------------------------------
 
-result_t i2c_init(i2c_t *obj) {
+result_t i2c_init(i2c_t *obj)
+{
     if (!obj)
         return RES_ERR_BAD_PARAM;
 
@@ -27,7 +28,8 @@ result_t i2c_init(i2c_t *obj) {
 
 //-----------------------------------------------------------------
 
-result_t i2c_excl_take(i2c_t *obj) {
+result_t i2c_excl_take(i2c_t *obj)
+{
     if (!obj)
         return RES_ERR_BAD_PARAM;
 
@@ -39,7 +41,8 @@ result_t i2c_excl_take(i2c_t *obj) {
 
 //-----------------------------------------------------------------
 
-result_t i2c_excl_give(i2c_t *obj) {
+result_t i2c_excl_give(i2c_t *obj)
+{
     if (!obj)
         return RES_ERR_BAD_PARAM;
 
@@ -49,7 +52,8 @@ result_t i2c_excl_give(i2c_t *obj) {
 
 //-----------------------------------------------------------------
 
-static result_t i2c_write_byte(i2c_t *obj, uint8_t data, uint32_t ctrl) {
+static result_t i2c_write_byte(i2c_t *obj, uint8_t data, uint32_t ctrl)
+{
     uint32_t base = obj->conf.base;
     I2CMasterDataPut(base, data);
     I2CMasterControl(base, ctrl);

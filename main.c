@@ -74,10 +74,10 @@ static void initTask(void *params)
     ultrasonic_init();
     imu_init(0.1f, 100.0f);
 
-    gui_init();
-
     rcp_init();
     gps_init();
+
+    gui_init();
 
     vTaskDelete(NULL);
 }
