@@ -25,6 +25,7 @@
 
 #include <modules/gps.h>
 #include <modules/imu.h>
+#include <modules/rcp.h>
 #include <modules/control.h>
 
 #include <utils/delay.h>
@@ -141,6 +142,18 @@ static void gui_disp_control(const char *name, uint16_t val, int row)
 
 //-----------------------------------------------------------------
 
+const uint8_t SYMB_CONN[] = {
+//        0x03, 0x05, 0x09, 0x7F, 0x09, 0x65, 0x03, 0x70,
+//        0x00, 0x78, 0x00, 0x7C, 0x00, 0x7E, 0x00, 0x7F
+        0x03, 0x05, 0x09, 0x7F, 0x09, 0x05, 0x03, 0x00,
+        0x00, 0x1C, 0x00, 0x22, 0x1C, 0x41, 0x22, 0x1C
+};
+
+const uint8_t SYMB_LOST[] = {
+        0x03, 0x05, 0x09, 0x7F, 0x09, 0x05, 0x03, 0x00,
+        0x00, 0x22, 0x14, 0x08, 0x14, 0x22, 0x00, 0x00
+};
+
 static void gui_task(void *params)
 {
     uint8_t screen = 0;
@@ -183,8 +196,11 @@ static void gui_task(void *params)
             }
         }
 
-        usprintf(buf, "      %d/%d       ", screen + 1, NUM_SCREENS);
-        oled_disp_str_at(buf, 0, 0);
+        oled_set_pos(0, 0);
+        oled_disp_symbol((uint8_t*)(rcp_is_connected() ? SYMB_CONN : SYMB_LOST), 16);
+        usprintf(buf, "    %d/%d       ", screen + 1, NUM_SCREENS);
+//        oled_disp_str_at(buf, 0, 0);
+        oled_disp_str(buf);
 
         control_t control;
 
@@ -204,6 +220,14 @@ static void gui_task(void *params)
             break;
 
         case 1:
+            xSemaphoreTake(mutex, portMAX_DELAY);
+            usprintf(buf, "Count: %4d", led_counter);
+            xSemaphoreGive(mutex);
+            oled_disp_str_at(buf, 2, 0);
+
+            usprintf(buf, "Button: %3d", button_counter);
+            oled_disp_str_at(buf, 3, 0);
+
             oled_set_pos(6, 0);
             state = led_counter % 16;
             for (i = 0; i < state; ++i)
@@ -282,9 +306,9 @@ static void gui_task(void *params)
             sensors.temperature = bmp085_read_temp();
             sensors.pressure = bmp085_read_pressure();
             oled_disp_str_at("Barometer", 2, 0);
-            usprintf(buf, "T: %5d", sensors.temperature);
+            usprintf(buf, "Temp: %7d", sensors.temperature);
             oled_disp_str_at(buf, 4, 0);
-            usprintf(buf, "P: %8d", sensors.pressure);
+            usprintf(buf, "Pres: %7d", sensors.pressure);
             oled_disp_str_at(buf, 5, 0);
             break;
 
@@ -297,16 +321,6 @@ static void gui_task(void *params)
                 oled_disp_str_at((char*)msg.command, 3, 0);
                 oled_disp_str_at((char*)msg.data, 4, 0);
             }
-            break;
-
-        case 8:
-            xSemaphoreTake(mutex, portMAX_DELAY);
-            usprintf(buf, "Count: %4d", led_counter);
-            xSemaphoreGive(mutex);
-            oled_disp_str_at(buf, 2, 0);
-
-            usprintf(buf, "Button: %3d", button_counter);
-            oled_disp_str_at(buf, 3, 0);
             break;
 
         default:

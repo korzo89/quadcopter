@@ -113,6 +113,14 @@ void oled_disp_char(char c)
 
 //-----------------------------------------------------------------
 
+void oled_disp_symbol(uint8_t *sym, uint8_t len)
+{
+    while (len--)
+        oled_send_data(*sym++);
+}
+
+//-----------------------------------------------------------------
+
 bool oled_send_data(uint8_t data)
 {
     if (i2c_write_reg(i2c_if, OLED_ADDRESS, 0x40, &data, 1) == RES_OK)

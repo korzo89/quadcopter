@@ -22,6 +22,7 @@ void oled_set_pos(uint8_t row, uint8_t col);
 void oled_disp_str(char *str);
 void oled_disp_str_at(char *str, uint8_t row, uint8_t col);
 void oled_disp_char(char c);
+void oled_disp_symbol(uint8_t *sym, uint8_t len);
 
 bool oled_send_data(uint8_t data);
 bool oled_send_cmd(uint8_t cmd);
