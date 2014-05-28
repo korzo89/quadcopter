@@ -24,6 +24,7 @@
 #include <modules/rcp.h>
 #include <modules/gui.h>
 #include <modules/gps.h>
+#include <modules/control.h>
 
 //-----------------------------------------------------------------
 
@@ -76,6 +77,7 @@ static void initTask(void *params)
 
     rcp_init();
     gps_init();
+    control_init();
 
     gui_init();
 

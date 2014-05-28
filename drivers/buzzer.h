@@ -10,13 +10,31 @@
 
 //-----------------------------------------------------------------
 
+#include <defs.h>
 #include "buzzer_notes.h"
+
+//-----------------------------------------------------------------
+
+#define BUZZER_SEQ_WAIT(x)  (x)
+#define BUZZER_SEQ_LOOP     -1
+#define BUZZER_SEQ_STOP     -2
+
+//-----------------------------------------------------------------
+
+typedef struct
+{
+    uint32_t freq;
+    int action;
+} buzzer_step_t;
 
 //-----------------------------------------------------------------
 
 void buzzer_init(void);
 
-void buzzer_set_freq(unsigned int freq);
+void buzzer_set_freq(uint32_t freq);
+
+result_t buzzer_play_seq(buzzer_step_t *seq);
+result_t buzzer_stop_seq(void);
 
 //-----------------------------------------------------------------
 

@@ -29,7 +29,7 @@
 
 #define RCP_TX_QUEUE_SIZE       3
 
-#define RCP_RX_MAX_DELAY		500
+#define RCP_RX_MAX_DELAY		100
 #define RCP_TX_MAX_DELAY		100
 
 //-----------------------------------------------------------------
@@ -87,6 +87,7 @@ static void rcp_task(void *args)
         }
 
         // send all pending messages
+        nrf_flush_tx();
         rcp_enable_tx();
         while (uxQueueMessagesWaiting(tx_queue) > 0)
         {

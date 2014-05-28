@@ -25,7 +25,7 @@
 
 #include <modules/gps.h>
 #include <modules/imu.h>
-#include <modules/rcp.h>
+#include <modules/control.h>
 
 #include <utils/delay.h>
 #include <utils/ustdlib.h>
@@ -53,26 +53,6 @@ static void button_task(void *params);
 
 //-----------------------------------------------------------------
 
-typedef struct PACK_STRUCT
-{
-    uint16_t throttle;
-    uint16_t pitch;
-    uint16_t roll;
-    uint16_t yaw;
-    struct
-    {
-        uint8_t sw1 : 1;
-        uint8_t sw2 : 2;
-        uint8_t sw3 : 3;
-    } flags;
-} control_t;
-
-static control_t control;
-static void rcp_callback(rcp_message_t *msg)
-{
-    memcpy((uint8_t*)&control, msg->packet.data, sizeof(control_t));
-}
-
 result_t gui_init(void)
 {
     mutex = xSemaphoreCreateMutex();
@@ -89,8 +69,6 @@ result_t gui_init(void)
     if (xTaskCreate(gui_task, (signed portCHAR*)"GUI",
             GUI_TASK_STACK_SIZE, NULL, GUI_TASK_PRIORITY, NULL) != pdPASS)
         return RES_ERR_FATAL;
-
-    rcp_register_callback(RCP_CMD_CONTROL, rcp_callback, false);
 
     return RES_OK;
 }
@@ -161,6 +139,8 @@ static void gui_disp_control(const char *name, uint16_t val, int row)
         oled_disp_char(i < len ? '=' : '.');
 }
 
+//-----------------------------------------------------------------
+
 static void gui_task(void *params)
 {
     uint8_t screen = 0;
@@ -206,9 +186,13 @@ static void gui_task(void *params)
         usprintf(buf, "      %d/%d       ", screen + 1, NUM_SCREENS);
         oled_disp_str_at(buf, 0, 0);
 
+        control_t control;
+
         switch (screen)
         {
         case 0:
+            control_get_current(&control);
+
             gui_disp_control("1 Thr", control.throttle, 2);
             gui_disp_control("2 Pit", control.pitch, 3);
             gui_disp_control("3 Rol", control.roll, 4);

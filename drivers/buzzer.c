@@ -13,10 +13,26 @@
 #include <driverlib/gpio.h>
 #include <driverlib/timer.h>
 #include <stdint.h>
+#include <FreeRTOS.h>
+#include <semphr.h>
+#include <timers.h>
+#include <utils/delay.h>
 
 //-----------------------------------------------------------------
 
-#define BUZZER_TIMER       WTIMER1_BASE
+#define BUZZER_TIMER            WTIMER1_BASE
+#define BUZZER_SEQ_TIMER_ID     0
+
+//-----------------------------------------------------------------
+
+static xSemaphoreHandle mutex;
+static xTimerHandle timer;
+static buzzer_step_t *curr_sequence;
+static unsigned int curr_step;
+
+//-----------------------------------------------------------------
+
+static void buzzer_process_seq(xTimerHandle);
 
 //-----------------------------------------------------------------
 
@@ -36,11 +52,16 @@ void buzzer_init(void)
 
     buzzer_set_freq(10);
     buzzer_set_freq(0);
+
+    mutex = xSemaphoreCreateMutex();
+
+    timer = xTimerCreate((const signed char*)"buz_tim", MSEC_TO_TICKS(1000), pdFALSE,
+            BUZZER_SEQ_TIMER_ID, buzzer_process_seq);
 }
 
 //-----------------------------------------------------------------
 
-void buzzer_set_freq(unsigned int freq)
+void buzzer_set_freq(uint32_t freq)
 {
     uint32_t cycle = SysCtlClockGet() / freq;
     uint32_t period = cycle;
@@ -59,4 +80,62 @@ void buzzer_set_freq(unsigned int freq)
         TimerDisable(BUZZER_TIMER, TIMER_A);
 }
 
+//-----------------------------------------------------------------
 
+result_t buzzer_play_seq(buzzer_step_t *seq)
+{
+    if (xSemaphoreTake(mutex, portMAX_DELAY) != pdTRUE)
+        return RES_ERR_FATAL;
+
+    xTimerStop(timer, 0);
+
+    curr_sequence = seq;
+    curr_step = 0;
+
+    buzzer_process_seq(timer);
+
+    xSemaphoreGive(mutex);
+    return RES_OK;
+}
+
+//-----------------------------------------------------------------
+
+result_t buzzer_stop_seq(void)
+{
+    if (xSemaphoreTake(mutex, portMAX_DELAY) != pdTRUE)
+        return RES_ERR_FATAL;
+
+    xTimerStop(timer, 0);
+    buzzer_set_freq(0);
+
+    xSemaphoreGive(mutex);
+    return RES_OK;
+}
+
+//-----------------------------------------------------------------
+
+static void buzzer_process_seq(xTimerHandle tim)
+{
+    (void)tim;
+
+    buzzer_step_t step = curr_sequence[curr_step];
+
+    switch (step.action)
+    {
+    case BUZZER_SEQ_STOP:
+        buzzer_set_freq(0);
+        return;
+    case BUZZER_SEQ_LOOP:
+        curr_step = 0;
+        step = curr_sequence[0];
+        break;
+    default:
+        break;
+    }
+
+    buzzer_set_freq(step.freq);
+    curr_step++;
+
+    xTimerChangePeriod(timer, MSEC_TO_TICKS(step.action), 0);
+    xTimerStart(timer, 0);
+}
