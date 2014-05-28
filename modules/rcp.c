@@ -32,6 +32,8 @@
 #define RCP_RX_MAX_DELAY		100
 #define RCP_TX_MAX_DELAY		100
 
+#define RCP_DISCONNECT_TIME     1500
+
 //-----------------------------------------------------------------
 
 static const unsigned char ADDR_RX[] = RCP_LOCAL_ADDR;
@@ -44,6 +46,8 @@ static xQueueHandle tx_queue;
 
 static rcp_callback_t cmd_callbacks[RCP_CMD_NUM]    = { 0 };
 static rcp_callback_t query_callbacks[RCP_CMD_NUM]  = { 0 };
+
+static portTickType last_msg_time = 0;
 
 //-----------------------------------------------------------------
 
@@ -73,6 +77,8 @@ static void rcp_task(void *args)
         if (res == pdTRUE && NRF_CHECK_STATUS(NRF_IRQ_RX_DR))
         {
             nrf_clear_irq(NRF_IRQ_RX_DR);
+
+            last_msg_time = xTaskGetTickCount();
 
             // read all pending messages
             while (!NRF_CHECK_FIFO(NRF_FIFO_STATUS_RX_EMPTY))
@@ -190,4 +196,12 @@ void rcp_process_message(rcp_message_t *msg)
         if (callback)
             callback(msg);
     }
+}
+
+//-----------------------------------------------------------------
+
+bool rcp_is_connected(void)
+{
+    return last_msg_time &&
+            (xTaskGetTickCount() - last_msg_time <= MSEC_TO_TICKS(RCP_DISCONNECT_TIME));
 }

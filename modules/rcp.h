@@ -57,6 +57,8 @@ void rcp_enable_tx(void);
 
 void rcp_process_message(rcp_message_t *msg);
 
+bool rcp_is_connected(void);
+
 //-----------------------------------------------------------------
 
 #endif /* RCP_H_ */

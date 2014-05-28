@@ -28,7 +28,7 @@
 static xSemaphoreHandle mutex;
 static xTimerHandle timer;
 static buzzer_step_t *curr_sequence;
-static unsigned int curr_step;
+static unsigned int curr_step, curr_loop;
 
 //-----------------------------------------------------------------
 
@@ -91,6 +91,7 @@ result_t buzzer_play_seq(buzzer_step_t *seq)
 
     curr_sequence = seq;
     curr_step = 0;
+    curr_loop = 0;
 
     buzzer_process_seq(timer);
 
@@ -126,6 +127,11 @@ static void buzzer_process_seq(xTimerHandle tim)
         buzzer_set_freq(0);
         return;
     case BUZZER_SEQ_LOOP:
+        if (++curr_loop == step.freq && step.freq > 0)
+        {
+            buzzer_set_freq(0);
+            return;
+        }
         curr_step = 0;
         step = curr_sequence[0];
         break;
