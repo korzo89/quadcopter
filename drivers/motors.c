@@ -7,8 +7,6 @@
 
 #include "motors.h"
 
-#include <drivers/led.h>
-
 #include <inc/hw_types.h>
 #include <inc/hw_memmap.h>
 #include <driverlib/pin_map.h>
@@ -109,9 +107,6 @@ bool motors_armed(void)
 void motors_arm(void)
 {
     armed = true;
-
-    led_turn_off(LED_GREEN);
-    led_turn_on(LED_RED);
 }
 
 //-----------------------------------------------------------------
@@ -120,9 +115,6 @@ void motors_disarm(void)
 {
     armed = false;
     motors_set_throttle(0.0f, 0.0f, 0.0f, 0.0f);
-
-    led_turn_on(LED_GREEN);
-    led_turn_off(LED_RED);
 }
 
 //-----------------------------------------------------------------

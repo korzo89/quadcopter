@@ -8,8 +8,13 @@
 #include "control.h"
 
 #include <drivers/buzzer.h>
+#include <drivers/motors.h>
 #include <modules/rcp.h>
 #include <utils/delay.h>
+
+//-----------------------------------------------------------------
+
+#define CONTROL_TASK_STACK  200
 
 //-----------------------------------------------------------------
 
@@ -52,11 +57,13 @@ static void rcp_callback(rcp_message_t *msg)
     if (armed && !control.flags.sw1)
     {
         armed = false;
+        motors_disarm();
         buzzer_play_seq((buzzer_step_t*)SEQ_DISARM);
     }
     else if (!armed && control.flags.sw1)
     {
         armed = true;
+        motors_arm();
         buzzer_play_seq((buzzer_step_t*)SEQ_ARM);
     }
 }
@@ -79,9 +86,17 @@ static void control_task(void *params)
         {
             buzzer_play_seq((buzzer_step_t*)SEQ_LOST);
             connected = false;
+            armed = false;
+            motors_disarm();
         }
 
-        DELAY_MS(100);
+        if (armed)
+        {
+            float throttle = ((float)control.throttle - 380.0) / (3600.0 - 380.0) * THROTTLE_MAX;
+            motors_set_throttle(throttle, throttle, throttle, throttle);
+        }
+
+        DELAY_MS(10);
     }
 }
 
@@ -95,7 +110,7 @@ result_t control_init(void)
     rcp_register_callback(RCP_CMD_CONTROL, rcp_callback, false);
 
     if (xTaskCreate(control_task, (signed portCHAR*)"CTRL",
-            configMINIMAL_STACK_SIZE, NULL, 2, NULL) != pdPASS)
+            CONTROL_TASK_STACK, NULL, 2, NULL) != pdPASS)
         return RES_ERR_FATAL;
 
     return RES_OK;

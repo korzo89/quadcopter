@@ -250,18 +250,11 @@ static void gui_task(void *params)
             usprintf(buf, "Dist: %7d mm", (int)(dist * 10));
             oled_disp_str_at(buf, 2, 0);
 
-            if (button_counter % 2) {
-                if (dist < 10.0f)
-                    buzzer_set_freq(NOTE_E6);
-                else if (dist < 20.0f)
-                    buzzer_set_freq(NOTE_D6);
-                else if (dist < 30.0f)
-                    buzzer_set_freq(NOTE_C6);
-                else
-                    buzzer_set_freq(0);
-            } else {
-                buzzer_set_freq(0);
-            }
+//            if (button_counter % 2) {
+//                buzzer_set_freq((int)(dist * 10 / 2));
+//            } else {
+//                buzzer_set_freq(0);
+//            }
 
             battery = (float)adc_get_value() * 3.3 / 4095.0 * 78.0 / 10.0;
             usprintf(buf, "Battery: %2d.%1d V", (int)battery, (int)(battery * 10) % 10);

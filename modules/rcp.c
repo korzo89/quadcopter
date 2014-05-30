@@ -32,7 +32,9 @@
 #define RCP_RX_MAX_DELAY		100
 #define RCP_TX_MAX_DELAY		100
 
-#define RCP_DISCONNECT_TIME     1500
+#define RCP_DISCONNECT_TIME     1000
+
+#define RCP_TASK_STACK          200
 
 //-----------------------------------------------------------------
 
@@ -141,7 +143,7 @@ void rcp_init(void)
     nrf_clear_flush();
 
     xTaskCreate(rcp_task, (signed portCHAR*)"RCP",
-                configMINIMAL_STACK_SIZE, NULL, 1, NULL);
+                RCP_TASK_STACK, NULL, 1, NULL);
 }
 
 //-----------------------------------------------------------------

@@ -50,6 +50,8 @@ void gps_init(void)
 {
     vSemaphoreCreateBinary(uart_ready);
 
+    SysCtlPeripheralEnable(SYSCTL_PERIPH_UART2);
+
     GPIOPinConfigure(GPIO_PD6_U2RX);
     GPIOPinConfigure(GPIO_PD7_U2TX);
     GPIOPinTypeUART(GPIO_PORTD_BASE, GPIO_PIN_6 | GPIO_PIN_7);
