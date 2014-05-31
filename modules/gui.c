@@ -169,7 +169,7 @@ static void gui_task(void *params)
     static gps_message_t msg;
     static imu_sensor_data_t sensors;
     static imu_real_t real_sens;
-    static vec3_t angles;
+    static vec3_t triad, angles;
 
     const int NUM_SCREENS = 8;
 
@@ -264,13 +264,15 @@ static void gui_task(void *params)
 
             imu_get_sensors(&sensors);
             imu_sensors_transform(&sensors, &real_sens);
-            imu_estimate_triad(real_sens.acc, real_sens.mag, &angles);
+            imu_estimate_triad(real_sens.acc, real_sens.mag, &triad);
+            imu_get_angles(&angles);
 
-            usprintf(buf, "P: %4d", (int)angles.y);
+            oled_disp_str_at("   MADGW  TRIAD", 4, 0);
+            usprintf(buf, "P: %5d  %5d", (int)angles.y, (int)triad.y);
             oled_disp_str_at(buf, 5, 0);
-            usprintf(buf, "R: %4d", (int)angles.x);
+            usprintf(buf, "R: %5d  %5d", (int)angles.x, (int)triad.x);
             oled_disp_str_at(buf, 6, 0);
-            usprintf(buf, "Y: %4d", (int)angles.z);
+            usprintf(buf, "Y: %5d  %5d", (int)angles.z, (int)triad.z);
             oled_disp_str_at(buf, 7, 0);
             break;
 

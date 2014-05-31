@@ -152,12 +152,12 @@ static void imu_poll_sensors(imu_sensor_data_t *data)
 
 //-----------------------------------------------------------------
 
-result_t imu_get_sensors(imu_sensor_data_t *data)
+result_t imu_get_sensors(imu_sensor_data_t *out)
 {
-    if (!data)
+    if (!out)
         return RES_ERR_BAD_PARAM;
 
-    memcpy(data, &sensors, sizeof(imu_sensor_data_t));
+    memcpy(out, &sensors, sizeof(imu_sensor_data_t));
 
     return RES_OK;
 }
@@ -416,6 +416,18 @@ result_t imu_sensors_transform(imu_sensor_data_t *sens, imu_real_t *real)
     real->mag.x = mx;
     real->mag.y = my;
     real->mag.z = mz;
+
+    return RES_OK;
+}
+
+//-----------------------------------------------------------------
+
+result_t imu_get_angles(vec3_t *out)
+{
+    if (!out)
+        return RES_ERR_BAD_PARAM;
+
+    memcpy(out, &angles, sizeof(vec3_t));
 
     return RES_OK;
 }
