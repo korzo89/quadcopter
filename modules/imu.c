@@ -26,9 +26,12 @@
 
 //-----------------------------------------------------------------
 
-#define PI              3.141593f
-#define RAD_TO_DEG(x)   ((x) * 57.2957795f)
-#define DEG_TO_RAD(x)   ((x) * 0.01745329f)
+#define PI                  3.141593f
+#define RAD_TO_DEG(x)       ((x) * 57.2957795f)
+#define DEG_TO_RAD(x)       ((x) * 0.01745329f)
+
+#define TRIAD_REF_ACC_DEF   VEC3_NEW(-0.0156, 0.0391, 0.9375)
+#define TRIAD_REF_MAG_DEF   VEC3_NEW(-69.4093, 16.3664, -372.0633)
 
 //-----------------------------------------------------------------
 
@@ -41,13 +44,17 @@ static float q0 = 1.0f, q1, q2, q3;
 static float filter_beta = 0.1f;
 static float sample_freq = 100.0f;
 
-// magnetometer calibration parameters
-static const float mag_cal[] = { 0.727006, 0.0054922, 0.0269476,
-                                 0.0054922, 0.764489, 0.0283214,
-                                 0.0269476, 0.0283214, 0.993801 };
-static const float mag_off[] = { -739.7, 334.691, 278.869 };
-
 volatile float pitch, roll, yaw;
+
+// TRIAD reference vectors
+static vec3_t triad_ref_acc = TRIAD_REF_ACC_DEF;
+static vec3_t triad_ref_mag = TRIAD_REF_MAG_DEF;
+
+// magnetometer calibration parameters
+static float mag_cal[] = { 0.727006, 0.0054922, 0.0269476,
+                           0.0054922, 0.764489, 0.0283214,
+                           0.0269476, 0.0283214, 0.993801 };
+static vec3_t mag_off = VEC3_NEW(-739.7, 334.691, 278.869);
 
 //-----------------------------------------------------------------
 
@@ -99,39 +106,30 @@ void imu_poll_sensors(imu_sensor_data_t *data)
 
 //-----------------------------------------------------------------
 
-static float inv_sqrt(float x)
-{
-    unsigned int i = 0x5F1F1412 - (*(unsigned int*)&x >> 1);
-    float tmp = *(float*)&i;
-    return tmp * (1.69000231f - 0.714158168f * x * tmp * tmp);
-}
-
-//-----------------------------------------------------------------
-
 void imu_update(void)
 {
-    float ax, ay, az, gx, gy, gz, mx, my, mz, cx, cy, cz;
-
-    ax = (float) curr_data.acc.x / 256.0;
-    ay = (float) curr_data.acc.y / 256.0;
-    az = (float) curr_data.acc.z / 256.0;
-
-    gx = DEG_TO_RAD((float) curr_data.gyro.x * 70.0 / 1000.0);
-    gy = DEG_TO_RAD((float) curr_data.gyro.y * 70.0 / 1000.0);
-    gz = DEG_TO_RAD((float) curr_data.gyro.z * 70.0 / 1000.0);
-
-    mx = (float) curr_data.mag.x * 0.92 - mag_off[0];
-    my = (float) curr_data.mag.y * 0.92 - mag_off[1];
-    mz = (float) curr_data.mag.z * 0.92 - mag_off[2];
-
-    cx = mag_cal[0]*mx + mag_cal[1]*my + mag_cal[2]*mz;
-    cy = mag_cal[3]*mx + mag_cal[4]*my + mag_cal[5]*mz;
-    cz = mag_cal[6]*mx + mag_cal[7]*my + mag_cal[8]*mz;
-    mx = cx / 1000.0;
-    my = cy / 1000.0;
-    mz = cz / 1000.0;
-
-    imu_estimate(gx, gy, gz, ax, ay, az, mx, my, mz);
+//    float ax, ay, az, gx, gy, gz, mx, my, mz, cx, cy, cz;
+//
+//    ax = (float) curr_data.acc.x / 256.0;
+//    ay = (float) curr_data.acc.y / 256.0;
+//    az = (float) curr_data.acc.z / 256.0;
+//
+//    gx = DEG_TO_RAD((float) curr_data.gyro.x * 70.0 / 1000.0);
+//    gy = DEG_TO_RAD((float) curr_data.gyro.y * 70.0 / 1000.0);
+//    gz = DEG_TO_RAD((float) curr_data.gyro.z * 70.0 / 1000.0);
+//
+//    mx = (float) curr_data.mag.x * 0.92 - mag_off[0];
+//    my = (float) curr_data.mag.y * 0.92 - mag_off[1];
+//    mz = (float) curr_data.mag.z * 0.92 - mag_off[2];
+//
+//    cx = mag_cal[0]*mx + mag_cal[1]*my + mag_cal[2]*mz;
+//    cy = mag_cal[3]*mx + mag_cal[4]*my + mag_cal[5]*mz;
+//    cz = mag_cal[6]*mx + mag_cal[7]*my + mag_cal[8]*mz;
+//    mx = cx / 1000.0;
+//    my = cy / 1000.0;
+//    mz = cz / 1000.0;
+//
+//    imu_estimate(gx, gy, gz, ax, ay, az, mx, my, mz);
 }
 
 //-----------------------------------------------------------------
@@ -319,4 +317,71 @@ void imu_get_euler_angles(float *pitch, float *roll, float *yaw)
     *roll  = RAD_TO_DEG(atan2f(m32, m33));
     *pitch = RAD_TO_DEG(-atanf(m31 * inv_sqrt(1.0f - m31 * m31)));
     *yaw   = RAD_TO_DEG(atan2f(m21, m11));
+}
+
+//-----------------------------------------------------------------
+
+result_t imu_sensors_transform(imu_sensor_data_t *sens, imu_real_t *real)
+{
+    if (!sens || !real)
+        return RES_ERR_BAD_PARAM;
+
+    real->acc.x = (float)sens->acc.x / 256.0;
+    real->acc.y = (float)sens->acc.y / 256.0;
+    real->acc.z = (float)sens->acc.z / 256.0;
+
+    real->gyro.x = DEG_TO_RAD((float)sens->gyro.x * 70.0 / 1000.0);
+    real->gyro.y = DEG_TO_RAD((float)sens->gyro.y * 70.0 / 1000.0);
+    real->gyro.z = DEG_TO_RAD((float)sens->gyro.z * 70.0 / 1000.0);
+
+    float mx = (float)sens->mag.x * 0.92 - mag_off.x;
+    float my = (float)sens->mag.y * 0.92 - mag_off.y;
+    float mz = (float)sens->mag.z * 0.92 - mag_off.z;
+
+    float cx = mag_cal[0] * mx + mag_cal[1] * my + mag_cal[2] * mz;
+    float cy = mag_cal[3] * mx + mag_cal[4] * my + mag_cal[5] * mz;
+    float cz = mag_cal[6] * mx + mag_cal[7] * my + mag_cal[8] * mz;
+    mx = cx / 1000.0;
+    my = cy / 1000.0;
+    mz = cz / 1000.0;
+    real->mag.x = mx;
+    real->mag.y = my;
+    real->mag.z = mz;
+
+    return RES_OK;
+}
+
+//-----------------------------------------------------------------
+
+result_t imu_estimate_triad(vec3_t acc, vec3_t mag, vec3_t *out)
+{
+    if (!out)
+        return RES_ERR_BAD_PARAM;
+
+    float inv_norm;
+    vec3_t t1b = triad_ref_acc;
+    VEC3_NORMALIZE_VAR(t1b, inv_norm);
+    vec3_t t1r = acc;
+    VEC3_NORMALIZE_VAR(t1r, inv_norm);
+    vec3_t t2b = VEC3_CROSS(triad_ref_acc, triad_ref_mag);
+    VEC3_NORMALIZE_VAR(t2b, inv_norm);
+    vec3_t t2r = VEC3_CROSS(acc, mag);
+    VEC3_NORMALIZE_VAR(t2r, inv_norm);
+    vec3_t t3b = VEC3_CROSS(t1b, t2b);
+    vec3_t t3r = VEC3_CROSS(t1r, t2r);
+
+    float d11 = t1b.x*t1r.x + t2b.x*t2r.x + t3b.x*t3r.x;
+    float d21 = t1b.y*t1r.x + t2b.y*t2r.x + t3b.y*t3r.x;
+    float d31 = t1b.z*t1r.x + t2b.z*t2r.x + t3b.z*t3r.x;
+    float d32 = t1b.z*t1r.y + t2b.z*t2r.y + t3b.z*t3r.y;
+    float d33 = t1b.z*t1r.z + t2b.z*t2r.z + t3b.z*t3r.z;
+
+    // pitch
+    out->y = RAD_TO_DEG(-atanf(d31 * inv_sqrt(1.0f - POW2(d31))));
+    // roll
+    out->x = RAD_TO_DEG(atan2f(d32, d33));
+    // yaw
+    out->z = RAD_TO_DEG(atan2f(d21, d11));
+
+    return RES_OK;
 }

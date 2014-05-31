@@ -11,22 +11,30 @@
 //-----------------------------------------------------------------
 
 #include <defs.h>
+#include <utils/vec3.h>
 
 //-----------------------------------------------------------------
 
-struct PACK_STRUCT imu_sensor_vec3
+typedef struct PACK_STRUCT
 {
     int16_t x, y, z;
-};
+} sensor_vec3_t;
 
 typedef struct PACK_STRUCT
 {
-    struct imu_sensor_vec3 acc;     // raw accelerometer values
-    struct imu_sensor_vec3 gyro;    // raw gyroscope values
-    struct imu_sensor_vec3 mag;     // raw magnetometer values
-    int32_t pressure;               // raw pressure
-    int16_t temperature;            // raw temperature
+    sensor_vec3_t acc;     // raw accelerometer values
+    sensor_vec3_t gyro;    // raw gyroscope values
+    sensor_vec3_t mag;     // raw magnetometer values
+    int32_t pressure;      // raw pressure
+    int16_t temperature;   // raw temperature
 } imu_sensor_data_t;
+
+typedef struct
+{
+    vec3_t acc;
+    vec3_t mag;
+    vec3_t gyro;
+} imu_real_t;
 
 //-----------------------------------------------------------------
 
@@ -39,6 +47,9 @@ void imu_estimate(float gx, float gy, float gz, float ax, float ay, float az, fl
 void imu_estimate_no_mag(float gx, float gy, float gz, float ax, float ay, float az);
 
 void imu_get_euler_angles(float *pitch, float *roll, float *yaw);
+
+result_t imu_sensors_transform(imu_sensor_data_t *sens, imu_real_t *real);
+result_t imu_estimate_triad(vec3_t acc, vec3_t mag, vec3_t *out);
 
 //-----------------------------------------------------------------
 

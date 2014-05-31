@@ -33,7 +33,7 @@
 
 //-----------------------------------------------------------------
 
-#define GUI_TASK_STACK_SIZE     256
+#define GUI_TASK_STACK_SIZE     300
 #define GUI_TASK_PRIORITY       2
 
 //-----------------------------------------------------------------
@@ -168,6 +168,8 @@ static void gui_task(void *params)
 
     static gps_message_t msg;
     static imu_sensor_data_t sensors;
+    static imu_real_t real_sens;
+    static vec3_t angles;
 
     const int NUM_SCREENS = 8;
 
@@ -260,6 +262,16 @@ static void gui_task(void *params)
             usprintf(buf, "Battery: %2d.%1d V", (int)battery, (int)(battery * 10) % 10);
             oled_disp_str_at(buf, 3, 0);
 
+            imu_poll_sensors(&sensors);
+            imu_sensors_transform(&sensors, &real_sens);
+            imu_estimate_triad(real_sens.acc, real_sens.mag, &angles);
+
+            usprintf(buf, "P: %4d", (int)angles.y);
+            oled_disp_str_at(buf, 5, 0);
+            usprintf(buf, "R: %4d", (int)angles.x);
+            oled_disp_str_at(buf, 6, 0);
+            usprintf(buf, "Y: %4d", (int)angles.z);
+            oled_disp_str_at(buf, 7, 0);
             break;
 
         case 3:
