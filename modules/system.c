@@ -113,7 +113,7 @@ static void system_init_task(void *params)
 
     adc_init();
     ultrasonic_init();
-    imu_init(0.1f, 100.0f);
+    imu_init(0.5f, 100.0f);
 
     rcp_init();
     gps_init();

@@ -38,18 +38,16 @@ typedef struct
 
 //-----------------------------------------------------------------
 
-void imu_init(float beta, float freq);
-
-void imu_poll_sensors(imu_sensor_data_t *data);
+result_t imu_init(float beta, float freq);
 
 void imu_update(void);
-void imu_estimate(float gx, float gy, float gz, float ax, float ay, float az, float mx, float my, float mz);
-void imu_estimate_no_mag(float gx, float gy, float gz, float ax, float ay, float az);
 
-void imu_get_euler_angles(float *pitch, float *roll, float *yaw);
-
+result_t imu_get_sensors(imu_sensor_data_t *data);
 result_t imu_sensors_transform(imu_sensor_data_t *sens, imu_real_t *real);
+
 result_t imu_estimate_triad(vec3_t acc, vec3_t mag, vec3_t *out);
+result_t imu_estimate_madgwick(vec3_t *acc, vec3_t *mag, vec3_t *gyro);
+result_t imu_estimate_madgwick_no_mag(vec3_t *acc, vec3_t *gyro);
 
 //-----------------------------------------------------------------
 

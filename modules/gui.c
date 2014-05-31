@@ -262,7 +262,7 @@ static void gui_task(void *params)
             usprintf(buf, "Battery: %2d.%1d V", (int)battery, (int)(battery * 10) % 10);
             oled_disp_str_at(buf, 3, 0);
 
-            imu_poll_sensors(&sensors);
+            imu_get_sensors(&sensors);
             imu_sensors_transform(&sensors, &real_sens);
             imu_estimate_triad(real_sens.acc, real_sens.mag, &angles);
 
@@ -275,7 +275,7 @@ static void gui_task(void *params)
             break;
 
         case 3:
-            adxl345_get_accel(&sensors.acc.x, &sensors.acc.y, &sensors.acc.z);
+            imu_get_sensors(&sensors);
             oled_disp_str_at("Accelerometer", 2, 0);
             usprintf(buf, "X: %5d", sensors.acc.x);
             oled_disp_str_at(buf, 4, 0);
@@ -286,7 +286,7 @@ static void gui_task(void *params)
             break;
 
         case 4:
-            l3g4200d_read_gyro(&sensors.gyro.x, &sensors.gyro.y, &sensors.gyro.z);
+            imu_get_sensors(&sensors);
             oled_disp_str_at("Gyroscope", 2, 0);
             usprintf(buf, "X: %5d", sensors.gyro.x);
             oled_disp_str_at(buf, 4, 0);
@@ -297,7 +297,7 @@ static void gui_task(void *params)
             break;
 
         case 5:
-            hmc5883_read_mag(&sensors.mag.x, &sensors.mag.y, &sensors.mag.z);
+            imu_get_sensors(&sensors);
             oled_disp_str_at("Magnetometer", 2, 0);
             usprintf(buf, "X: %5d", sensors.mag.x);
             oled_disp_str_at(buf, 4, 0);
@@ -308,8 +308,7 @@ static void gui_task(void *params)
             break;
 
         case 6:
-            sensors.temperature = bmp085_read_temp();
-            sensors.pressure = bmp085_read_pressure();
+            imu_get_sensors(&sensors);
             oled_disp_str_at("Barometer", 2, 0);
             usprintf(buf, "Temp: %7d", sensors.temperature);
             oled_disp_str_at(buf, 4, 0);
