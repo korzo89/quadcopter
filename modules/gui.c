@@ -264,7 +264,7 @@ static void gui_task(void *params)
 
             imu_get_sensors(&sensors);
             imu_sensors_transform(&sensors, &real_sens);
-            imu_estimate_triad(real_sens.acc, real_sens.mag, &triad);
+            imu_estimate_triad(real_sens.acc, real_sens.mag, NULL, &triad);
             imu_get_angles(&angles);
 
             oled_disp_str_at("   MADGW  TRIAD", 4, 0);

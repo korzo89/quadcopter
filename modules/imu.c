@@ -27,7 +27,7 @@
 
 //-----------------------------------------------------------------
 
-#define IMU_TASK_STACK      256
+#define IMU_TASK_STACK      300
 
 #define PI                  3.141593f
 #define RAD_TO_DEG(x)       ((x) * 57.2957795f)
@@ -172,10 +172,21 @@ void imu_update(void)
     imu_poll_sensors(&sensors);
     imu_sensors_transform(&sensors, &real_sens);
 
+    if (init_quat)
+    {
+        init_quat = false;
+
+        quat_t est;
+        imu_estimate_triad(real_sens.acc, real_sens.mag, &est, NULL);
+        q0 = est.q0;
+        q1 = est.q1;
+        q2 = est.q2;
+        q3 = est.q3;
+    }
+
     imu_estimate_madgwick(&real_sens.acc, &real_sens.mag, &real_sens.gyro);
 
     imu_quaternion_to_euler(&angles);
-//    imu_estimate_triad(real_sens.acc, real_sens.mag, &angles);
 }
 
 //-----------------------------------------------------------------
@@ -447,20 +458,17 @@ result_t imu_get_angles(vec3_t *out)
 
 //-----------------------------------------------------------------
 
-result_t imu_estimate_triad(vec3_t acc, vec3_t mag, vec3_t *out)
+result_t imu_estimate_triad(vec3_t acc, vec3_t mag, quat_t *quat, vec3_t *angles)
 {
-    if (!out)
-        return RES_ERR_BAD_PARAM;
-
-    float inv_norm;
+    float temp;
     vec3_t t1b = triad_ref_acc;
-    VEC3_NORMALIZE_VAR(t1b, inv_norm);
+    VEC3_NORMALIZE_VAR(t1b, temp);
     vec3_t t1r = acc;
-    VEC3_NORMALIZE_VAR(t1r, inv_norm);
+    VEC3_NORMALIZE_VAR(t1r, temp);
     vec3_t t2b = VEC3_CROSS(triad_ref_acc, triad_ref_mag);
-    VEC3_NORMALIZE_VAR(t2b, inv_norm);
+    VEC3_NORMALIZE_VAR(t2b, temp);
     vec3_t t2r = VEC3_CROSS(acc, mag);
-    VEC3_NORMALIZE_VAR(t2r, inv_norm);
+    VEC3_NORMALIZE_VAR(t2r, temp);
     vec3_t t3b = VEC3_CROSS(t1b, t2b);
     vec3_t t3r = VEC3_CROSS(t1r, t2r);
 
@@ -470,12 +478,58 @@ result_t imu_estimate_triad(vec3_t acc, vec3_t mag, vec3_t *out)
     float d32 = t1b.z*t1r.y + t2b.z*t2r.y + t3b.z*t3r.y;
     float d33 = t1b.z*t1r.z + t2b.z*t2r.z + t3b.z*t3r.z;
 
-    // pitch
-    out->y = RAD_TO_DEG(-atanf(d31 * inv_sqrt(1.0f - POW2(d31))));
-    // roll
-    out->x = RAD_TO_DEG(atan2f(d32, d33));
-    // yaw
-    out->z = RAD_TO_DEG(atan2f(d21, d11));
+    if (angles)
+    {
+        // pitch
+        angles->y = RAD_TO_DEG(-atanf(d31 * inv_sqrt(1.0f - POW2(d31))));
+        // roll
+        angles->x = RAD_TO_DEG(atan2f(d32, d33));
+        // yaw
+        angles->z = RAD_TO_DEG(atan2f(d21, d11));
+    }
+
+    if (!quat)
+        return RES_OK;
+
+    float d12 = t1b.x*t1r.y + t2b.x*t2r.y + t3b.x*t3r.y;
+    float d13 = t1b.x*t1r.z + t2b.x*t2r.z + t3b.x*t3r.z;
+    float d22 = t1b.y*t1r.y + t2b.y*t2r.y + t3b.y*t3r.y;
+    float d23 = t1b.y*t1r.z + t2b.y*t2r.z + t3b.y*t3r.z;
+
+    float s;
+    temp = d11 + d22 + d33; // D matrix trace
+    if (temp > 0)
+    {
+        s = inv_sqrt(temp + 1.0f) / 2.0f;
+        quat->q0 = 0.25f / s;
+        quat->q1 = (d32 - d23) * s;
+        quat->q2 = (d13 - d31) * s;
+        quat->q3 = (d21 - d12) * s;
+    }
+    else if (d11 > d22 && d11 > d33)
+    {
+        s = inv_sqrt(1.0f + d11 - d22 - d33) / 2.0f;
+        quat->q0 = (d32 - d23) * s;
+        quat->q1 = 0.25f / s;
+        quat->q2 = (d12 + d21) * s;
+        quat->q3 = (d13 + d31) * s;
+    }
+    else if (d22 > d33)
+    {
+        s = inv_sqrt(1.0f + d22 - d11 - d33) / 2.0f;
+        quat->q0 = (d13 - d31) * s;
+        quat->q1 = (d12 + d21) * s;
+        quat->q2 = 0.25f / s;
+        quat->q3 = (d23 + d32) * s;
+    }
+    else
+    {
+        s = inv_sqrt(1.0f + d33 - d11 - d22) / 2.0f;
+        quat->q0 = (d21 - d12) * s;
+        quat->q1 = (d13 + d31) * s;
+        quat->q2 = (d23 + d32) * s;
+        quat->q3 = 0.25f / s;
+    }
 
     return RES_OK;
 }
