@@ -34,7 +34,8 @@
 #define DEG_TO_RAD(x)       ((x) * 0.01745329f)
 
 #define TRIAD_REF_ACC_DEF   VEC3_NEW(-0.0156, 0.0391, 0.9375)
-#define TRIAD_REF_MAG_DEF   VEC3_NEW(-69.4093, 16.3664, -372.0633)
+#define TRIAD_REF_MAG_DEF   VEC3_NEW(191.2022, -48.0040, -367.2223)
+//#define TRIAD_REF_MAG_DEF   VEC3_NEW(-69.4093, 16.3664, -372.0633)
 
 //-----------------------------------------------------------------
 
@@ -209,7 +210,6 @@ result_t imu_estimate_madgwick(vec3_t *acc, vec3_t *mag, vec3_t *gyro)
     // Compute feedback only if accelerometer measurement valid (avoids NaN in accelerometer normalisation)
     if (!((ax == 0.0f) && (ay == 0.0f) && (az == 0.0f)))
     {
-
         // Normalise accelerometer measurement
         recipNorm = inv_sqrt(ax * ax + ay * ay + az * az);
         ax *= recipNorm;
@@ -372,18 +372,31 @@ static result_t imu_quaternion_to_euler(vec3_t *out)
     if (!out)
         return RES_ERR_BAD_PARAM;
 
-    float m11 = 2.0f * q0 * q0 - 1.0f + 2.0f * q1 * q1;
-    float m21 = 2.0f * (q1 * q2 - q0 * q3);
-    float m31 = 2.0f * (q1 * q3 + q0 * q2);
-    float m32 = 2.0f * (q2 * q3 - q0 * q1);
-    float m33 = 2.0f * q0 * q0 - 1.0f + 2.0f * q3 * q3;
+//    float m11 = 2.0f * q0 * q0 - 1.0f + 2.0f * q1 * q1;
+//    float m21 = 2.0f * (q1 * q2 - q0 * q3);
+//    float m31 = 2.0f * (q1 * q3 + q0 * q2);
+//    float m32 = 2.0f * (q2 * q3 - q0 * q1);
+//    float m33 = 2.0f * q0 * q0 - 1.0f + 2.0f * q3 * q3;
+//
+//    // pitch
+//    out->y = RAD_TO_DEG(-atanf(m31 * inv_sqrt(1.0f - m31 * m31)));
+//    // roll
+//    out->x = RAD_TO_DEG(atan2f(m32, m33));
+//    // yaw
+//    out->z = RAD_TO_DEG(atan2f(m21, m11));
+
+    float a = 2.0f * (q0 * q1 + q2 * q3);
+    float b = 1.0f - 2.0f * (q1 * q1 + q2 * q2);
+    float c = 2.0f * (q0 * q2 - q1 * q3);
+    float d = 2.0f * (q0 * q3 + q1 * q2);
+    float e = 1.0f - 2.0f * (q2 * q2 + q3 * q3);
 
     // pitch
-    out->y = RAD_TO_DEG(-atanf(m31 * inv_sqrt(1.0f - m31 * m31)));
+    out->y = RAD_TO_DEG(asinf(c));
     // roll
-    out->x  = RAD_TO_DEG(atan2f(m32, m33));
+    out->x = RAD_TO_DEG(atan2f(a, b));
     // yaw
-    out->z   = RAD_TO_DEG(atan2f(m21, m11));
+    out->z = RAD_TO_DEG(atan2f(d, e));
 
     return RES_OK;
 }
