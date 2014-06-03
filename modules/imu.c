@@ -39,8 +39,18 @@
 
 //-----------------------------------------------------------------
 
+typedef struct PACK_STRUCT
+{
+    vec3_t angles;
+//    quat_t quat;
+    vec3_t rates;
+} cmd_angles_data_t;
+
+//-----------------------------------------------------------------
+
 static imu_sensor_data_t sensors;
 static vec3_t angles;
+static vec3_t rates;
 
 // quaternion values
 static float q0, q1, q2, q3;
@@ -89,7 +99,12 @@ static void imu_rcp_callback_angles(rcp_message_t *msg)
     resp.packet.cmd = RCP_CMD_ANGLES;
     resp.packet.query = RCP_CMD_OK;
 
-    memcpy(resp.packet.data, (uint8_t*)&angles, sizeof(angles));
+    cmd_angles_data_t data;
+    data.angles = angles;
+//    data.quat = (quat_t){ q0, q1, q2, q3 };
+    data.rates = rates;
+
+    memcpy(resp.packet.data, &data, sizeof(data));
 
     rcp_send_message(&resp);
 }
@@ -185,8 +200,9 @@ void imu_update(void)
     }
 
     imu_estimate_madgwick(&real_sens.acc, &real_sens.mag, &real_sens.gyro);
-
     imu_quaternion_to_euler(&angles);
+
+    rates = real_sens.gyro;
 }
 
 //-----------------------------------------------------------------
