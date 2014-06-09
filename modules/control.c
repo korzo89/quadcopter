@@ -92,7 +92,11 @@ static void control_task(void *params)
 
         if (armed)
         {
-            float throttle = ((float)control.throttle - 380.0) / (3600.0 - 380.0) * THROTTLE_MAX;
+            float throttle = (float)control.throttle;
+            const float THROTTLE_DEAD_ZONE = 300.0f;
+            if (throttle < THROTTLE_DEAD_ZONE)
+                throttle = 0.0f;
+            throttle = throttle / 4095.0 * THROTTLE_MAX;
             motors_set_throttle(throttle, throttle, throttle, throttle);
         }
 
