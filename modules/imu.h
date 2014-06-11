@@ -51,6 +51,7 @@ result_t imu_get_sensors(imu_sensor_data_t *out);
 result_t imu_sensors_transform(imu_sensor_data_t *sens, imu_real_t *real);
 
 result_t imu_get_angles(vec3_t *out);
+result_t imu_get_rates(vec3_t *out);
 
 result_t imu_estimate_triad(vec3_t acc, vec3_t mag, quat_t *quat, vec3_t *angles);
 result_t imu_estimate_madgwick(vec3_t *acc, vec3_t *mag, vec3_t *gyro);

@@ -468,7 +468,17 @@ result_t imu_get_angles(vec3_t *out)
         return RES_ERR_BAD_PARAM;
 
     memcpy(out, &angles, sizeof(vec3_t));
+    return RES_OK;
+}
 
+//-----------------------------------------------------------------
+
+result_t imu_get_rates(vec3_t *out)
+{
+    if (!out)
+        return RES_ERR_BAD_PARAM;
+
+    memcpy(out, &rates, sizeof(vec3_t));
     return RES_OK;
 }
 

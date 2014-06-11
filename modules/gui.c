@@ -219,6 +219,7 @@ static void gui_task(void *params)
             oled_disp_char(control.flags.sw1 ? 'X' : '_');
             oled_disp_char(control.flags.sw2 ? 'X' : '_');
             oled_disp_char(control.flags.sw3 ? 'X' : '_');
+
             break;
 
         case 1:

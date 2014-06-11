@@ -11,6 +11,7 @@
 //-----------------------------------------------------------------
 
 #include <defs.h>
+#include <utils/pid.h>
 
 //-----------------------------------------------------------------
 
@@ -28,11 +29,25 @@ typedef struct PACK_STRUCT
     } flags;
 } control_t;
 
+typedef enum
+{
+    PID_PITCH = 0,
+    PID_ROLL,
+    PID_YAW,
+    PID_PITCH_RATE,
+    PID_ROLL_RATE,
+    PID_YAW_RATE,
+
+    PID_TYPE_NUM
+} pid_type_t;
+
 //-----------------------------------------------------------------
 
 result_t control_init(void);
 
 result_t control_get_current(control_t *out);
+
+pid_t* control_get_pid(pid_type_t type);
 
 //-----------------------------------------------------------------
 
