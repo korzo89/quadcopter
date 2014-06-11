@@ -30,6 +30,7 @@
 
 #include <utils/delay.h>
 #include <utils/ustdlib.h>
+#include <utils/buzzer_seq.h>
 
 //-----------------------------------------------------------------
 
@@ -189,9 +190,7 @@ static void gui_task(void *params)
 
                 oled_clear();
 
-                buzzer_set_freq(NOTE_C5);
-                DELAY_MS(10);
-                buzzer_set_freq(0);
+                buzzer_seq_lib_play(BUZZER_SEQ_PRESS);
                 break;
             default:
                 break;

@@ -11,13 +11,12 @@
 //-----------------------------------------------------------------
 
 #include <defs.h>
-#include "buzzer_notes.h"
 
 //-----------------------------------------------------------------
 
-#define BUZZER_SEQ_WAIT(x)  (x)
-#define BUZZER_SEQ_LOOP     -1
-#define BUZZER_SEQ_STOP     -2
+#define SEQ_WAIT(x)  (x)
+#define SEQ_LOOP     -1
+#define SEQ_STOP     -2
 
 //-----------------------------------------------------------------
 

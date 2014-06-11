@@ -123,10 +123,10 @@ static void buzzer_process_seq(xTimerHandle tim)
 
     switch (step.action)
     {
-    case BUZZER_SEQ_STOP:
+    case SEQ_STOP:
         buzzer_set_freq(0);
         return;
-    case BUZZER_SEQ_LOOP:
+    case SEQ_LOOP:
         if (++curr_loop == step.freq && step.freq > 0)
         {
             buzzer_set_freq(0);

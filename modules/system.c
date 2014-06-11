@@ -15,11 +15,6 @@
 #include <task.h>
 #include <semphr.h>
 
-#include <utils/ustdlib.h>
-#include <utils/uartstdio.h>
-
-#include <utils/delay.h>
-
 #include <drivers/ext_i2c.h>
 #include <drivers/oled.h>
 #include <drivers/eeprom.h>
@@ -34,6 +29,11 @@
 #include <modules/gui.h>
 #include <modules/gps.h>
 #include <modules/control.h>
+
+#include <utils/ustdlib.h>
+#include <utils/uartstdio.h>
+#include <utils/delay.h>
+#include <utils/buzzer_notes.h>
 
 //-----------------------------------------------------------------
 

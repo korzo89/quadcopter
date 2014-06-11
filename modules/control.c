@@ -13,6 +13,7 @@
 #include <modules/imu.h>
 #include <utils/delay.h>
 #include <utils/pid.h>
+#include <utils/buzzer_seq.h>
 
 //-----------------------------------------------------------------
 
@@ -28,32 +29,6 @@
 static bool armed;
 static bool connected;
 static control_t control;
-
-static const buzzer_step_t SEQ_ARM[] = {
-    { NOTE_F4, BUZZER_SEQ_WAIT(80) },
-    { NOTE_A4, BUZZER_SEQ_WAIT(80) },
-    { NOTE_C5, BUZZER_SEQ_WAIT(80) },
-    { 0,       BUZZER_SEQ_STOP     }
-};
-
-static const buzzer_step_t SEQ_DISARM[] = {
-    { NOTE_C5, BUZZER_SEQ_WAIT(80) },
-    { NOTE_A4, BUZZER_SEQ_WAIT(80) },
-    { NOTE_F4, BUZZER_SEQ_WAIT(80) },
-    { 0,       BUZZER_SEQ_STOP     }
-};
-
-static const buzzer_step_t SEQ_CONNECTED[] = {
-    { NOTE_D5, BUZZER_SEQ_WAIT(100) },
-    { NOTE_G5, BUZZER_SEQ_WAIT(100) },
-    { 0,       BUZZER_SEQ_STOP      }
-};
-
-static const buzzer_step_t SEQ_LOST[] = {
-    { NOTE_G5, BUZZER_SEQ_WAIT(100) },
-    { NOTE_D5, BUZZER_SEQ_WAIT(100) },
-    { 0,       BUZZER_SEQ_STOP      }
-};
 
 //-----------------------------------------------------------------
 
@@ -135,13 +110,13 @@ static void rcp_cb_angles(rcp_message_t *msg)
     {
         armed = false;
         motors_disarm();
-        buzzer_play_seq((buzzer_step_t*)SEQ_DISARM);
+        buzzer_seq_lib_play(BUZZER_SEQ_DISARM);
     }
     else if (!armed && control.flags.sw1)
     {
         armed = true;
         motors_arm();
-        buzzer_play_seq((buzzer_step_t*)SEQ_ARM);
+        buzzer_seq_lib_play(BUZZER_SEQ_ARM);
     }
 }
 
@@ -158,6 +133,8 @@ static void rcp_cb_pid_set(rcp_message_t *msg)
     pid->ki = data->ki;
 
     pid_reset(pid);
+
+    buzzer_seq_lib_play(BUZZER_SEQ_CONFIRM);
 }
 
 //-----------------------------------------------------------------
@@ -197,13 +174,13 @@ static void control_task(void *params)
         {
             if (!connected)
             {
-                buzzer_play_seq((buzzer_step_t*)SEQ_CONNECTED);
+                buzzer_seq_lib_play(BUZZER_SEQ_CONNECTED);
                 connected = true;
             }
         }
         else if (connected)
         {
-            buzzer_play_seq((buzzer_step_t*)SEQ_LOST);
+            buzzer_seq_lib_play(BUZZER_SEQ_LOST);
             connected = false;
             armed = false;
             motors_disarm();
