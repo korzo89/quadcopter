@@ -9,11 +9,14 @@
 
 #include <drivers/buzzer.h>
 #include <drivers/motors.h>
+#include <drivers/watchdog.h>
 #include <modules/rcp.h>
 #include <modules/imu.h>
 #include <utils/delay.h>
 #include <utils/pid.h>
 #include <utils/buzzer_seq.h>
+
+#include <stellaris_config.h>
 
 //-----------------------------------------------------------------
 
@@ -23,6 +26,8 @@
 #define CONTROL_PITCH_DEAD_ZONE     100.0f
 #define CONTROL_ROLL_DEAD_ZONE      100.0f
 #define CONTROL_YAW_DEAD_ZONE       100.0f
+
+#define CONTROL_WATCHDOG_RELOAD     ( SysCtlClockGet() / 2 )
 
 //-----------------------------------------------------------------
 
@@ -170,6 +175,8 @@ static void control_task(void *params)
 
     while (1)
     {
+        watchdog_clear();
+
         if (rcp_is_connected())
         {
             if (!connected)
@@ -219,6 +226,9 @@ static void control_task(void *params)
 
 result_t control_init(void)
 {
+    watchdog_init();
+    watchdog_reload_set(CONTROL_WATCHDOG_RELOAD);
+
     armed = false;
     connected = false;
 
@@ -233,6 +243,8 @@ result_t control_init(void)
     if (xTaskCreate(control_task, (signed portCHAR*)"CTRL",
             CONTROL_TASK_STACK, NULL, 2, NULL) != pdPASS)
         return RES_ERR_FATAL;
+
+    watchdog_enable();
 
     return RES_OK;
 }

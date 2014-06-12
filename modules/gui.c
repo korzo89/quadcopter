@@ -14,10 +14,6 @@
 #include <semphr.h>
 
 #include <drivers/oled.h>
-#include <drivers/adxl345.h>
-#include <drivers/l3g4200d.h>
-#include <drivers/hmc5883.h>
-#include <drivers/bmp085.h>
 #include <drivers/ultrasonic.h>
 #include <drivers/adc.h>
 #include <drivers/led.h>
@@ -144,15 +140,13 @@ static void gui_disp_control(const char *name, uint16_t val, int row)
 //-----------------------------------------------------------------
 
 const uint8_t SYMB_CONN[] = {
-//        0x03, 0x05, 0x09, 0x7F, 0x09, 0x65, 0x03, 0x70,
-//        0x00, 0x78, 0x00, 0x7C, 0x00, 0x7E, 0x00, 0x7F
-        0x03, 0x05, 0x09, 0x7F, 0x09, 0x05, 0x03, 0x00,
-        0x00, 0x1C, 0x00, 0x22, 0x1C, 0x41, 0x22, 0x1C
+    0x03, 0x05, 0x09, 0x7F, 0x09, 0x05, 0x03, 0x00,
+    0x00, 0x1C, 0x00, 0x22, 0x1C, 0x41, 0x22, 0x1C
 };
 
 const uint8_t SYMB_LOST[] = {
-        0x03, 0x05, 0x09, 0x7F, 0x09, 0x05, 0x03, 0x00,
-        0x00, 0x22, 0x14, 0x08, 0x14, 0x22, 0x00, 0x00
+    0x03, 0x05, 0x09, 0x7F, 0x09, 0x05, 0x03, 0x00,
+    0x00, 0x22, 0x14, 0x08, 0x14, 0x22, 0x00, 0x00
 };
 
 static void gui_task(void *params)
@@ -200,7 +194,6 @@ static void gui_task(void *params)
         oled_set_pos(0, 0);
         oled_disp_symbol((uint8_t*)(rcp_is_connected() ? SYMB_CONN : SYMB_LOST), 16);
         usprintf(buf, "    %d/%d       ", screen + 1, NUM_SCREENS);
-//        oled_disp_str_at(buf, 0, 0);
         oled_disp_str(buf);
 
         control_t control;
@@ -230,6 +223,8 @@ static void gui_task(void *params)
             usprintf(buf, "Button: %3d", button_counter);
             oled_disp_str_at(buf, 3, 0);
 
+//            *(&button_counter + 54377887) = 666; // trigger cpu fault
+
             oled_set_pos(6, 0);
             state = led_counter % 16;
             for (i = 0; i < state; ++i)
@@ -251,12 +246,6 @@ static void gui_task(void *params)
             dist = ultrasonic_get_distance();
             usprintf(buf, "Dist: %7d mm", (int)(dist * 10));
             oled_disp_str_at(buf, 2, 0);
-
-//            if (button_counter % 2) {
-//                buzzer_set_freq((int)(dist * 10 / 2));
-//            } else {
-//                buzzer_set_freq(0);
-//            }
 
             battery = (float)adc_get_value() * 3.3 / 4095.0 * 78.0 / 10.0;
             usprintf(buf, "Battery: %2d.%1d V", (int)battery, (int)(battery * 10) % 10);

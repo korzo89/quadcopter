@@ -26,6 +26,7 @@
 #include <driverlib/interrupt.h>
 #include <driverlib/pin_map.h>
 #include <driverlib/rom.h>
+#include <driverlib/watchdog.h>
 
 //-----------------------------------------------------------------
 
