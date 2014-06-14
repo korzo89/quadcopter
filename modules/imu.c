@@ -67,10 +67,12 @@ static vec3_t triad_ref_acc = TRIAD_REF_ACC_DEF;
 static vec3_t triad_ref_mag = TRIAD_REF_MAG_DEF;
 
 // magnetometer calibration parameters
-static float mag_cal[] = { 0.727006, 0.0054922, 0.0269476,
-                           0.0054922, 0.764489, 0.0283214,
-                           0.0269476, 0.0283214, 0.993801 };
-static vec3_t mag_off = VEC3_NEW(-739.7, 334.691, 278.869);
+float mag_calib_scale[] = {
+    0.727006, 0.0054922, 0.0269476,
+    0.0054922, 0.764489, 0.0283214,
+    0.0269476, 0.0283214, 0.993801
+};
+float mag_calib_offset[] = { -739.7, 334.691, 278.869 };
 
 //-----------------------------------------------------------------
 
@@ -443,13 +445,13 @@ result_t imu_sensors_transform(imu_sensor_data_t *sens, imu_real_t *real)
     real->gyro.y = DEG_TO_RAD((float)sens->gyro.y * 70.0 / 1000.0);
     real->gyro.z = DEG_TO_RAD((float)sens->gyro.z * 70.0 / 1000.0);
 
-    float mx = (float)sens->mag.x * 0.92 - mag_off.x;
-    float my = (float)sens->mag.y * 0.92 - mag_off.y;
-    float mz = (float)sens->mag.z * 0.92 - mag_off.z;
+    float mx = (float)sens->mag.x * 0.92 - mag_calib_offset[0];
+    float my = (float)sens->mag.y * 0.92 - mag_calib_offset[1];
+    float mz = (float)sens->mag.z * 0.92 - mag_calib_offset[2];
 
-    float cx = mag_cal[0] * mx + mag_cal[1] * my + mag_cal[2] * mz;
-    float cy = mag_cal[3] * mx + mag_cal[4] * my + mag_cal[5] * mz;
-    float cz = mag_cal[6] * mx + mag_cal[7] * my + mag_cal[8] * mz;
+    float cx = mag_calib_scale[0] * mx + mag_calib_scale[1] * my + mag_calib_scale[2] * mz;
+    float cy = mag_calib_scale[3] * mx + mag_calib_scale[4] * my + mag_calib_scale[5] * mz;
+    float cz = mag_calib_scale[6] * mx + mag_calib_scale[7] * my + mag_calib_scale[8] * mz;
     mx = cx / 1000.0;
     my = cy / 1000.0;
     mz = cz / 1000.0;

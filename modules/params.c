@@ -8,28 +8,33 @@
 #include "params.h"
 
 #include <modules/rcp.h>
+#include <utils/buzzer_seq.h>
 #include <utils/pid.h>
 #include <string.h>
 
 //-----------------------------------------------------------------
 
-#define PARAM_EXTERN(p, t)      extern t p
+#define PARAM_EXTERN(x)         extern x
 
 #define PARAM_MAX_GROUP_LEN     15
 #define PARAM_MAX_NAME_LEN      11
 
 //-----------------------------------------------------------------
 
-PARAM_EXTERN(pid_pitch, pid_t);
-PARAM_EXTERN(pid_roll, pid_t);
+PARAM_EXTERN(pid_t pid_pitch);
+PARAM_EXTERN(pid_t pid_roll);
+PARAM_EXTERN(float mag_calib_scale[]);
+PARAM_EXTERN(float mag_calib_offset[]);
 
 const param_info_t PARAMS[] = {
-    { "PID_pitch", "Kp", PARAM_TYPE_FLOAT, sizeof(float), 1, &pid_pitch.kp },
-    { "PID_pitch", "Ki", PARAM_TYPE_FLOAT, sizeof(float), 1, &pid_pitch.ki },
-    { "PID_pitch", "Kd", PARAM_TYPE_FLOAT, sizeof(float), 1, &pid_pitch.kd },
-    { "PID_roll",  "Kp", PARAM_TYPE_FLOAT, sizeof(float), 1, &pid_roll.kp },
-    { "PID_roll",  "Ki", PARAM_TYPE_FLOAT, sizeof(float), 1, &pid_roll.ki },
-    { "PID_roll",  "Kd", PARAM_TYPE_FLOAT, sizeof(float), 1, &pid_roll.kd }
+    { "PID_pitch",  "Kp",       PARAM_TYPE_FLOAT, sizeof(float), 1, &pid_pitch.kp },
+    { "PID_pitch",  "Ki",       PARAM_TYPE_FLOAT, sizeof(float), 1, &pid_pitch.ki },
+    { "PID_pitch",  "Kd",       PARAM_TYPE_FLOAT, sizeof(float), 1, &pid_pitch.kd },
+    { "PID_roll",   "Kp",       PARAM_TYPE_FLOAT, sizeof(float), 1, &pid_roll.kp },
+    { "PID_roll",   "Ki",       PARAM_TYPE_FLOAT, sizeof(float), 1, &pid_roll.ki },
+    { "PID_roll",   "Kd",       PARAM_TYPE_FLOAT, sizeof(float), 1, &pid_roll.kd },
+    { "Mag_calib",  "scale",    PARAM_TYPE_FLOAT, sizeof(float), 9, mag_calib_scale },
+    { "Mag_calib",  "offset",   PARAM_TYPE_FLOAT, sizeof(float), 3, mag_calib_offset }
 };
 
 //-----------------------------------------------------------------
@@ -118,18 +123,19 @@ typedef struct PACK_STRUCT
 {
     uint8_t id;
     uint8_t offset;
-    uint8_t data[RCP_PAYLOAD_SIZE - 4];
-} param_get_data_t;
+    uint8_t count;
+    uint8_t data[RCP_PAYLOAD_SIZE - 5];
+} param_data_t;
 
 static void rcp_cb_get(rcp_message_t *msg)
 {
     rcp_message_t resp;
     resp.packet.cmd = RCP_CMD_PARAM_GET;
 
-    param_get_data_t *args = (param_get_data_t*)msg->packet.data;
+    param_data_t *args = (param_data_t*)msg->packet.data;
 
     const param_info_t *param = params_get_info(args->id);
-    if (!param)
+    if (!param || args->offset >= param->count)
     {
         resp.packet.query = RCP_CMD_ERROR;
     }
@@ -137,18 +143,20 @@ static void rcp_cb_get(rcp_message_t *msg)
     {
         resp.packet.query = RCP_CMD_OK;
 
-        param_get_data_t *data = (param_get_data_t*)resp.packet.data;
+        param_data_t *data = (param_data_t*)resp.packet.data;
 
         uint8_t avail = ARRAY_COUNT(data->data) / param->size;
         uint8_t rem = param->count - args->offset;
-        uint8_t num = min(avail, rem) * param->size;
+        uint8_t num = min(avail, rem);
+        num = min(args->count, num);
         uint8_t off = args->offset * param->size;
 
-        memset(data, 0, sizeof(param_get_data_t));
-        memcpy(data->data, (uint8_t*)param->ptr + off, num);
+        memset(data, 0, sizeof(param_data_t));
+        memcpy(data->data, (uint8_t*)param->ptr + off, num * param->size);
 
         data->id = args->id;
         data->offset = args->offset;
+        data->count = num;
     }
 
     rcp_send_message(&resp);
@@ -158,5 +166,18 @@ static void rcp_cb_get(rcp_message_t *msg)
 
 static void rcp_cb_set(rcp_message_t *msg)
 {
+    param_data_t *args = (param_data_t*)msg->packet.data;
 
+    const param_info_t *param = params_get_info(args->id);
+    if (!param || args->offset >= param->count)
+        return;
+
+    uint8_t avail = ARRAY_COUNT(args->data) / param->size;
+    uint8_t num = min(avail, param->count);
+    num = min(args->count, num);
+    uint8_t off = args->offset * param->size;
+
+    memcpy((uint8_t*)param->ptr + off, args->data, num * param->size);
+
+    buzzer_seq_lib_play(BUZZER_SEQ_CONFIRM);
 }
