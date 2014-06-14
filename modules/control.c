@@ -47,7 +47,7 @@ typedef struct PACK_STRUCT
 
 //-----------------------------------------------------------------
 
-static pid_t pid_pitch = {
+pid_t pid_pitch = {
     .kp         = 1.0f,
     .ki         = 0.0f,
     .kd         = 0.0f,
@@ -55,7 +55,7 @@ static pid_t pid_pitch = {
     .int_max    = 1000.0f,
     .int_min    = -1000.0f
 };
-static pid_t pid_roll = {
+pid_t pid_roll = {
     .kp         = 1.0f,
     .ki         = 0.0f,
     .kd         = 0.0f,
@@ -63,7 +63,7 @@ static pid_t pid_roll = {
     .int_max    = 1000.0f,
     .int_min    = -1000.0f
 };
-static pid_t pid_yaw = {
+pid_t pid_yaw = {
     .kp         = 1.0f,
     .ki         = 0.0f,
     .kd         = 0.0f,
@@ -71,7 +71,7 @@ static pid_t pid_yaw = {
     .int_max    = 1000.0f,
     .int_min    = -1000.0f
 };
-static pid_t pid_pitch_rate = {
+pid_t pid_pitch_rate = {
     .kp         = 1.0f,
     .ki         = 0.0f,
     .kd         = 0.0f,
@@ -79,7 +79,7 @@ static pid_t pid_pitch_rate = {
     .int_max    = 1000.0f,
     .int_min    = -1000.0f
 };
-static pid_t pid_roll_rate = {
+pid_t pid_roll_rate = {
     .kp         = 1.0f,
     .ki         = 0.0f,
     .kd         = 0.0f,
@@ -87,7 +87,7 @@ static pid_t pid_roll_rate = {
     .int_max    = 1000.0f,
     .int_min    = -1000.0f
 };
-static pid_t pid_yaw_rate = {
+pid_t pid_yaw_rate = {
     .kp         = 1.0f,
     .ki         = 0.0f,
     .kd         = 0.0f,
@@ -244,7 +244,7 @@ result_t control_init(void)
             CONTROL_TASK_STACK, NULL, 2, NULL) != pdPASS)
         return RES_ERR_FATAL;
 
-    watchdog_enable();
+//    watchdog_enable();
 
     return RES_OK;
 }

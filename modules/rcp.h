@@ -23,10 +23,16 @@
 typedef enum
 {
     RCP_CMD_OK          = 0x00,
-    RCP_CMD_CONTROL     = 0x01,
-    RCP_CMD_RAW_IMU		= 0x02,
-    RCP_CMD_ANGLES      = 0x03,
-    RCP_CMD_PID         = 0x04,
+    RCP_CMD_ERROR       = 0x01,
+    RCP_CMD_CONTROL     = 0x02,
+    RCP_CMD_RAW_IMU		= 0x03,
+    RCP_CMD_ANGLES      = 0x04,
+    RCP_CMD_PID         = 0x05,
+
+    RCP_CMD_PARAM_LIST  = 0x06,
+    RCP_CMD_PARAM_INFO  = 0x07,
+    RCP_CMD_PARAM_GET   = 0x08,
+    RCP_CMD_PARAM_SET   = 0x09,
 
     RCP_CMD_NUM
 } rcp_command_t;

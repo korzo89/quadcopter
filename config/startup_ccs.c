@@ -37,7 +37,7 @@ static void FaultISR(void);
 static void IntDefaultHandler(void);
 extern void UART2IntHandler(void);
 extern void GPIOCIntHandler(void);
-extern void SysTickISR(void);
+//extern void SysTickISR(void);
 
 //*****************************************************************************
 //

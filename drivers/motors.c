@@ -7,6 +7,7 @@
 
 #include "motors.h"
 
+#include <defs.h>
 #include <inc/hw_types.h>
 #include <inc/hw_memmap.h>
 #include <driverlib/pin_map.h>
@@ -18,9 +19,6 @@
 #include <math.h>
 
 //-----------------------------------------------------------------
-
-#define min(a,b)                (((a) < (b)) ? (a) : (b))
-#define max(a,b)                (((a) > (b)) ? (a) : (b))
 
 #define THROTTLE_TO_PULSE(x)    (1000 + (uint16_t) min(max(0, (x)), THROTTLE_MAX))
 
