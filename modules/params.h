@@ -41,6 +41,9 @@ result_t params_init(void);
 
 const param_info_t* params_get_info(uint8_t id);
 
+result_t params_eeprom_save(void);
+result_t params_eeprom_load(void);
+
 //-----------------------------------------------------------------
 
 #endif /* PARAMS_H_ */

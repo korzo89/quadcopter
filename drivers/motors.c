@@ -20,7 +20,7 @@
 
 //-----------------------------------------------------------------
 
-#define THROTTLE_TO_PULSE(x)    (1000 + (uint16_t) min(max(0, (x)), THROTTLE_MAX))
+#define THROTTLE_TO_PULSE(x)    (1000 + (uint16_t)min(max(0, x), THROTTLE_MAX))
 
 #define MOTOR1_BASE     TIMER0_BASE
 #define MOTOR1_TIMER    TIMER_A

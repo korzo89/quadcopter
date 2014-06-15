@@ -61,6 +61,8 @@ result_t i2c_write_reg_byte(i2c_t *obj, uint8_t addr, uint8_t reg, uint8_t data)
 result_t i2c_read_reg16(i2c_t *obj, uint8_t addr, uint16_t reg, uint8_t *rd, uint32_t rd_len);
 result_t i2c_write_reg16(i2c_t *obj, uint8_t addr, uint16_t reg, uint8_t *wr, uint32_t wr_len);
 
+result_t i2c_poll_ack(i2c_t *obj, uint8_t addr);
+
 //-----------------------------------------------------------------
 
 #endif /* I2C_H_ */

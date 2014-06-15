@@ -99,10 +99,10 @@ static void system_init_task(void *params)
         oled_clear();
         oled_disp_str("EEPROM read\n");
 
-        uint8_t eep[4] = { 0 };
-        eeprom_read(0x0000, eep, 4);
+        uint8_t eep[5] = { 0 };
+        eeprom_read(0x0000, eep, 5);
 
-        usprintf(buf, "%02x %02x %02x %02x", eep[0], eep[1], eep[2], eep[3]);
+        usprintf(buf, "%02x %02x %02x %02x %02x", eep[0], eep[1], eep[2], eep[3], eep[4]);
         oled_disp_str(buf);
 
         while (BUTTON_PRESSED());
@@ -112,13 +112,14 @@ static void system_init_task(void *params)
         led_set(LEDS_OFF);
     }
 
+    rcp_init();
+
     adc_init();
     ultrasonic_init();
     imu_init(0.2f, 100.0f);
 
-    rcp_init();
-
     params_init();
+    params_eeprom_load();
 
     gps_init();
     control_init();

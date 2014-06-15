@@ -56,3 +56,10 @@ result_t eeprom_read_byte(uint16_t addr, uint8_t *data)
 {
     return i2c_read_reg16(i2c_if, EEPROM_ADDR, addr, data, 1);
 }
+
+//-----------------------------------------------------------------
+
+bool eeprom_is_ready(void)
+{
+    return i2c_poll_ack(i2c_if, EEPROM_ADDR) == RES_OK;
+}

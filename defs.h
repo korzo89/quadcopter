@@ -20,8 +20,8 @@
 
 #define ARRAY_COUNT(x)  ( sizeof(x) / sizeof(x[0]) )
 
-#define min(a,b)        ( ((a) < (b)) ? (a) : (b) )
-#define max(a,b)        ( ((a) > (b)) ? (a) : (b) )
+#define min(a, b)       ( ((a) < (b)) ? (a) : (b) )
+#define max(a, b)       ( ((a) > (b)) ? (a) : (b) )
 
 //-----------------------------------------------------------------
 

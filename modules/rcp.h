@@ -33,6 +33,7 @@ typedef enum
     RCP_CMD_PARAM_INFO  = 0x07,
     RCP_CMD_PARAM_GET   = 0x08,
     RCP_CMD_PARAM_SET   = 0x09,
+    RCP_CMD_PARAM_SAVE  = 0x0A,
 
     RCP_CMD_NUM
 } rcp_command_t;

@@ -71,10 +71,10 @@ static void rcp_task(void *args)
     while (1)
     {
         // switch to RX mode
-        xSemaphoreTake(rcp_ready, 0);
+        xSemaphoreTakeRecursive(rcp_ready, 0);
         rcp_enable_rx();
         // wait for ready interrupt
-        res = xSemaphoreTake(rcp_ready, MSEC_TO_TICKS(RCP_RX_MAX_DELAY));
+        res = xSemaphoreTakeRecursive(rcp_ready, MSEC_TO_TICKS(RCP_RX_MAX_DELAY));
         // check for RX interrupt or timeout
         if (res == pdTRUE && NRF_CHECK_STATUS(NRF_IRQ_RX_DR))
         {
@@ -103,11 +103,11 @@ static void rcp_task(void *args)
 
             led_turn_on(LED_YELLOW);
 
-            xSemaphoreTake(rcp_ready, 0);
+            xSemaphoreTakeRecursive(rcp_ready, 0);
             nrf_write_tx_payload(msg.raw, RCP_PAYLOAD_SIZE, true);
 
             // wait for interrupt
-            res = xSemaphoreTake(rcp_ready, MSEC_TO_TICKS(RCP_TX_MAX_DELAY));
+            res = xSemaphoreTakeRecursive(rcp_ready, MSEC_TO_TICKS(RCP_TX_MAX_DELAY));
             if (res == pdTRUE)
             {
                 if (NRF_CHECK_STATUS(NRF_IRQ_TX_DS | NRF_IRQ_MAX_RT))

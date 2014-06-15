@@ -241,7 +241,7 @@ result_t i2c_read_reg16(i2c_t *obj, uint8_t addr, uint16_t reg, uint8_t *rd, uin
     if (!obj || !rd || rd_len == 0)
         return RES_ERR_BAD_PARAM;
 
-    uint8_t reg_wr[] = { reg >> 8, reg & 0x0F };
+    uint8_t reg_wr[] = { reg >> 8, reg & 0x00FF };
     return i2c_transfer(obj, addr, reg_wr, 2, rd, rd_len);
 }
 
@@ -264,7 +264,7 @@ result_t i2c_write_reg16(i2c_t *obj, uint8_t addr, uint16_t reg, uint8_t *wr, ui
         i2c_excl_give(obj);
         return RES_ERR_IO;
     }
-    if (i2c_write_byte(obj, reg & 0x0F, I2C_MASTER_CMD_BURST_SEND_CONT) != RES_OK)
+    if (i2c_write_byte(obj, reg & 0x00FF, I2C_MASTER_CMD_BURST_SEND_CONT) != RES_OK)
     {
         i2c_excl_give(obj);
         return RES_ERR_IO;
@@ -284,6 +284,30 @@ result_t i2c_write_reg16(i2c_t *obj, uint8_t addr, uint16_t reg, uint8_t *wr, ui
             i2c_excl_give(obj);
             return RES_ERR_IO;
         }
+    }
+
+    i2c_excl_give(obj);
+    return RES_OK;
+}
+
+//-----------------------------------------------------------------
+
+result_t i2c_poll_ack(i2c_t *obj, uint8_t addr)
+{
+    if (!obj)
+        return RES_ERR_BAD_PARAM;
+
+    result_t res = i2c_excl_take(obj);
+    if (res != RES_OK)
+        return res;
+
+    uint32_t base = obj->conf.base;
+    I2CMasterSlaveAddrSet(base, addr, false);
+
+    if (i2c_write_byte(obj, 0x00, I2C_MASTER_CMD_SINGLE_SEND) != RES_OK)
+    {
+        i2c_excl_give(obj);
+        return RES_ERR_IO;
     }
 
     i2c_excl_give(obj);
