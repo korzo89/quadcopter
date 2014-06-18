@@ -211,7 +211,23 @@ static void control_task(void *params)
 
 //            throttle = pid_pitch_rate.output;
 
-            motors_set_throttle(throttle, throttle, throttle, throttle);
+            if (throttle <= 100.0f)
+            {
+                motors_set_throttle(throttle, throttle, throttle, throttle);
+            }
+            else
+            {
+                float sp = (float)control.pitch - 4095.0f / 2.0f;
+                if (fabs(sp) < CONTROL_PITCH_DEAD_ZONE)
+                    sp = 0.0f;
+                else
+                    sp = sp / 4095.0f * 10.0f;
+                float err = sp - rates.y;
+                float pitch_out = err * pid_pitch_rate.kp;
+
+                motors_set_throttle(throttle - pitch_out, throttle + pitch_out,
+                        throttle + pitch_out, throttle - pitch_out);
+            }
         }
 //        else
 //        {

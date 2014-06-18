@@ -35,16 +35,16 @@
 #define MOTOR2_CFG      GPIO_PB7_T0CCP1
 
 #define MOTOR3_BASE     TIMER1_BASE
-#define MOTOR3_TIMER    TIMER_A
+#define MOTOR3_TIMER    TIMER_B
 #define MOTOR3_PORT     GPIO_PORTB_BASE
-#define MOTOR3_PIN      GPIO_PIN_4
-#define MOTOR3_CFG      GPIO_PB4_T1CCP0
+#define MOTOR3_PIN      GPIO_PIN_5
+#define MOTOR3_CFG      GPIO_PB5_T1CCP1
 
 #define MOTOR4_BASE     TIMER1_BASE
-#define MOTOR4_TIMER    TIMER_B
+#define MOTOR4_TIMER    TIMER_A
 #define MOTOR4_PORT     GPIO_PORTB_BASE
-#define MOTOR4_PIN      GPIO_PIN_5
-#define MOTOR4_CFG      GPIO_PB5_T1CCP1
+#define MOTOR4_PIN      GPIO_PIN_4
+#define MOTOR4_CFG      GPIO_PB4_T1CCP0
 
 //-----------------------------------------------------------------
 

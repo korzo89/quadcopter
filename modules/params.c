@@ -76,7 +76,7 @@ const param_info_t* params_get_info(uint8_t id)
 
 result_t params_eeprom_save(void)
 {
-    portENTER_CRITICAL();
+//    portENTER_CRITICAL();
 
     uint16_t addr = PARAM_EEPROM_ADDR;
 
@@ -122,7 +122,7 @@ result_t params_eeprom_save(void)
         }
     }
 
-    portEXIT_CRITICAL();
+//    portEXIT_CRITICAL();
 
     return RES_OK;
 }

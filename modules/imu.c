@@ -34,8 +34,8 @@
 #define DEG_TO_RAD(x)       ((x) * 0.01745329f)
 
 #define TRIAD_REF_ACC_DEF   VEC3_NEW(-0.0156, 0.0391, 0.9375)
-#define TRIAD_REF_MAG_DEF   VEC3_NEW(191.2022, -48.0040, -367.2223)
-//#define TRIAD_REF_MAG_DEF   VEC3_NEW(-69.4093, 16.3664, -372.0633)
+//#define TRIAD_REF_MAG_DEF   VEC3_NEW(191.2022, -48.0040, -367.2223)
+#define TRIAD_REF_MAG_DEF   VEC3_NEW(131.6290, 11.9624, -343.7395)
 
 //-----------------------------------------------------------------
 
@@ -67,12 +67,18 @@ static vec3_t triad_ref_acc = TRIAD_REF_ACC_DEF;
 static vec3_t triad_ref_mag = TRIAD_REF_MAG_DEF;
 
 // magnetometer calibration parameters
+//float mag_calib_scale[] = {
+//    0.727006, 0.0054922, 0.0269476,
+//    0.0054922, 0.764489, 0.0283214,
+//    0.0269476, 0.0283214, 0.993801
+//};
+//float mag_calib_offset[] = { -739.7, 334.691, 278.869 };
 float mag_calib_scale[] = {
-    0.727006, 0.0054922, 0.0269476,
-    0.0054922, 0.764489, 0.0283214,
-    0.0269476, 0.0283214, 0.993801
+    0.70892, 0.00171642, 0.0316637,
+    0.00171642, 0.770402, 0.0256191,
+    0.0316637, 0.0256191, 0.993655
 };
-float mag_calib_offset[] = { -739.7, 334.691, 278.869 };
+float mag_calib_offset[] = { 52.541, -147.339, -98.677 };
 
 //-----------------------------------------------------------------
 

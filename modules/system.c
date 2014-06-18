@@ -116,7 +116,7 @@ static void system_init_task(void *params)
 
     adc_init();
     ultrasonic_init();
-    imu_init(0.2f, 100.0f);
+    imu_init(0.4f, 100.0f);
 
     params_init();
     params_eeprom_load();
