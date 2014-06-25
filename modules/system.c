@@ -119,7 +119,7 @@ static void system_init_task(void *params)
     imu_init(0.4f, 100.0f);
 
     params_init();
-    params_eeprom_load();
+//    params_eeprom_load();
 
     gps_init();
     control_init();

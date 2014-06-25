@@ -207,7 +207,13 @@ void imu_update(void)
         q3 = est.q3;
     }
 
-    imu_estimate_madgwick(&real_sens.acc, &real_sens.mag, &real_sens.gyro);
+    vec3_t gyro = {
+        .x = DEG_TO_RAD(real_sens.gyro.x),
+        .y = DEG_TO_RAD(real_sens.gyro.y),
+        .z = DEG_TO_RAD(real_sens.gyro.z)
+    };
+
+    imu_estimate_madgwick(&real_sens.acc, &real_sens.mag, &gyro);
     imu_quaternion_to_euler(&angles);
 
     rates = real_sens.gyro;
@@ -447,9 +453,9 @@ result_t imu_sensors_transform(imu_sensor_data_t *sens, imu_real_t *real)
     real->acc.y = (float)sens->acc.y / 256.0;
     real->acc.z = (float)sens->acc.z / 256.0;
 
-    real->gyro.x = DEG_TO_RAD((float)sens->gyro.x * 70.0 / 1000.0);
-    real->gyro.y = DEG_TO_RAD((float)sens->gyro.y * 70.0 / 1000.0);
-    real->gyro.z = DEG_TO_RAD((float)sens->gyro.z * 70.0 / 1000.0);
+    real->gyro.x = (float)sens->gyro.x * (70.0 / 1000.0);
+    real->gyro.y = (float)sens->gyro.y * (70.0 / 1000.0);
+    real->gyro.z = (float)sens->gyro.z * (70.0 / 1000.0);
 
     float mx = (float)sens->mag.x * 0.92 - mag_calib_offset[0];
     float my = (float)sens->mag.y * 0.92 - mag_calib_offset[1];

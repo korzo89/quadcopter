@@ -18,6 +18,7 @@ result_t pid_reset(pid_t *pid)
     pid->integral = 0;
     pid->error = 0;
     pid->prev_error = 0;
+    pid->prev_meas = 0;
     pid->output = 0;
 
     return RES_OK;
@@ -25,35 +26,41 @@ result_t pid_reset(pid_t *pid)
 
 //-----------------------------------------------------------------
 
-result_t pid_update(pid_t *pid, float value, float dt, bool manual, float control)
+result_t pid_update(pid_t *pid, float meas, float dt, bool manual, float control)
 {
     if (!pid)
         return RES_ERR_BAD_PARAM;
 
-    pid->error = pid->set_point - value;
+    pid->error = pid->set_point - meas;
 
-    float err_i = pid->error;
-    float err_d = (pid->error - pid->prev_error) / dt;
-
-    // tracking mode
-    if (manual)
-        err_i += pid->kt * (control - pid->output);
-
-    err_i *= dt;
-
+    float err_i = pid->ki * pid->error * dt;
     pid->integral += err_i;
 
-    if (pid->integral > pid->int_max)
-        pid->integral = pid->int_max;
-    else if (pid->integral < pid->int_min)
-        pid->integral = pid->int_min;
+    float err_d;
+    if (pid->deriv == PID_DERIV_ON_ERROR)
+        err_d = pid->error - pid->prev_error;
+    else
+        err_d = -(meas - pid->prev_meas);
+    err_d /= dt;
 
-    float out_p = pid->kp * pid->error;
-    float out_i = pid->ki * pid->integral;
-    float out_d = pid->kd * err_d;
+    // calculate final PID output
+    float output = pid->kp * pid->error + pid->integral + pid->kd * err_d;
+    // set manual control if requested
+    float real_out = manual ? control : output;
+    // output saturation
+    if (real_out > pid->out_max)
+        real_out = pid->out_max;
+    else if (real_out < pid->out_min)
+        real_out = pid->out_min;
 
-    pid->output = out_p + out_i + out_d;
+    pid->output = real_out;
+
+    // back-calculation for anti-windup and manual control
+    float back = pid->kt * (real_out - output);
+    pid->integral += back * dt;
+
     pid->prev_error = pid->error;
+    pid->prev_meas = meas;
 
     return RES_OK;
 }

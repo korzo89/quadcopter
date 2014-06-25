@@ -43,6 +43,7 @@ typedef struct PACK_STRUCT
     float kp;
     float ki;
     float kd;
+    float kt;
 } cmd_pid_data_t;
 
 //-----------------------------------------------------------------
@@ -51,49 +52,55 @@ pid_t pid_pitch = {
     .kp         = 1.0f,
     .ki         = 0.0f,
     .kd         = 0.0f,
-    .kt         = 0.0f,
-    .int_max    = 1000.0f,
-    .int_min    = -1000.0f
+    .kt         = 0.5f,
+    .out_max    = 20.0f,
+    .out_min    = 0.0f,
+    .deriv      = PID_DERIV_ON_ERROR
 };
 pid_t pid_roll = {
     .kp         = 1.0f,
     .ki         = 0.0f,
     .kd         = 0.0f,
-    .kt         = 0.0f,
-    .int_max    = 1000.0f,
-    .int_min    = -1000.0f
+    .kt         = 0.5f,
+    .out_max    = 20.0f,
+    .out_min    = 0.0f,
+    .deriv      = PID_DERIV_ON_ERROR
 };
 pid_t pid_yaw = {
     .kp         = 1.0f,
     .ki         = 0.0f,
     .kd         = 0.0f,
-    .kt         = 0.0f,
-    .int_max    = 1000.0f,
-    .int_min    = -1000.0f
+    .kt         = 0.5f,
+    .out_max    = 20.0f,
+    .out_min    = 0.0f,
+    .deriv      = PID_DERIV_ON_ERROR
 };
 pid_t pid_pitch_rate = {
     .kp         = 1.0f,
-    .ki         = 0.0f,
+    .ki         = 0.1f,
     .kd         = 0.0f,
-    .kt         = 0.0f,
-    .int_max    = 1000.0f,
-    .int_min    = -1000.0f
+    .kt         = 0.5f,
+    .out_max    = 1000.0f,
+    .out_min    = -1000.0f,
+    .deriv      = PID_DERIV_ON_ERROR
 };
 pid_t pid_roll_rate = {
     .kp         = 1.0f,
     .ki         = 0.0f,
     .kd         = 0.0f,
-    .kt         = 0.0f,
-    .int_max    = 1000.0f,
-    .int_min    = -1000.0f
+    .kt         = 0.5f,
+    .out_max    = 1000.0f,
+    .out_min    = 0.0f,
+    .deriv      = PID_DERIV_ON_ERROR
 };
 pid_t pid_yaw_rate = {
     .kp         = 1.0f,
     .ki         = 0.0f,
     .kd         = 0.0f,
-    .kt         = 0.0f,
-    .int_max    = 1000.0f,
-    .int_min    = -1000.0f
+    .kt         = 0.5f,
+    .out_max    = 1000.0f,
+    .out_min    = 0.0f,
+    .deriv      = PID_DERIV_ON_ERROR
 };
 
 static pid_t *pid_ptr[] = {
@@ -136,6 +143,7 @@ static void rcp_cb_pid_set(rcp_message_t *msg)
     pid->kp = data->kp;
     pid->kd = data->kd;
     pid->ki = data->ki;
+    pid->kt = data->kt;
 
     pid_reset(pid);
 
@@ -159,6 +167,7 @@ static void rcp_cb_pid_get(rcp_message_t *msg)
     data.kp = pid->kp;
     data.ki = pid->ki;
     data.kd = pid->kd;
+    data.kt = pid->kt;
 
     memcpy(resp.packet.data, (uint8_t*)&data, sizeof(data));
 
@@ -198,7 +207,7 @@ static void control_task(void *params)
 
 //        pid_pitch_rate.set_point = 45.0f;
 
-//        const float dt = 0.01f;
+        const float dt = 0.01f;
 
         if (armed)
         {
@@ -214,6 +223,8 @@ static void control_task(void *params)
             if (throttle <= 100.0f)
             {
                 motors_set_throttle(throttle, throttle, throttle, throttle);
+//                motors_set_throttle(0, 0, 0, 0);
+                pid_update_manual(&pid_pitch_rate, rates.y, dt, 0.0f);
             }
             else
             {
@@ -221,18 +232,22 @@ static void control_task(void *params)
                 if (fabs(sp) < CONTROL_PITCH_DEAD_ZONE)
                     sp = 0.0f;
                 else
-                    sp = sp / 4095.0f * 10.0f;
-                float err = sp - rates.y;
-                float pitch_out = err * pid_pitch_rate.kp;
+                    sp = sp / 4095.0f * 100.0f;
+
+                pid_pitch_rate.set_point = sp;
+                pid_update_auto(&pid_pitch_rate, rates.y, dt);
+
+                float pitch_out = pid_pitch_rate.output;
 
                 motors_set_throttle(throttle - pitch_out, throttle + pitch_out,
                         throttle + pitch_out, throttle - pitch_out);
+//                motors_set_throttle(-pitch_out, pitch_out, pitch_out, -pitch_out);
             }
         }
-//        else
-//        {
-//            pid_update_manual(&pid_pitch_rate, angles.y, dt, 0.0f);
-//        }
+        else
+        {
+            pid_update_manual(&pid_pitch_rate, rates.y, dt, 0.0f);
+        }
 
         vTaskDelayUntil(&last_wake, MSEC_TO_TICKS(10));
     }

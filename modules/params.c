@@ -23,20 +23,30 @@
 
 #define PARAM_EEPROM_ADDR       0x0000
 
+#define PARAM_PID_BATCH(n, p)   \
+    { n, "Kp", PARAM_TYPE_FLOAT, sizeof(float), 1, &p.kp }, \
+    { n, "Ki", PARAM_TYPE_FLOAT, sizeof(float), 1, &p.ki }, \
+    { n, "Kd", PARAM_TYPE_FLOAT, sizeof(float), 1, &p.kd }, \
+    { n, "Kt", PARAM_TYPE_FLOAT, sizeof(float), 1, &p.kt }
+
 //-----------------------------------------------------------------
 
 PARAM_EXTERN(pid_t pid_pitch);
 PARAM_EXTERN(pid_t pid_roll);
+PARAM_EXTERN(pid_t pid_yaw);
+PARAM_EXTERN(pid_t pid_pitch_rate);
+PARAM_EXTERN(pid_t pid_roll_rate);
+PARAM_EXTERN(pid_t pid_yaw_rate);
 PARAM_EXTERN(float mag_calib_scale[]);
 PARAM_EXTERN(float mag_calib_offset[]);
 
 const param_info_t PARAMS[] = {
-    { "PID_pitch",  "Kp",       PARAM_TYPE_FLOAT, sizeof(float), 1, &pid_pitch.kp },
-    { "PID_pitch",  "Ki",       PARAM_TYPE_FLOAT, sizeof(float), 1, &pid_pitch.ki },
-    { "PID_pitch",  "Kd",       PARAM_TYPE_FLOAT, sizeof(float), 1, &pid_pitch.kd },
-    { "PID_roll",   "Kp",       PARAM_TYPE_FLOAT, sizeof(float), 1, &pid_roll.kp },
-    { "PID_roll",   "Ki",       PARAM_TYPE_FLOAT, sizeof(float), 1, &pid_roll.ki },
-    { "PID_roll",   "Kd",       PARAM_TYPE_FLOAT, sizeof(float), 1, &pid_roll.kd },
+    PARAM_PID_BATCH("PID_pitch", pid_pitch),
+    PARAM_PID_BATCH("PID_roll", pid_roll),
+    PARAM_PID_BATCH("PID_yaw", pid_yaw),
+    PARAM_PID_BATCH("PID_pitch_rate", pid_pitch_rate),
+    PARAM_PID_BATCH("PID_roll_rate", pid_roll_rate),
+    PARAM_PID_BATCH("PID_yaw_rate", pid_yaw_rate),
     { "Mag_calib",  "scale",    PARAM_TYPE_FLOAT, sizeof(float), 9, mag_calib_scale },
     { "Mag_calib",  "offset",   PARAM_TYPE_FLOAT, sizeof(float), 3, mag_calib_offset }
 };
