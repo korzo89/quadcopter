@@ -31,7 +31,7 @@ result_t pid_update(pid_t *pid, float meas, float dt, bool manual, float control
     if (!pid)
         return RES_ERR_BAD_PARAM;
 
-    pid->error = pid->set_point - meas;
+    pid->error = pid->setpoint - meas;
 
     float err_i = pid->ki * pid->error * dt;
     pid->integral += err_i;

@@ -20,9 +20,6 @@
 
 #define DAQ_VALUES_MAX      50
 
-#define DAQ_NAME_MAX_LEN    22
-#define DAQ_UNIT_MAX_LEN    7
-
 #define DAQ_GET_VALS_MAX    6
 
 #define DAQ_CONVERT(p, t)   ( (float)*((t*)p) )

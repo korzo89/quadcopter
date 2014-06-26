@@ -215,7 +215,7 @@ static void gui_task(void *params)
             oled_disp_char(control.flags.sw3 ? 'X' : '_');
 
             pid = control_get_pid(PID_PITCH_RATE);
-            usprintf(buf, "s:%5d o:%5d", (int)pid->set_point, (int)pid->output);
+            usprintf(buf, "s:%5d o:%5d", (int)pid->setpoint, (int)pid->output);
             oled_disp_str_at(buf, 7, 0);
 
             break;

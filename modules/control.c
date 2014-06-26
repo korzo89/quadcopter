@@ -18,6 +18,7 @@
 #include <utils/buzzer_seq.h>
 
 #include <stellaris_config.h>
+#include <utils/ustdlib.h>
 
 //-----------------------------------------------------------------
 
@@ -235,7 +236,7 @@ static void control_task(void *params)
                 else
                     sp = sp / 4095.0f * 100.0f;
 
-                pid_pitch_rate.set_point = sp;
+                pid_pitch_rate.setpoint = sp;
                 pid_update_auto(&pid_pitch_rate, rates.y, dt);
 
                 float pitch_out = pid_pitch_rate.output;
@@ -278,12 +279,18 @@ result_t control_init(void)
     daq_register_value("Pitch control", "deg", &pid_pitch.output, DAQ_TYPE_FLOAT);
     daq_register_value("Roll control", "deg", &pid_roll.output, DAQ_TYPE_FLOAT);
     daq_register_value("Yaw control", "deg", &pid_yaw.output, DAQ_TYPE_FLOAT);
+    daq_register_value("Pitch setpoint", "deg", &pid_pitch.setpoint, DAQ_TYPE_FLOAT);
+    daq_register_value("Roll setpoint", "deg", &pid_roll.setpoint, DAQ_TYPE_FLOAT);
+    daq_register_value("Yaw setpoint", "deg", &pid_yaw.setpoint, DAQ_TYPE_FLOAT);
     daq_register_value("Pitch rate error", "deg/s", &pid_pitch_rate.error, DAQ_TYPE_FLOAT);
     daq_register_value("Roll rate error", "deg/s", &pid_roll_rate.error, DAQ_TYPE_FLOAT);
     daq_register_value("Yaw rate error", "deg/s", &pid_yaw_rate.error, DAQ_TYPE_FLOAT);
     daq_register_value("Pitch rate control", "deg/s", &pid_pitch_rate.output, DAQ_TYPE_FLOAT);
     daq_register_value("Roll rate control", "deg/s", &pid_roll_rate.output, DAQ_TYPE_FLOAT);
     daq_register_value("Yaw rate control", "deg/s", &pid_yaw_rate.output, DAQ_TYPE_FLOAT);
+    daq_register_value("Pitch rate setpoint", "deg/s", &pid_pitch_rate.setpoint, DAQ_TYPE_FLOAT);
+    daq_register_value("Roll rate setpoint", "deg/s", &pid_roll_rate.setpoint, DAQ_TYPE_FLOAT);
+    daq_register_value("Yaw rate setpoint", "deg/s", &pid_yaw_rate.setpoint, DAQ_TYPE_FLOAT);
 
     if (xTaskCreate(control_task, (signed portCHAR*)"CTRL",
             CONTROL_TASK_STACK, NULL, 2, NULL) != pdPASS)

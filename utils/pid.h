@@ -30,7 +30,7 @@ typedef struct
     float out_max;
     enum pid_deriv_type deriv;
 
-    float set_point;
+    float setpoint;
     float output;
     float error;
 
