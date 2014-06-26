@@ -35,6 +35,10 @@ typedef enum
     RCP_CMD_PARAM_SET   = 0x09,
     RCP_CMD_PARAM_SAVE  = 0x0A,
 
+    RCP_CMD_DAQ_LIST    = 0x0B,
+    RCP_CMD_DAQ_INFO    = 0x0C,
+    RCP_CMD_DAQ_GET     = 0x0D,
+
     RCP_CMD_NUM
 } rcp_command_t;
 

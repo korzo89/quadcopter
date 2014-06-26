@@ -12,6 +12,7 @@
 #include <drivers/watchdog.h>
 #include <modules/rcp.h>
 #include <modules/imu.h>
+#include <modules/daq.h>
 #include <utils/delay.h>
 #include <utils/pid.h>
 #include <utils/buzzer_seq.h>
@@ -270,6 +271,19 @@ result_t control_init(void)
     rcp_register_callback(RCP_CMD_CONTROL, rcp_cb_angles, false);
     rcp_register_callback(RCP_CMD_PID, rcp_cb_pid_set, false);
     rcp_register_callback(RCP_CMD_PID, rcp_cb_pid_get, true);
+
+    daq_register_value("Pitch error", "deg", &pid_pitch.error, DAQ_TYPE_FLOAT);
+    daq_register_value("Roll error", "deg", &pid_roll.error, DAQ_TYPE_FLOAT);
+    daq_register_value("Yaw error", "deg", &pid_yaw.error, DAQ_TYPE_FLOAT);
+    daq_register_value("Pitch control", "deg", &pid_pitch.output, DAQ_TYPE_FLOAT);
+    daq_register_value("Roll control", "deg", &pid_roll.output, DAQ_TYPE_FLOAT);
+    daq_register_value("Yaw control", "deg", &pid_yaw.output, DAQ_TYPE_FLOAT);
+    daq_register_value("Pitch rate error", "deg/s", &pid_pitch_rate.error, DAQ_TYPE_FLOAT);
+    daq_register_value("Roll rate error", "deg/s", &pid_roll_rate.error, DAQ_TYPE_FLOAT);
+    daq_register_value("Yaw rate error", "deg/s", &pid_yaw_rate.error, DAQ_TYPE_FLOAT);
+    daq_register_value("Pitch rate control", "deg/s", &pid_pitch_rate.output, DAQ_TYPE_FLOAT);
+    daq_register_value("Roll rate control", "deg/s", &pid_roll_rate.output, DAQ_TYPE_FLOAT);
+    daq_register_value("Yaw rate control", "deg/s", &pid_yaw_rate.output, DAQ_TYPE_FLOAT);
 
     if (xTaskCreate(control_task, (signed portCHAR*)"CTRL",
             CONTROL_TASK_STACK, NULL, 2, NULL) != pdPASS)

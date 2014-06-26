@@ -30,7 +30,9 @@ typedef enum
 	RES_OK,
 	RES_ERR_BAD_PARAM,
 	RES_ERR_FATAL,
-	RES_ERR_IO
+	RES_ERR_IO,
+	RES_ERR_TIMEOUT,
+	RES_ERR_BLOCKED
 } result_t;
 
 //-----------------------------------------------------------------

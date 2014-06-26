@@ -30,6 +30,7 @@
 #include <modules/gps.h>
 #include <modules/control.h>
 #include <modules/params.h>
+#include <modules/daq.h>
 
 #include <utils/ustdlib.h>
 #include <utils/uartstdio.h>
@@ -120,6 +121,7 @@ static void system_init_task(void *params)
 
     params_init();
 //    params_eeprom_load();
+    daq_init();
 
     gps_init();
     control_init();
