@@ -186,7 +186,7 @@ typedef struct PACK_STRUCT
 static void rcp_daq_get_cb(rcp_message_t *msg)
 {
     rcp_message_t resp;
-    resp.packet.cmd = RCP_CMD_DAQ_INFO;
+    resp.packet.cmd = RCP_CMD_DAQ_GET;
     resp.packet.query = RCP_CMD_OK;
 
     uint8_t *args = (uint8_t*)msg->packet.data;
