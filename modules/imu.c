@@ -23,6 +23,7 @@
 #include <drivers/hmc5883.h>
 #include <drivers/bmp085.h>
 #include <modules/rcp.h>
+#include <modules/daq.h>
 #include <utils/delay.h>
 
 //-----------------------------------------------------------------
@@ -155,6 +156,24 @@ result_t imu_init(float beta, float freq)
 
     rcp_register_callback(RCP_CMD_RAW_IMU, imu_rcp_callback_raw, true);
     rcp_register_callback(RCP_CMD_ANGLES, imu_rcp_callback_angles, true);
+
+    daq_register_value("Pitch", "deg", &angles.y, DAQ_TYPE_FLOAT);
+    daq_register_value("Roll", "deg", &angles.x, DAQ_TYPE_FLOAT);
+    daq_register_value("Yaw", "deg", &angles.z, DAQ_TYPE_FLOAT);
+    daq_register_value("Pitch rate", "deg/s", &rates.y, DAQ_TYPE_FLOAT);
+    daq_register_value("Roll rate", "deg/s", &rates.x, DAQ_TYPE_FLOAT);
+    daq_register_value("Yaw rate", "deg/s", &rates.z, DAQ_TYPE_FLOAT);
+    daq_register_value("Accel X", "raw", &sensors.acc.x, DAQ_TYPE_INT16);
+    daq_register_value("Accel Y", "raw", &sensors.acc.y, DAQ_TYPE_INT16);
+    daq_register_value("Accel Z", "raw", &sensors.acc.z, DAQ_TYPE_INT16);
+    daq_register_value("Gyro X", "raw", &sensors.gyro.x, DAQ_TYPE_INT16);
+    daq_register_value("Gyro Y", "raw", &sensors.gyro.y, DAQ_TYPE_INT16);
+    daq_register_value("Gyro Z", "raw", &sensors.gyro.z, DAQ_TYPE_INT16);
+    daq_register_value("Mag X", "raw", &sensors.mag.x, DAQ_TYPE_INT16);
+    daq_register_value("Mag Y", "raw", &sensors.mag.y, DAQ_TYPE_INT16);
+    daq_register_value("Mag Z", "raw", &sensors.mag.z, DAQ_TYPE_INT16);
+    daq_register_value("Pressure", "Pa", &sensors.pressure, DAQ_TYPE_INT32);
+    daq_register_value("Temperature", "10oC", &sensors.temperature, DAQ_TYPE_INT16);
 
     if (xTaskCreate(imu_task, (signed portCHAR*)"IMU",
             IMU_TASK_STACK, NULL, 2, NULL) != pdPASS)

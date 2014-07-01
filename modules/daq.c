@@ -22,7 +22,7 @@
 
 #define DAQ_GET_VALS_MAX    6
 
-#define DAQ_CONVERT(p, t)   ( (float)*((t*)p) )
+#define DAQ_CONVERT(p, t)   ( (float)(*((t*)p)) )
 
 //-----------------------------------------------------------------
 
@@ -95,33 +95,58 @@ result_t daq_get_value(uint8_t id, float *out)
     if (!val)
         return RES_ERR_FATAL;
 
+    float tf;
+    int ti;
+    uint8_t tu8;
+    uint16_t tu16;
+    uint32_t tu32;
+    int8_t ti8;
+    int16_t ti16;
+    int32_t ti32;
+
     switch (val->type)
     {
     case DAQ_TYPE_FLOAT:
-        *out = DAQ_CONVERT(val->ptr, float);
+        tf = *(float*)val->ptr;
+//        temp = DAQ_CONVERT(val->ptr, float);
         break;
     case DAQ_TYPE_INT:
-        *out = DAQ_CONVERT(val->ptr, int);
+        ti = *(int*)val->ptr;
+        tf = (float)ti;
+//        temp = DAQ_CONVERT(val->ptr, int);
         break;
     case DAQ_TYPE_UINT8:
-        *out = DAQ_CONVERT(val->ptr, uint8_t);
+        tu8 = *(uint8_t*)val->ptr;
+        tf = (float)tu8;
+//        temp = DAQ_CONVERT(val->ptr, uint8_t);
         break;
     case DAQ_TYPE_UINT16:
-        *out = DAQ_CONVERT(val->ptr, uint16_t);
+        tu16 = *(uint16_t*)val->ptr;
+        tf = (float)tu16;
+//        temp = DAQ_CONVERT(val->ptr, uint16_t);
         break;
     case DAQ_TYPE_UINT32:
-        *out = DAQ_CONVERT(val->ptr, uint32_t);
+        tu32 = *(uint32_t*)val->ptr;
+        tf = (float)tu32;
+//        temp = DAQ_CONVERT(val->ptr, uint32_t);
         break;
     case DAQ_TYPE_INT8:
-        *out = DAQ_CONVERT(val->ptr, int8_t);
+        ti8 = *(int8_t*)val->ptr;
+        tf = (float)ti8;
+//        temp = DAQ_CONVERT(val->ptr, int8_t);
         break;
     case DAQ_TYPE_INT16:
-        *out = DAQ_CONVERT(val->ptr, int16_t);
+        ti16 = *(int16_t*)val->ptr;
+        tf = (float)ti16;
+//        temp = DAQ_CONVERT(val->ptr, int16_t);
         break;
     case DAQ_TYPE_INT32:
-        *out = DAQ_CONVERT(val->ptr, int32_t);
+        ti32 = *(int32_t*)val->ptr;
+        tf = (float)ti32;
+//        temp = DAQ_CONVERT(val->ptr, int32_t);
         break;
     }
+    *out = tf;
 
     return RES_OK;
 }
