@@ -50,14 +50,14 @@ void nrf_set_as_tx(void);
 void nrf_set_config(uint8_t config);
 void nrf_set_rf_channel(uint8_t channel);
 uint8_t nrf_get_status(void);
-uint8_t nrfGetObserveTx(void);
+uint8_t nrf_get_observe_tx(void);
 void nrf_set_rx_addr(uint8_t *addr, unsigned int len, uint8_t pipe);
 void nrf_set_tx_addr(uint8_t *addr, unsigned int len);
 void nrf_set_payload_width(uint8_t width, uint8_t pipe);
 uint8_t nrf_get_fifo_status(void);
 
 void nrf_auto_ack_enable(uint8_t pipe);
-void nrf_pipe_nable(uint8_t pipe);
+void nrf_pipe_enable(uint8_t pipe);
 
 bool nrf_carrier_detect(void);
 uint8_t nrf_get_rx_pipe(void);

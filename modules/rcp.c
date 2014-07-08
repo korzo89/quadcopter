@@ -27,10 +27,10 @@
 #define RCP_REMOTE_ADDR         "ctrl0"
 #define RCP_ADDR_LEN            5
 
-#define RCP_TX_QUEUE_SIZE       3
+#define RCP_TX_QUEUE_SIZE       10
 
-#define RCP_RX_MAX_DELAY		100
-#define RCP_TX_MAX_DELAY		100
+#define RCP_RX_MAX_DELAY        500
+#define RCP_TX_MAX_DELAY        100
 
 #define RCP_DISCONNECT_TIME     1000
 
@@ -73,31 +73,36 @@ static void rcp_task(void *args)
         // switch to RX mode
         xSemaphoreTakeRecursive(rcp_ready, 0);
         rcp_enable_rx();
+
         // wait for ready interrupt
         res = xSemaphoreTakeRecursive(rcp_ready, MSEC_TO_TICKS(RCP_RX_MAX_DELAY));
         // check for RX interrupt or timeout
-        if (res == pdTRUE && NRF_CHECK_STATUS(NRF_IRQ_RX_DR))
+        if (res != pdTRUE || !NRF_CHECK_STATUS(NRF_IRQ_RX_DR))
         {
-            nrf_clear_irq(NRF_IRQ_RX_DR);
-
-            last_msg_time = xTaskGetTickCount();
-
-            // read all pending messages
-            while (!NRF_CHECK_FIFO(NRF_FIFO_STATUS_RX_EMPTY))
-            {
-                led_turn_on(LED_RED);
-
-                nrf_read_rx_payload(msg.raw, RCP_PAYLOAD_SIZE);
-                rcp_process_message(&msg);
-
-                led_turn_off(LED_RED);
-            }
+//            nrf_clear_all_irq();
+            nrf_clear_flush();
+            continue;
         }
 
-        // send all pending messages
+        nrf_clear_irq(NRF_IRQ_RX_DR);
+
+        last_msg_time = xTaskGetTickCount();
+
+        // read all pending messages
+        while (!NRF_CHECK_FIFO(NRF_FIFO_STATUS_RX_EMPTY))
+        {
+            led_turn_on(LED_RED);
+
+            nrf_read_rx_payload(msg.raw, RCP_PAYLOAD_SIZE);
+            rcp_process_message(&msg);
+
+            led_turn_off(LED_RED);
+        }
+
+        // send one pending message
         nrf_flush_tx();
         rcp_enable_tx();
-        while (uxQueueMessagesWaiting(tx_queue) > 0)
+        if (uxQueueMessagesWaiting(tx_queue) > 0)
         {
             xQueueReceive(tx_queue, &msg, 0);
 
@@ -116,8 +121,6 @@ static void rcp_task(void *args)
 
             led_turn_off(LED_YELLOW);
         }
-
-        nrf_clear_all_irq();
     }
 }
 

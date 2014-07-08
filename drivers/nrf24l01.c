@@ -261,7 +261,7 @@ uint8_t nrf_get_status(void)
 
 //-----------------------------------------------------------------
 
-uint8_t nrfGetObserveTx(void)
+uint8_t nrf_get_observe_tx(void)
 {
     return nrf_read_register_byte(NRF_OBSERVE_TX);
 }
@@ -317,7 +317,7 @@ void nrf_auto_ack_enable(uint8_t pipe)
 
 //-----------------------------------------------------------------
 
-void nrf_pipe_nable(uint8_t pipe)
+void nrf_pipe_enable(uint8_t pipe)
 {
     if (pipe > 5)
         return;
