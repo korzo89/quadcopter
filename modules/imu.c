@@ -24,6 +24,7 @@
 #include <drivers/bmp085.h>
 #include <modules/rcp.h>
 #include <modules/daq.h>
+#include <modules/params.h>
 #include <utils/delay.h>
 
 //-----------------------------------------------------------------
@@ -34,9 +35,7 @@
 #define RAD_TO_DEG(x)       ((x) * 57.2957795f)
 #define DEG_TO_RAD(x)       ((x) * 0.01745329f)
 
-#define TRIAD_REF_ACC_DEF   VEC3_NEW(-0.0156, 0.0391, 0.9375)
-//#define TRIAD_REF_MAG_DEF   VEC3_NEW(191.2022, -48.0040, -367.2223)
-#define TRIAD_REF_MAG_DEF   VEC3_NEW(131.6290, 11.9624, -343.7395)
+#define SAMPLE_FREQ         100.0f
 
 //-----------------------------------------------------------------
 
@@ -57,29 +56,7 @@ static vec3_t rates;
 static float q0, q1, q2, q3;
 static bool init_quat;
 
-// filter parameters
-static float filter_beta = 0.1f;
-static float sample_freq = 100.0f;
-
 volatile float pitch, roll, yaw;
-
-// TRIAD reference vectors
-static vec3_t triad_ref_acc = TRIAD_REF_ACC_DEF;
-static vec3_t triad_ref_mag = TRIAD_REF_MAG_DEF;
-
-// magnetometer calibration parameters
-//float mag_calib_scale[] = {
-//    0.727006, 0.0054922, 0.0269476,
-//    0.0054922, 0.764489, 0.0283214,
-//    0.0269476, 0.0283214, 0.993801
-//};
-//float mag_calib_offset[] = { -739.7, 334.691, 278.869 };
-float mag_calib_scale[] = {
-    0.70892, 0.00171642, 0.0316637,
-    0.00171642, 0.770402, 0.0256191,
-    0.0316637, 0.0256191, 0.993655
-};
-float mag_calib_offset[] = { 52.541, -147.339, -98.677 };
 
 //-----------------------------------------------------------------
 
@@ -110,7 +87,6 @@ static void imu_rcp_callback_angles(rcp_message_t *msg)
 
     cmd_angles_data_t data;
     data.angles = angles;
-//    data.quat = (quat_t){ q0, q1, q2, q3 };
     data.rates = rates;
 
     memcpy(resp.packet.data, &data, sizeof(data));
@@ -134,7 +110,7 @@ static void imu_task(void *params)
 
 //-----------------------------------------------------------------
 
-result_t imu_init(float beta, float freq)
+result_t imu_init(void)
 {
     imu_i2c_init();
 
@@ -150,9 +126,6 @@ result_t imu_init(float beta, float freq)
     q2 = 0.0f;
     q3 = 0.0f;
     init_quat = true;
-
-    filter_beta = beta;
-    sample_freq = freq;
 
     rcp_register_callback(RCP_CMD_RAW_IMU, imu_rcp_callback_raw, true);
     rcp_register_callback(RCP_CMD_ANGLES, imu_rcp_callback_angles, true);
@@ -201,7 +174,6 @@ result_t imu_get_sensors(imu_sensor_data_t *out)
         return RES_ERR_BAD_PARAM;
 
     memcpy(out, &sensors, sizeof(imu_sensor_data_t));
-
     return RES_OK;
 }
 
@@ -323,6 +295,9 @@ result_t imu_estimate_madgwick(vec3_t *acc, vec3_t *mag, vec3_t *gyro)
         s2 *= recipNorm;
         s3 *= recipNorm;
 
+        float filter_beta = 0.0f;
+        params_get_madgwick_beta(&filter_beta);
+
         // Apply feedback step
         qDot1 -= filter_beta * s0;
         qDot2 -= filter_beta * s1;
@@ -331,10 +306,10 @@ result_t imu_estimate_madgwick(vec3_t *acc, vec3_t *mag, vec3_t *gyro)
     }
 
     // Integrate rate of change of quaternion to yield quaternion
-    q0 += qDot1 * (1.0f / sample_freq);
-    q1 += qDot2 * (1.0f / sample_freq);
-    q2 += qDot3 * (1.0f / sample_freq);
-    q3 += qDot4 * (1.0f / sample_freq);
+    q0 += qDot1 * (1.0f / SAMPLE_FREQ);
+    q1 += qDot2 * (1.0f / SAMPLE_FREQ);
+    q2 += qDot3 * (1.0f / SAMPLE_FREQ);
+    q3 += qDot4 * (1.0f / SAMPLE_FREQ);
 
     // Normalise quaternion
     recipNorm = inv_sqrt(q0 * q0 + q1 * q1 + q2 * q2 + q3 * q3);
@@ -402,6 +377,9 @@ result_t imu_estimate_madgwick_no_mag(vec3_t *acc, vec3_t *gyro)
         s2 *= recipNorm;
         s3 *= recipNorm;
 
+        float filter_beta = 0.0f;
+        params_get_madgwick_beta(&filter_beta);
+
         // Apply feedback step
         qDot1 -= filter_beta * s0;
         qDot2 -= filter_beta * s1;
@@ -410,10 +388,10 @@ result_t imu_estimate_madgwick_no_mag(vec3_t *acc, vec3_t *gyro)
     }
 
     // Integrate rate of change of quaternion to yield quaternion
-    q0 += qDot1 * (1.0f / sample_freq);
-    q1 += qDot2 * (1.0f / sample_freq);
-    q2 += qDot3 * (1.0f / sample_freq);
-    q3 += qDot4 * (1.0f / sample_freq);
+    q0 += qDot1 * (1.0f / SAMPLE_FREQ);
+    q1 += qDot2 * (1.0f / SAMPLE_FREQ);
+    q2 += qDot3 * (1.0f / SAMPLE_FREQ);
+    q3 += qDot4 * (1.0f / SAMPLE_FREQ);
 
     // Normalise quaternion
     recipNorm = inv_sqrt(q0 * q0 + q1 * q1 + q2 * q2 + q3 * q3);
@@ -468,6 +446,11 @@ result_t imu_sensors_transform(imu_sensor_data_t *sens, imu_real_t *real)
     if (!sens || !real)
         return RES_ERR_BAD_PARAM;
 
+    float mag_calib_scale[9];
+    params_get_mag_calib_scale(mag_calib_scale);
+    float mag_calib_offset[3];
+    params_get_mag_calib_offset(mag_calib_offset);
+
     real->acc.x = (float)sens->acc.x / 256.0;
     real->acc.y = (float)sens->acc.y / 256.0;
     real->acc.z = (float)sens->acc.z / 256.0;
@@ -519,12 +502,17 @@ result_t imu_get_rates(vec3_t *out)
 
 result_t imu_estimate_triad(vec3_t acc, vec3_t mag, quat_t *quat, vec3_t *angles)
 {
+    vec3_t ref_acc;
+    vec3_t ref_mag;
+    params_get_triad_ref_acc(&ref_acc);
+    params_get_triad_ref_mag(&ref_mag);
+
     float temp;
-    vec3_t t1b = triad_ref_acc;
+    vec3_t t1b = ref_acc;
     VEC3_NORMALIZE_VAR(t1b, temp);
     vec3_t t1r = acc;
     VEC3_NORMALIZE_VAR(t1r, temp);
-    vec3_t t2b = VEC3_CROSS(triad_ref_acc, triad_ref_mag);
+    vec3_t t2b = VEC3_CROSS(ref_acc, ref_mag);
     VEC3_NORMALIZE_VAR(t2b, temp);
     vec3_t t2r = VEC3_CROSS(acc, mag);
     VEC3_NORMALIZE_VAR(t2r, temp);

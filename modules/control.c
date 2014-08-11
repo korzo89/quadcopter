@@ -13,6 +13,7 @@
 #include <modules/rcp.h>
 #include <modules/imu.h>
 #include <modules/daq.h>
+#include <modules/params.h>
 #include <utils/delay.h>
 #include <utils/pid.h>
 #include <utils/buzzer_seq.h>
@@ -50,60 +51,12 @@ typedef struct PACK_STRUCT
 
 //-----------------------------------------------------------------
 
-pid_t pid_pitch = {
-    .kp         = 1.0f,
-    .ki         = 0.0f,
-    .kd         = 0.0f,
-    .kt         = 0.5f,
-    .out_max    = 20.0f,
-    .out_min    = 0.0f,
-    .deriv      = PID_DERIV_ON_ERROR
-};
-pid_t pid_roll = {
-    .kp         = 1.0f,
-    .ki         = 0.0f,
-    .kd         = 0.0f,
-    .kt         = 0.5f,
-    .out_max    = 20.0f,
-    .out_min    = 0.0f,
-    .deriv      = PID_DERIV_ON_ERROR
-};
-pid_t pid_yaw = {
-    .kp         = 1.0f,
-    .ki         = 0.0f,
-    .kd         = 0.0f,
-    .kt         = 0.5f,
-    .out_max    = 20.0f,
-    .out_min    = 0.0f,
-    .deriv      = PID_DERIV_ON_ERROR
-};
-pid_t pid_pitch_rate = {
-    .kp         = 1.0f,
-    .ki         = 0.1f,
-    .kd         = 0.0f,
-    .kt         = 0.5f,
-    .out_max    = 1000.0f,
-    .out_min    = -1000.0f,
-    .deriv      = PID_DERIV_ON_ERROR
-};
-pid_t pid_roll_rate = {
-    .kp         = 1.0f,
-    .ki         = 0.0f,
-    .kd         = 0.0f,
-    .kt         = 0.5f,
-    .out_max    = 1000.0f,
-    .out_min    = 0.0f,
-    .deriv      = PID_DERIV_ON_ERROR
-};
-pid_t pid_yaw_rate = {
-    .kp         = 1.0f,
-    .ki         = 0.0f,
-    .kd         = 0.0f,
-    .kt         = 0.5f,
-    .out_max    = 1000.0f,
-    .out_min    = 0.0f,
-    .deriv      = PID_DERIV_ON_ERROR
-};
+pid_t pid_pitch;
+pid_t pid_roll;
+pid_t pid_yaw;
+pid_t pid_pitch_rate;
+pid_t pid_roll_rate;
+pid_t pid_yaw_rate;
 
 static pid_t *pid_ptr[] = {
     [PID_PITCH]         = &pid_pitch,
@@ -142,10 +95,10 @@ static void rcp_cb_pid_set(rcp_message_t *msg)
 
     pid_t *pid = pid_ptr[data->type];
 
-    pid->kp = data->kp;
-    pid->kd = data->kd;
-    pid->ki = data->ki;
-    pid->kt = data->kt;
+    pid->params.kp = data->kp;
+    pid->params.kd = data->kd;
+    pid->params.ki = data->ki;
+    pid->params.kt = data->kt;
 
     pid_reset(pid);
 
@@ -166,10 +119,10 @@ static void rcp_cb_pid_get(rcp_message_t *msg)
 
     cmd_pid_data_t data;
     data.type = type;
-    data.kp = pid->kp;
-    data.ki = pid->ki;
-    data.kd = pid->kd;
-    data.kt = pid->kt;
+    data.kp = pid->params.kp;
+    data.ki = pid->params.ki;
+    data.kd = pid->params.kd;
+    data.kt = pid->params.kt;
 
     memcpy(resp.packet.data, (uint8_t*)&data, sizeof(data));
 
@@ -268,6 +221,13 @@ result_t control_init(void)
     int i;
     for (i = 0; i < PID_TYPE_NUM; ++i)
         pid_reset(pid_ptr[i]);
+
+    params_get_pid_pitch(&pid_pitch.params);
+    params_get_pid_roll(&pid_roll.params);
+    params_get_pid_yaw(&pid_yaw.params);
+    params_get_pid_pitch_rate(&pid_pitch_rate.params);
+    params_get_pid_roll_rate(&pid_roll_rate.params);
+    params_get_pid_yaw_rate(&pid_yaw_rate.params);
 
     rcp_register_callback(RCP_CMD_CONTROL, rcp_cb_angles, false);
     rcp_register_callback(RCP_CMD_PID, rcp_cb_pid_set, false);

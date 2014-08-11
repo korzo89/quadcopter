@@ -114,14 +114,13 @@ static void system_init_task(void *params)
     }
 
     rcp_init();
+    params_init();
 
     daq_init();
 
     adc_init();
     ultrasonic_init();
-    imu_init(0.4f, 100.0f);
-
-    params_init();
+    imu_init();
 //    params_eeprom_load();
 
     gps_init();

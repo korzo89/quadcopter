@@ -43,7 +43,7 @@ typedef struct
 
 //-----------------------------------------------------------------
 
-result_t imu_init(float beta, float freq);
+result_t imu_init(void);
 
 void imu_update(void);
 

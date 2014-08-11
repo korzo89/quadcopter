@@ -20,7 +20,7 @@ enum pid_deriv_type
     PID_DERIV_ON_ERROR
 };
 
-typedef struct
+struct pid_params
 {
     float kp;
     float ki;
@@ -29,6 +29,11 @@ typedef struct
     float out_min;
     float out_max;
     enum pid_deriv_type deriv;
+};
+
+typedef struct
+{
+    struct pid_params params;
 
     float setpoint;
     float output;
@@ -41,6 +46,7 @@ typedef struct
 
 //-----------------------------------------------------------------
 
+result_t pid_init(pid_t *pid, const struct pid_params *params);
 result_t pid_reset(pid_t *pid);
 
 result_t pid_update(pid_t *pid, float meas, float dt, bool manual, float control);

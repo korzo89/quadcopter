@@ -11,6 +11,8 @@
 //-----------------------------------------------------------------
 
 #include <defs.h>
+#include <utils/pid.h>
+#include <utils/vec3.h>
 
 //-----------------------------------------------------------------
 
@@ -25,7 +27,7 @@ enum param_type
     PARAM_TYPE_FLOAT
 };
 
-typedef struct
+struct param_info
 {
     const char      *group;     // max group len: 14 chars + zero = 15
     const char      *name;      // max name len: 10 chars + zero = 11
@@ -33,13 +35,27 @@ typedef struct
     uint8_t         size;
     uint8_t         count;
     void            *ptr;
-} param_info_t;
+};
 
 //-----------------------------------------------------------------
 
 result_t params_init(void);
+void params_load_defaults(void);
 
-const param_info_t* params_get_info(uint8_t id);
+result_t params_get_pid_pitch(struct pid_params *out);
+result_t params_get_pid_roll(struct pid_params *out);
+result_t params_get_pid_yaw(struct pid_params *out);
+result_t params_get_pid_pitch_rate(struct pid_params *out);
+result_t params_get_pid_roll_rate(struct pid_params *out);
+result_t params_get_pid_yaw_rate(struct pid_params *out);
+
+result_t params_get_mag_calib_scale(float *out);
+result_t params_get_mag_calib_offset(float *out);
+
+result_t params_get_triad_ref_acc(vec3_t *out);
+result_t params_get_triad_ref_mag(vec3_t *out);
+
+result_t params_get_madgwick_beta(float *out);
 
 result_t params_eeprom_save(void);
 result_t params_eeprom_load(void);
