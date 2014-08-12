@@ -83,7 +83,9 @@ const struct param_info infos[] = {
     PARAM_DEF_FLOAT("mag_calib", "offset", 3, params.mag_calib_offset),
 
     PARAM_DEF_FLOAT("triad", "ref_acc", 3, &params.triad_ref_acc),
-    PARAM_DEF_FLOAT("triad", "ref_mag", 3, &params.triad_ref_mag)
+    PARAM_DEF_FLOAT("triad", "ref_mag", 3, &params.triad_ref_mag),
+
+    PARAM_DEF_FLOAT("madgwick", "beta", 1, &params.madgwick_beta)
 };
 
 //-----------------------------------------------------------------
