@@ -30,11 +30,6 @@
 
 //-----------------------------------------------------------------
 
-#define GUI_TASK_STACK_SIZE     300
-#define GUI_TASK_PRIORITY       2
-
-//-----------------------------------------------------------------
-
 static xSemaphoreHandle mutex;
 static xQueueHandle button_queue;
 
@@ -56,16 +51,16 @@ result_t gui_init(void)
     mutex = xSemaphoreCreateMutex();
     button_queue = xQueueCreate(10, sizeof(uint8_t));
 
-    if (xTaskCreate(led_task, (signed portCHAR*)"LED",
+    if (xTaskCreate(led_task, TASK_NAME("LED"),
             configMINIMAL_STACK_SIZE, NULL, 2, NULL) != pdPASS)
         return RES_ERR_FATAL;
 
-    if (xTaskCreate(button_task, (signed portCHAR*)"BTN",
+    if (xTaskCreate(button_task, TASK_NAME("BTN"),
             configMINIMAL_STACK_SIZE, NULL, 2, NULL) != pdPASS)
         return RES_ERR_FATAL;
 
-    if (xTaskCreate(gui_task, (signed portCHAR*)"GUI",
-            GUI_TASK_STACK_SIZE, NULL, GUI_TASK_PRIORITY, NULL) != pdPASS)
+    if (xTaskCreate(gui_task, TASK_NAME("GUI"),
+            GUI_TASK_STACK, NULL, GUI_TASK_PRIORITY, NULL) != pdPASS)
         return RES_ERR_FATAL;
 
     return RES_OK;

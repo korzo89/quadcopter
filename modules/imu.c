@@ -29,8 +29,6 @@
 
 //-----------------------------------------------------------------
 
-#define IMU_TASK_STACK      300
-
 #define PI                  3.141593f
 #define RAD_TO_DEG(x)       ((x) * 57.2957795f)
 #define DEG_TO_RAD(x)       ((x) * 0.01745329f)
@@ -148,8 +146,8 @@ result_t imu_init(void)
     daq_register_value("Pressure", "Pa", &sensors.pressure, DAQ_TYPE_INT32);
     daq_register_value("Temperature", "10oC", &sensors.temperature, DAQ_TYPE_INT16);
 
-    if (xTaskCreate(imu_task, (signed portCHAR*)"IMU",
-            IMU_TASK_STACK, NULL, 2, NULL) != pdPASS)
+    if (xTaskCreate(imu_task, TASK_NAME("IMU"),
+            IMU_TASK_STACK, NULL, IMU_TASK_PRIORITY, NULL) != pdPASS)
         return RES_ERR_FATAL;
 
     return RES_OK;

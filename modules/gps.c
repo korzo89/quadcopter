@@ -63,8 +63,8 @@ void gps_init(void)
     IntPrioritySet(INT_UART2, configKERNEL_INTERRUPT_PRIORITY);
     IntEnable(INT_UART2);
 
-    xTaskCreate(gps_task, (signed portCHAR*)"GPS",
-                configMINIMAL_STACK_SIZE, NULL, 1, NULL);
+    xTaskCreate(gps_task, TASK_NAME("GPS"),
+            GPS_TASK_STACK, NULL, GPS_TASK_PRIORITY, NULL);
 }
 
 //-----------------------------------------------------------------

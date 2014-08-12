@@ -34,8 +34,6 @@
 
 #define RCP_DISCONNECT_TIME     1000
 
-#define RCP_TASK_STACK          200
-
 //-----------------------------------------------------------------
 
 static const unsigned char ADDR_RX[] = RCP_LOCAL_ADDR;
@@ -145,8 +143,8 @@ void rcp_init(void)
     nrf_power_up();
     nrf_clear_flush();
 
-    xTaskCreate(rcp_task, (signed portCHAR*)"RCP",
-                RCP_TASK_STACK, NULL, 1, NULL);
+    xTaskCreate(rcp_task, TASK_NAME("RCP"),
+                RCP_TASK_STACK, NULL, RCP_TASK_PRIORITY, NULL);
 }
 
 //-----------------------------------------------------------------

@@ -39,10 +39,6 @@
 
 //-----------------------------------------------------------------
 
-#define SYSTEM_INIT_TASK_STACK  256
-
-//-----------------------------------------------------------------
-
 static void system_hw_init(void)
 {
     SysCtlClockSet(SYSCTL_SYSDIV_2_5 | SYSCTL_USE_PLL |
@@ -137,8 +133,8 @@ result_t system_init(void)
 {
     system_hw_init();
 
-    if (xTaskCreate(system_init_task, (signed portCHAR*)"INIT",
-            SYSTEM_INIT_TASK_STACK, NULL, 1, NULL) != pdPASS)
+    if (xTaskCreate(system_init_task, TASK_NAME("INIT"),
+            SYSTEM_INIT_TASK_STACK, NULL, SYSTEM_INIT_TASK_PRIORITY, NULL) != pdPASS)
         return RES_ERR_FATAL;
 
     vTaskStartScheduler();

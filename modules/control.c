@@ -23,8 +23,6 @@
 
 //-----------------------------------------------------------------
 
-#define CONTROL_TASK_STACK          200
-
 #define CONTROL_THROTTLE_DEAD_ZONE  100.0f
 #define CONTROL_PITCH_DEAD_ZONE     100.0f
 #define CONTROL_ROLL_DEAD_ZONE      100.0f
@@ -252,8 +250,8 @@ result_t control_init(void)
     daq_register_value("Roll rate setpoint", "deg/s", &pid_roll_rate.setpoint, DAQ_TYPE_FLOAT);
     daq_register_value("Yaw rate setpoint", "deg/s", &pid_yaw_rate.setpoint, DAQ_TYPE_FLOAT);
 
-    if (xTaskCreate(control_task, (signed portCHAR*)"CTRL",
-            CONTROL_TASK_STACK, NULL, 2, NULL) != pdPASS)
+    if (xTaskCreate(control_task, TASK_NAME("CTRL"),
+            CONTROL_TASK_STACK, NULL, CONTROL_TASK_PRIORITY, NULL) != pdPASS)
         return RES_ERR_FATAL;
 
 //    watchdog_enable();
