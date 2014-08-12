@@ -22,22 +22,22 @@
 
 typedef enum
 {
-    RCP_CMD_OK          = 0x00,
-    RCP_CMD_ERROR       = 0x01,
-    RCP_CMD_CONTROL     = 0x02,
-    RCP_CMD_RAW_IMU		= 0x03,
-    RCP_CMD_ANGLES      = 0x04,
-    RCP_CMD_PID         = 0x05,
+    RCP_CMD_OK = 0,
+    RCP_CMD_ERROR,
+    RCP_CMD_CONTROL,
+    RCP_CMD_RAW_IMU,
+    RCP_CMD_ANGLES,
+    RCP_CMD_PID,
 
-    RCP_CMD_PARAM_LIST  = 0x06,
-    RCP_CMD_PARAM_INFO  = 0x07,
-    RCP_CMD_PARAM_GET   = 0x08,
-    RCP_CMD_PARAM_SET   = 0x09,
-    RCP_CMD_PARAM_SAVE  = 0x0A,
+    RCP_CMD_PARAM_LIST,
+    RCP_CMD_PARAM_INFO,
+    RCP_CMD_PARAM_GET,
+    RCP_CMD_PARAM_SET,
+    RCP_CMD_PARAM_SAVE,
 
-    RCP_CMD_DAQ_LIST    = 0x0B,
-    RCP_CMD_DAQ_INFO    = 0x0C,
-    RCP_CMD_DAQ_GET     = 0x0D,
+    RCP_CMD_DAQ_LIST,
+    RCP_CMD_DAQ_INFO,
+    RCP_CMD_DAQ_GET,
 
     RCP_CMD_NUM
 } rcp_command_t;
