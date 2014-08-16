@@ -211,7 +211,7 @@ bool gps_parse_nmea_char(char c)
 
 //-----------------------------------------------------------------
 
-bool gps_get_message(gps_message_t *msg)
+bool gps_get_message(struct gps_msg *msg)
 {
     if (!has_message)
         return false;

@@ -34,27 +34,14 @@
 
 static bool armed;
 static bool connected;
-static control_t control;
+static struct cmd_control control;
 
-//-----------------------------------------------------------------
-
-typedef struct PACK_STRUCT
-{
-    uint8_t type;
-    float kp;
-    float ki;
-    float kd;
-    float kt;
-} cmd_pid_data_t;
-
-//-----------------------------------------------------------------
-
-pid_t pid_pitch;
-pid_t pid_roll;
-pid_t pid_yaw;
-pid_t pid_pitch_rate;
-pid_t pid_roll_rate;
-pid_t pid_yaw_rate;
+static pid_t pid_pitch;
+static pid_t pid_roll;
+static pid_t pid_yaw;
+static pid_t pid_pitch_rate;
+static pid_t pid_roll_rate;
+static pid_t pid_yaw_rate;
 
 static pid_t *pid_ptr[] = {
     [PID_PITCH]         = &pid_pitch,
@@ -67,9 +54,9 @@ static pid_t *pid_ptr[] = {
 
 //-----------------------------------------------------------------
 
-static void rcp_cb_angles(rcp_message_t *msg)
+static void rcp_cb_angles(struct rcp_msg *msg)
 {
-    memcpy((uint8_t*)&control, msg->packet.data, sizeof(control_t));
+    memcpy(&control, &msg->control, sizeof(control));
 
     if (armed && !control.flags.sw1)
     {
@@ -87,16 +74,14 @@ static void rcp_cb_angles(rcp_message_t *msg)
 
 //-----------------------------------------------------------------
 
-static void rcp_cb_pid_set(rcp_message_t *msg)
+static void rcp_cb_pid_set(struct rcp_msg *msg)
 {
-    cmd_pid_data_t *data = (cmd_pid_data_t*)msg->packet.data;
+    pid_t *pid = pid_ptr[msg->pid.type];
 
-    pid_t *pid = pid_ptr[data->type];
-
-    pid->params.kp = data->kp;
-    pid->params.kd = data->kd;
-    pid->params.ki = data->ki;
-    pid->params.kt = data->kt;
+    pid->params.kp = msg->pid.kp;
+    pid->params.kd = msg->pid.kd;
+    pid->params.ki = msg->pid.ki;
+    pid->params.kt = msg->pid.kt;
 
     pid_reset(pid);
 
@@ -105,24 +90,20 @@ static void rcp_cb_pid_set(rcp_message_t *msg)
 
 //-----------------------------------------------------------------
 
-static void rcp_cb_pid_get(rcp_message_t *msg)
+static void rcp_cb_pid_get(struct rcp_msg *msg)
 {
-    rcp_message_t resp;
-    resp.packet.cmd = RCP_CMD_PID;
-    resp.packet.query = RCP_CMD_OK;
+    struct rcp_msg resp;
+    resp.cmd    = RCP_CMD_PID;
+    resp.query  = RCP_CMD_OK;
 
-    uint8_t type = ((cmd_pid_data_t*)msg->packet.data)->type;
-
+    uint8_t type = msg->pid.type;
     pid_t *pid = pid_ptr[(int)type];
 
-    cmd_pid_data_t data;
-    data.type = type;
-    data.kp = pid->params.kp;
-    data.ki = pid->params.ki;
-    data.kd = pid->params.kd;
-    data.kt = pid->params.kt;
-
-    memcpy(resp.packet.data, (uint8_t*)&data, sizeof(data));
+    resp.pid.type = type;
+    resp.pid.kp = pid->params.kp;
+    resp.pid.ki = pid->params.ki;
+    resp.pid.kd = pid->params.kd;
+    resp.pid.kt = pid->params.kt;
 
     rcp_send_message(&resp);
 }
@@ -261,15 +242,15 @@ result_t control_init(void)
 
 //-----------------------------------------------------------------
 
-result_t control_get_current(control_t *out)
+result_t control_get_current(struct cmd_control *out)
 {
-    memcpy(out, &control, sizeof(control_t));
+    memcpy(out, &control, sizeof(control));
     return RES_OK;
 }
 
 //-----------------------------------------------------------------
 
-pid_t* control_get_pid(pid_type_t type)
+pid_t* control_get_pid(enum pid_type type)
 {
     if ((int)type >= (int)PID_TYPE_NUM)
         return NULL;

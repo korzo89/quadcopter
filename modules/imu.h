@@ -15,31 +15,31 @@
 
 //-----------------------------------------------------------------
 
-typedef struct PACK_STRUCT
+struct sensor_vec3
 {
     int16_t x, y, z;
-} sensor_vec3_t;
+};
 
-typedef struct PACK_STRUCT
+struct imu_sensor_data
 {
-    sensor_vec3_t acc;     // raw accelerometer values
-    sensor_vec3_t gyro;    // raw gyroscope values
-    sensor_vec3_t mag;     // raw magnetometer values
-    int32_t pressure;      // raw pressure
-    int16_t temperature;   // raw temperature
-} imu_sensor_data_t;
+    struct sensor_vec3 acc;
+    struct sensor_vec3 gyro;
+    struct sensor_vec3 mag;
+    int32_t pressure;
+    int16_t temperature;
+};
 
-typedef struct
+struct imu_real
 {
     vec3_t acc;
     vec3_t mag;
     vec3_t gyro;
-} imu_real_t;
+};
 
-typedef struct
+struct quat
 {
     float q0, q1, q2, q3;
-} quat_t;
+};
 
 //-----------------------------------------------------------------
 
@@ -47,13 +47,13 @@ result_t imu_init(void);
 
 void imu_update(void);
 
-result_t imu_get_sensors(imu_sensor_data_t *out);
-result_t imu_sensors_transform(imu_sensor_data_t *sens, imu_real_t *real);
+result_t imu_get_sensors(struct imu_sensor_data *out);
+result_t imu_sensors_transform(struct imu_sensor_data *sens, struct imu_real *real);
 
 result_t imu_get_angles(vec3_t *out);
 result_t imu_get_rates(vec3_t *out);
 
-result_t imu_estimate_triad(vec3_t acc, vec3_t mag, quat_t *quat, vec3_t *angles);
+result_t imu_estimate_triad(vec3_t acc, vec3_t mag, struct quat *quat, vec3_t *angles);
 result_t imu_estimate_madgwick(vec3_t *acc, vec3_t *mag, vec3_t *gyro);
 result_t imu_estimate_madgwick_no_mag(vec3_t *acc, vec3_t *gyro);
 

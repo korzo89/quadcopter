@@ -12,24 +12,11 @@
 
 #include <defs.h>
 #include <utils/pid.h>
+#include <modules/rcp_cmd.h>
 
 //-----------------------------------------------------------------
 
-typedef struct PACK_STRUCT
-{
-    uint16_t throttle;
-    uint16_t pitch;
-    uint16_t roll;
-    uint16_t yaw;
-    struct
-    {
-        uint8_t sw1 : 1;
-        uint8_t sw2 : 2;
-        uint8_t sw3 : 3;
-    } flags;
-} control_t;
-
-typedef enum
+enum pid_type
 {
     PID_PITCH = 0,
     PID_ROLL,
@@ -39,15 +26,15 @@ typedef enum
     PID_YAW_RATE,
 
     PID_TYPE_NUM
-} pid_type_t;
+};
 
 //-----------------------------------------------------------------
 
 result_t control_init(void);
 
-result_t control_get_current(control_t *out);
+result_t control_get_current(struct cmd_control *out);
 
-pid_t* control_get_pid(pid_type_t type);
+pid_t* control_get_pid(enum pid_type type);
 
 //-----------------------------------------------------------------
 

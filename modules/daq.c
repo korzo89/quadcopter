@@ -20,8 +20,6 @@
 
 #define DAQ_VALUES_MAX      50
 
-#define DAQ_GET_VALS_MAX    6
-
 #define DAQ_CONVERT(p, t)   ( (float)(*((t*)p)) )
 
 //-----------------------------------------------------------------
@@ -33,9 +31,9 @@ static xSemaphoreHandle mutex;
 
 //-----------------------------------------------------------------
 
-static void rcp_daq_list_cb(rcp_message_t *msg);
-static void rcp_daq_info_cb(rcp_message_t *msg);
-static void rcp_daq_get_cb(rcp_message_t *msg);
+static void rcp_daq_list_cb(struct rcp_msg *msg);
+static void rcp_daq_info_cb(struct rcp_msg *msg);
+static void rcp_daq_get_cb(struct rcp_msg *msg);
 
 //-----------------------------------------------------------------
 
@@ -96,54 +94,49 @@ result_t daq_get_value(uint8_t id, float *out)
         return RES_ERR_FATAL;
 
     float tf;
-    int ti;
-    uint8_t tu8;
-    uint16_t tu16;
-    uint32_t tu32;
-    int8_t ti8;
-    int16_t ti16;
-    int32_t ti32;
+    union
+    {
+        int      i;
+        uint8_t  u8;
+        uint16_t u16;
+        uint32_t u32;
+        int8_t   i8;
+        int16_t  i16;
+        int32_t  i32;
+    } temp;
 
     switch (val->type)
     {
     case DAQ_TYPE_FLOAT:
         tf = *(float*)val->ptr;
-//        temp = DAQ_CONVERT(val->ptr, float);
         break;
     case DAQ_TYPE_INT:
-        ti = *(int*)val->ptr;
-        tf = (float)ti;
-//        temp = DAQ_CONVERT(val->ptr, int);
+        temp.i = *(int*)val->ptr;
+        tf = (float)temp.i;
         break;
     case DAQ_TYPE_UINT8:
-        tu8 = *(uint8_t*)val->ptr;
-        tf = (float)tu8;
-//        temp = DAQ_CONVERT(val->ptr, uint8_t);
+        temp.u8 = *(uint8_t*)val->ptr;
+        tf = (float)temp.u8;
         break;
     case DAQ_TYPE_UINT16:
-        tu16 = *(uint16_t*)val->ptr;
-        tf = (float)tu16;
-//        temp = DAQ_CONVERT(val->ptr, uint16_t);
+        temp.u16 = *(uint16_t*)val->ptr;
+        tf = (float)temp.u16;
         break;
     case DAQ_TYPE_UINT32:
-        tu32 = *(uint32_t*)val->ptr;
-        tf = (float)tu32;
-//        temp = DAQ_CONVERT(val->ptr, uint32_t);
+        temp.u32 = *(uint32_t*)val->ptr;
+        tf = (float)temp.u32;
         break;
     case DAQ_TYPE_INT8:
-        ti8 = *(int8_t*)val->ptr;
-        tf = (float)ti8;
-//        temp = DAQ_CONVERT(val->ptr, int8_t);
+        temp.i8 = *(int8_t*)val->ptr;
+        tf = (float)temp.i8;
         break;
     case DAQ_TYPE_INT16:
-        ti16 = *(int16_t*)val->ptr;
-        tf = (float)ti16;
-//        temp = DAQ_CONVERT(val->ptr, int16_t);
+        temp.i16 = *(int16_t*)val->ptr;
+        tf = (float)temp.i16;
         break;
     case DAQ_TYPE_INT32:
-        ti32 = *(int32_t*)val->ptr;
-        tf = (float)ti32;
-//        temp = DAQ_CONVERT(val->ptr, int32_t);
+        temp.i32 = *(int32_t*)val->ptr;
+        tf = (float)temp.i32;
         break;
     }
     *out = tf;
@@ -153,47 +146,37 @@ result_t daq_get_value(uint8_t id, float *out)
 
 //-----------------------------------------------------------------
 
-static void rcp_daq_list_cb(rcp_message_t *msg)
+static void rcp_daq_list_cb(struct rcp_msg *msg)
 {
-    rcp_message_t resp;
-    resp.packet.cmd = RCP_CMD_DAQ_LIST;
-    resp.packet.query = RCP_CMD_OK;
+    (void)msg;
 
-    uint8_t *count = (uint8_t*)resp.packet.data;
-    *count = values_num;
+    struct rcp_msg resp;
+    resp.cmd    = RCP_CMD_DAQ_LIST;
+    resp.query  = RCP_CMD_OK;
+
+    resp.daq_list.count = values_num;
 
     rcp_send_message(&resp);
 }
 
 //-----------------------------------------------------------------
 
-typedef struct PACK_STRUCT
+static void rcp_daq_info_cb(struct rcp_msg *msg)
 {
-    uint8_t id;
-    char    name[DAQ_NAME_MAX_LEN];
-    char    unit[DAQ_UNIT_MAX_LEN];
-} daq_info_data_t;
+    struct rcp_msg resp;
+    resp.cmd = RCP_CMD_DAQ_INFO;
 
-static void rcp_daq_info_cb(rcp_message_t *msg)
-{
-    rcp_message_t resp;
-    resp.packet.cmd = RCP_CMD_DAQ_INFO;
-
-    uint8_t id = *((uint8_t*)msg->packet.data);
-
-    const struct daq_value *val = daq_get_info(id);
+    const struct daq_value *val = daq_get_info(msg->daq_info.id);
     if (!val)
     {
-        resp.packet.query = RCP_CMD_ERROR;
+        resp.query = RCP_CMD_ERROR;
     }
     else
     {
-        resp.packet.query = RCP_CMD_OK;
-
-        daq_info_data_t *data = (daq_info_data_t*)resp.packet.data;
-        strncpy(data->name, val->name, DAQ_NAME_MAX_LEN);
-        strncpy(data->unit, val->unit, DAQ_UNIT_MAX_LEN);
-        data->id = id;
+        strncpy(resp.daq_info.name, val->name, DAQ_NAME_MAX_LEN);
+        strncpy(resp.daq_info.unit, val->unit, DAQ_UNIT_MAX_LEN);
+        resp.daq_info.id = msg->daq_info.id;
+        resp.query = RCP_CMD_OK;
     }
 
     rcp_send_message(&resp);
@@ -201,35 +184,26 @@ static void rcp_daq_info_cb(rcp_message_t *msg)
 
 //-----------------------------------------------------------------
 
-typedef struct PACK_STRUCT
+static void rcp_daq_get_cb(struct rcp_msg *msg)
 {
-    uint32_t    time;
-    uint8_t     num;
-    float       values[DAQ_GET_VALS_MAX];
-} daq_get_data_t;
+    struct rcp_msg resp;
+    resp.cmd    = RCP_CMD_DAQ_GET;
+    resp.query  = RCP_CMD_OK;
 
-static void rcp_daq_get_cb(rcp_message_t *msg)
-{
-    rcp_message_t resp;
-    resp.packet.cmd = RCP_CMD_DAQ_GET;
-    resp.packet.query = RCP_CMD_OK;
-
-    uint8_t *args = (uint8_t*)msg->packet.data;
-    uint8_t num = *args;
+    uint8_t num = msg->daq_get_req.num;
     if (num > DAQ_GET_VALS_MAX)
         num = DAQ_GET_VALS_MAX;
-    args++;
 
-    daq_get_data_t *data = (daq_get_data_t*)resp.packet.data;
-    data->time = (uint32_t)xTaskGetTickCount();
-    data->num = num;
+    resp.daq_get.time = (uint32_t)xTaskGetTickCount();
+    resp.daq_get.num = num;
 
     uint8_t i;
     for (i = 0; i < num; i++)
     {
-        if (daq_get_value(args[i], &data->values[i]) != RES_OK)
+        result_t res = daq_get_value(msg->daq_get_req.ids[i], &resp.daq_get.values[i]);
+        if (res != RES_OK)
         {
-            resp.packet.query = RCP_CMD_ERROR;
+            resp.query = RCP_CMD_ERROR;
             break;
         }
     }

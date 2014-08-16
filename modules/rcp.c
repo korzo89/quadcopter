@@ -47,7 +47,7 @@ static xQueueHandle tx_queue;
 static rcp_callback_t cmd_callbacks[RCP_CMD_NUM]    = { 0 };
 static rcp_callback_t query_callbacks[RCP_CMD_NUM]  = { 0 };
 
-static portTickType last_msg_time = 0;
+static uint32_t last_msg_time = 0;
 
 //-----------------------------------------------------------------
 
@@ -63,7 +63,7 @@ static void rcp_radio_irq_callback(void)
 
 static void rcp_task(void *args)
 {
-    rcp_message_t msg;
+    struct rcp_msg msg;
     portBASE_TYPE res;
 
     while (1)
@@ -91,7 +91,7 @@ static void rcp_task(void *args)
         {
             led_turn_on(LED_RED);
 
-            nrf_read_rx_payload(msg.raw, RCP_PAYLOAD_SIZE);
+            nrf_read_rx_payload((uint8_t*)&msg, RCP_PAYLOAD_SIZE);
             rcp_process_message(&msg);
 
             led_turn_off(LED_RED);
@@ -107,7 +107,7 @@ static void rcp_task(void *args)
             led_turn_on(LED_YELLOW);
 
             xSemaphoreTakeRecursive(rcp_ready, 0);
-            nrf_write_tx_payload(msg.raw, RCP_PAYLOAD_SIZE, true);
+            nrf_write_tx_payload((uint8_t*)&msg, RCP_PAYLOAD_SIZE, true);
 
             // wait for interrupt
             res = xSemaphoreTakeRecursive(rcp_ready, MSEC_TO_TICKS(RCP_TX_MAX_DELAY));
@@ -127,7 +127,7 @@ static void rcp_task(void *args)
 void rcp_init(void)
 {
     vSemaphoreCreateBinary(rcp_ready);
-    tx_queue = xQueueCreate(RCP_TX_QUEUE_SIZE, sizeof(rcp_message_t));
+    tx_queue = xQueueCreate(RCP_TX_QUEUE_SIZE, sizeof(struct rcp_msg));
 
     // nRF24 radio init
     nrf_init();
@@ -149,14 +149,14 @@ void rcp_init(void)
 
 //-----------------------------------------------------------------
 
-bool rcp_send_message(rcp_message_t *msg)
+bool rcp_send_message(struct rcp_msg *msg)
 {
     return xQueueSend(tx_queue, msg, portMAX_DELAY) == pdTRUE;
 }
 
 //-----------------------------------------------------------------
 
-void rcp_register_callback(rcp_command_t cmd, rcp_callback_t callback, bool query)
+void rcp_register_callback(enum rcp_cmd cmd, rcp_callback_t callback, bool query)
 {
     if (query)
         query_callbacks[(int)cmd] = callback;
@@ -184,18 +184,18 @@ void rcp_enable_tx(void)
 
 //-----------------------------------------------------------------
 
-void rcp_process_message(rcp_message_t *msg)
+void rcp_process_message(struct rcp_msg *msg)
 {
-    if (!msg || !IS_VALID_CMD(msg->packet.cmd))
+    if (!msg || !IS_VALID_CMD(msg->cmd))
         return;
 
-    rcp_callback_t callback = cmd_callbacks[(int)msg->packet.cmd];
+    rcp_callback_t callback = cmd_callbacks[(int)msg->cmd];
     if (callback)
         callback(msg);
 
-    if (IS_VALID_CMD(msg->packet.query))
+    if (IS_VALID_CMD(msg->query))
     {
-        callback = query_callbacks[(int)msg->packet.query];
+        callback = query_callbacks[(int)msg->query];
         if (callback)
             callback(msg);
     }

@@ -156,9 +156,9 @@ static void gui_task(void *params)
     float dist;
     float battery;
 
-    static gps_message_t msg;
-    static imu_sensor_data_t sensors;
-    static imu_real_t real_sens;
+    static struct gps_msg msg;
+    static struct imu_sensor_data sensors;
+    static struct imu_real real_sens;
     static vec3_t triad, angles;
 
     const int NUM_SCREENS = 8;
@@ -191,13 +191,13 @@ static void gui_task(void *params)
         usprintf(buf, "    %d/%d       ", screen + 1, NUM_SCREENS);
         oled_disp_str(buf);
 
-        control_t control;
-
-        pid_t *pid;
-
         switch (screen)
         {
         case 0:
+        {
+            struct cmd_control control;
+            pid_t *pid;
+
             control_get_current(&control);
 
             gui_disp_control("1 Thr", control.throttle, 2);
@@ -214,6 +214,7 @@ static void gui_task(void *params)
             oled_disp_str_at(buf, 7, 0);
 
             break;
+        }
 
         case 1:
             xSemaphoreTake(mutex, portMAX_DELAY);

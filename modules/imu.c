@@ -37,16 +37,7 @@
 
 //-----------------------------------------------------------------
 
-typedef struct PACK_STRUCT
-{
-    vec3_t angles;
-//    quat_t quat;
-    vec3_t rates;
-} cmd_angles_data_t;
-
-//-----------------------------------------------------------------
-
-static imu_sensor_data_t sensors;
+static struct imu_sensor_data sensors;
 static vec3_t angles;
 static vec3_t rates;
 
@@ -54,40 +45,59 @@ static vec3_t rates;
 static float q0, q1, q2, q3;
 static bool init_quat;
 
-volatile float pitch, roll, yaw;
-
 //-----------------------------------------------------------------
 
-static void imu_poll_sensors(imu_sensor_data_t *data);
+static void imu_poll_sensors(struct imu_sensor_data *data);
 
 static result_t imu_quaternion_to_euler(vec3_t *out);
 
 //-----------------------------------------------------------------
 
-static void imu_rcp_callback_raw(rcp_message_t *msg)
+static void imu_rcp_callback_raw(struct rcp_msg *msg)
 {
-	rcp_message_t resp;
-	resp.packet.cmd = RCP_CMD_RAW_IMU;
-	resp.packet.query = RCP_CMD_OK;
+    struct rcp_msg resp;
+	resp.cmd    = RCP_CMD_RAW_IMU;
+	resp.query  = RCP_CMD_OK;
 
-	memcpy(resp.packet.data, (uint8_t*)&sensors, sizeof(sensors));
+	resp.raw_imu.acc = (struct sensor_vec3_pack){
+	    .x = sensors.acc.x,
+        .y = sensors.acc.y,
+        .z = sensors.acc.z
+	};
+	resp.raw_imu.gyro = (struct sensor_vec3_pack){
+        .x = sensors.gyro.x,
+        .y = sensors.gyro.y,
+        .z = sensors.gyro.z
+    };
+	resp.raw_imu.mag = (struct sensor_vec3_pack){
+        .x = sensors.mag.x,
+        .y = sensors.mag.y,
+        .z = sensors.mag.z
+    };
+	resp.raw_imu.pressure = sensors.pressure;
+	resp.raw_imu.temperature = sensors.temperature;
 
 	rcp_send_message(&resp);
 }
 
 //-----------------------------------------------------------------
 
-static void imu_rcp_callback_angles(rcp_message_t *msg)
+static void imu_rcp_callback_angles(struct rcp_msg *msg)
 {
-    rcp_message_t resp;
-    resp.packet.cmd = RCP_CMD_ANGLES;
-    resp.packet.query = RCP_CMD_OK;
+    struct rcp_msg resp;
+    resp.cmd    = RCP_CMD_ANGLES;
+    resp.query  = RCP_CMD_OK;
 
-    cmd_angles_data_t data;
-    data.angles = angles;
-    data.rates = rates;
-
-    memcpy(resp.packet.data, &data, sizeof(data));
+    resp.angles.angles = (struct vec3_pack){
+        .x = angles.x,
+        .y = angles.y,
+        .z = angles.z
+    };
+    resp.angles.rates = (struct vec3_pack){
+        .x = rates.x,
+        .y = rates.y,
+        .z = rates.z
+    };
 
     rcp_send_message(&resp);
 }
@@ -155,7 +165,7 @@ result_t imu_init(void)
 
 //-----------------------------------------------------------------
 
-static void imu_poll_sensors(imu_sensor_data_t *data)
+static void imu_poll_sensors(struct imu_sensor_data *data)
 {
     adxl345_get_accel(&data->acc.x, &data->acc.y, &data->acc.z);
     l3g4200d_read_gyro(&data->gyro.x, &data->gyro.y, &data->gyro.z);
@@ -166,12 +176,12 @@ static void imu_poll_sensors(imu_sensor_data_t *data)
 
 //-----------------------------------------------------------------
 
-result_t imu_get_sensors(imu_sensor_data_t *out)
+result_t imu_get_sensors(struct imu_sensor_data *out)
 {
     if (!out)
         return RES_ERR_BAD_PARAM;
 
-    memcpy(out, &sensors, sizeof(imu_sensor_data_t));
+    memcpy(out, &sensors, sizeof(sensors));
     return RES_OK;
 }
 
@@ -179,7 +189,7 @@ result_t imu_get_sensors(imu_sensor_data_t *out)
 
 void imu_update(void)
 {
-    static imu_real_t real_sens;
+    static struct imu_real real_sens;
 
     imu_poll_sensors(&sensors);
     imu_sensors_transform(&sensors, &real_sens);
@@ -188,7 +198,7 @@ void imu_update(void)
     {
         init_quat = false;
 
-        quat_t est;
+        struct quat est;
         imu_estimate_triad(real_sens.acc, real_sens.mag, &est, NULL);
         q0 = est.q0;
         q1 = est.q1;
@@ -439,7 +449,7 @@ static result_t imu_quaternion_to_euler(vec3_t *out)
 
 //-----------------------------------------------------------------
 
-result_t imu_sensors_transform(imu_sensor_data_t *sens, imu_real_t *real)
+result_t imu_sensors_transform(struct imu_sensor_data *sens, struct imu_real *real)
 {
     if (!sens || !real)
         return RES_ERR_BAD_PARAM;
@@ -498,7 +508,7 @@ result_t imu_get_rates(vec3_t *out)
 
 //-----------------------------------------------------------------
 
-result_t imu_estimate_triad(vec3_t acc, vec3_t mag, quat_t *quat, vec3_t *angles)
+result_t imu_estimate_triad(vec3_t acc, vec3_t mag, struct quat *quat, vec3_t *angles)
 {
     vec3_t ref_acc;
     vec3_t ref_mag;

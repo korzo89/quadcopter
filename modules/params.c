@@ -18,9 +18,6 @@
 
 //-----------------------------------------------------------------
 
-#define PARAM_MAX_GROUP_LEN     15
-#define PARAM_MAX_NAME_LEN      11
-
 #define PARAM_EEPROM_ADDR       0x0000
 
 #define PARAM_DEF(_group, _name, _type, _size, _count, _ptr)    \
@@ -97,11 +94,11 @@ static void params_unlock(void);
 
 static const struct param_info* params_get_info(uint8_t id);
 
-static void rcp_cb_list(rcp_message_t *msg);
-static void rcp_cb_info(rcp_message_t *msg);
-static void rcp_cb_get(rcp_message_t *msg);
-static void rcp_cb_set(rcp_message_t *msg);
-static void rcp_cb_save(rcp_message_t *msg);
+static void rcp_cb_list(struct rcp_msg *msg);
+static void rcp_cb_info(struct rcp_msg *msg);
+static void rcp_cb_get(struct rcp_msg *msg);
+static void rcp_cb_set(struct rcp_msg *msg);
+static void rcp_cb_save(struct rcp_msg *msg);
 
 static result_t params_get(void *out, void *src, size_t size);
 static result_t params_get_pid(struct pid_params *out, struct pid_params *src);
@@ -336,53 +333,41 @@ static uint16_t params_count_bytes(void)
 
 //-----------------------------------------------------------------
 
-static void rcp_cb_list(rcp_message_t *msg)
+static void rcp_cb_list(struct rcp_msg *msg)
 {
-    rcp_message_t resp;
-    resp.packet.cmd = RCP_CMD_PARAM_LIST;
-    resp.packet.query = RCP_CMD_OK;
+    struct rcp_msg resp;
+    resp.cmd    = RCP_CMD_PARAM_LIST;
+    resp.query  = RCP_CMD_OK;
 
-    uint8_t *count = (uint8_t*)resp.packet.data;
-    *count = ARRAY_COUNT(infos);
+    resp.param_list.count = ARRAY_COUNT(infos);
 
     rcp_send_message(&resp);
 }
 
 //-----------------------------------------------------------------
 
-typedef struct PACK_STRUCT
+static void rcp_cb_info(struct rcp_msg *msg)
 {
-    uint8_t id;
-    char    group[PARAM_MAX_GROUP_LEN];
-    char    name[PARAM_MAX_NAME_LEN];
-    uint8_t type;
-    uint8_t size;
-    uint8_t count;
-} param_info_data_t;
+    struct rcp_msg resp;
+    resp.cmd = RCP_CMD_PARAM_INFO;
 
-static void rcp_cb_info(rcp_message_t *msg)
-{
-    rcp_message_t resp;
-    resp.packet.cmd = RCP_CMD_PARAM_INFO;
-
-    uint8_t id = *((uint8_t*)msg->packet.data);
+    uint8_t id = msg->param_info.id;
 
     const struct param_info *param = params_get_info(id);
     if (!param)
     {
-        resp.packet.query = RCP_CMD_ERROR;
+        resp.query = RCP_CMD_ERROR;
     }
     else
     {
-        resp.packet.query = RCP_CMD_OK;
+        resp.query = RCP_CMD_OK;
 
-        param_info_data_t *data = (param_info_data_t*)resp.packet.data;
-        strncpy(data->group, param->group, PARAM_MAX_GROUP_LEN);
-        strncpy(data->name, param->name, PARAM_MAX_NAME_LEN);
-        data->id    = id;
-        data->type  = (uint8_t)param->type;
-        data->size  = param->size;
-        data->count = param->count;
+        strncpy(resp.param_info.group, param->group, PARAM_MAX_GROUP_LEN);
+        strncpy(resp.param_info.name, param->name, PARAM_MAX_NAME_LEN);
+        resp.param_info.id    = id;
+        resp.param_info.type  = (uint8_t)param->type;
+        resp.param_info.size  = param->size;
+        resp.param_info.count = param->count;
     }
 
     rcp_send_message(&resp);
@@ -390,46 +375,36 @@ static void rcp_cb_info(rcp_message_t *msg)
 
 //-----------------------------------------------------------------
 
-typedef struct PACK_STRUCT
+static void rcp_cb_get(struct rcp_msg *msg)
 {
-    uint8_t id;
-    uint8_t offset;
-    uint8_t count;
-    uint8_t data[RCP_PAYLOAD_SIZE - 5];
-} param_data_t;
+    struct cmd_param_data *args = &msg->param_data;
 
-static void rcp_cb_get(rcp_message_t *msg)
-{
-    rcp_message_t resp;
-    resp.packet.cmd = RCP_CMD_PARAM_GET;
-
-    param_data_t *args = (param_data_t*)msg->packet.data;
+    struct rcp_msg resp;
+    resp.cmd = RCP_CMD_PARAM_GET;
 
     const struct param_info *param = params_get_info(args->id);
     if (!param || args->offset >= param->count)
     {
-        resp.packet.query = RCP_CMD_ERROR;
+        resp.query = RCP_CMD_ERROR;
     }
     else
     {
-        resp.packet.query = RCP_CMD_OK;
+        resp.query = RCP_CMD_OK;
 
-        param_data_t *data = (param_data_t*)resp.packet.data;
-
-        uint8_t avail = ARRAY_COUNT(data->data) / param->size;
+        uint8_t avail = ARRAY_COUNT(resp.param_data.data) / param->size;
         uint8_t rem = param->count - args->offset;
         uint8_t num = min(avail, rem);
-        num = min(args->count, num);
+        num = min(msg->param_data.count, num);
         uint8_t off = args->offset * param->size;
 
-        memset(data, 0, sizeof(param_data_t));
+        memset(&resp.param_data, 0, sizeof(resp.param_data));
         params_lock();
-        memcpy(data->data, (uint8_t*)param->ptr + off, num * param->size);
+        memcpy(resp.param_data.data, (uint8_t*)param->ptr + off, num * param->size);
         params_unlock();
 
-        data->id     = args->id;
-        data->offset = args->offset;
-        data->count  = num;
+        resp.param_data.id     = args->id;
+        resp.param_data.offset = args->offset;
+        resp.param_data.count  = num;
     }
 
     rcp_send_message(&resp);
@@ -437,9 +412,9 @@ static void rcp_cb_get(rcp_message_t *msg)
 
 //-----------------------------------------------------------------
 
-static void rcp_cb_set(rcp_message_t *msg)
+static void rcp_cb_set(struct rcp_msg *msg)
 {
-    param_data_t *args = (param_data_t*)msg->packet.data;
+    struct cmd_param_data *args = &msg->param_data;
 
     const struct param_info *param = params_get_info(args->id);
     if (!param || args->offset >= param->count)
@@ -459,8 +434,9 @@ static void rcp_cb_set(rcp_message_t *msg)
 
 //-----------------------------------------------------------------
 
-static void rcp_cb_save(rcp_message_t *msg)
+static void rcp_cb_save(struct rcp_msg *msg)
 {
+    (void)msg;
     if (params_eeprom_save() == RES_OK)
         buzzer_seq_lib_play(BUZZER_SEQ_CONFIRM);
 }
