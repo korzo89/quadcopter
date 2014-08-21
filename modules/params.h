@@ -52,8 +52,8 @@ result_t params_get_pid_yaw_rate(struct pid_params *out);
 result_t params_get_mag_calib_scale(float *out);
 result_t params_get_mag_calib_offset(float *out);
 
-result_t params_get_triad_ref_acc(vec3_t *out);
-result_t params_get_triad_ref_mag(vec3_t *out);
+result_t params_get_triad_ref_acc(struct vec3 *out);
+result_t params_get_triad_ref_mag(struct vec3 *out);
 
 result_t params_get_madgwick_beta(float *out);
 

@@ -159,7 +159,7 @@ static void gui_task(void *params)
     static struct gps_msg msg;
     static struct imu_sensor_data sensors;
     static struct imu_real real_sens;
-    static vec3_t triad, angles;
+    static struct vec3 triad, angles;
 
     const int NUM_SCREENS = 8;
 
@@ -196,7 +196,7 @@ static void gui_task(void *params)
         case 0:
         {
             struct cmd_control control;
-            pid_t *pid;
+            struct pid *pid;
 
             control_get_current(&control);
 

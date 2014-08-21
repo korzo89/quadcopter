@@ -36,14 +36,14 @@ static bool armed;
 static bool connected;
 static struct cmd_control control;
 
-static pid_t pid_pitch;
-static pid_t pid_roll;
-static pid_t pid_yaw;
-static pid_t pid_pitch_rate;
-static pid_t pid_roll_rate;
-static pid_t pid_yaw_rate;
+static struct pid pid_pitch;
+static struct pid pid_roll;
+static struct pid pid_yaw;
+static struct pid pid_pitch_rate;
+static struct pid pid_roll_rate;
+static struct pid pid_yaw_rate;
 
-static pid_t *pid_ptr[] = {
+static struct pid *pid_ptr[] = {
     [PID_PITCH]         = &pid_pitch,
     [PID_ROLL]          = &pid_roll,
     [PID_YAW]           = &pid_yaw,
@@ -76,7 +76,7 @@ static void rcp_cb_angles(struct rcp_msg *msg)
 
 static void rcp_cb_pid_set(struct rcp_msg *msg)
 {
-    pid_t *pid = pid_ptr[msg->pid.type];
+    struct pid *pid = pid_ptr[msg->pid.type];
 
     pid->params.kp = msg->pid.kp;
     pid->params.kd = msg->pid.kd;
@@ -97,7 +97,7 @@ static void rcp_cb_pid_get(struct rcp_msg *msg)
     resp.query  = RCP_CMD_OK;
 
     uint8_t type = msg->pid.type;
-    pid_t *pid = pid_ptr[(int)type];
+    struct pid *pid = pid_ptr[(int)type];
 
     resp.pid.type = type;
     resp.pid.kp = pid->params.kp;
@@ -114,7 +114,7 @@ static void control_task(void *params)
 {
     portTickType last_wake = xTaskGetTickCount();
 
-    vec3_t angles, rates;
+    struct vec3 angles, rates;
 
     while (1)
     {
@@ -250,7 +250,7 @@ result_t control_get_current(struct cmd_control *out)
 
 //-----------------------------------------------------------------
 
-pid_t* control_get_pid(enum pid_type type)
+struct pid* control_get_pid(enum pid_type type)
 {
     if ((int)type >= (int)PID_TYPE_NUM)
         return NULL;

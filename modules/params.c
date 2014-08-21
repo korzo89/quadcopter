@@ -58,8 +58,8 @@ struct params_obj
     float   mag_calib_scale[9];
     float   mag_calib_offset[3];
 
-    vec3_t  triad_ref_acc;
-    vec3_t  triad_ref_mag;
+    struct vec3  triad_ref_acc;
+    struct vec3  triad_ref_mag;
 
     float   madgwick_beta;
 };
@@ -502,14 +502,14 @@ result_t params_get_mag_calib_offset(float *out)
     return params_get(out, params.mag_calib_offset, sizeof(params.mag_calib_offset));
 }
 
-result_t params_get_triad_ref_acc(vec3_t *out)
+result_t params_get_triad_ref_acc(struct vec3 *out)
 {
-    return params_get(out, &params.triad_ref_acc, sizeof(vec3_t));
+    return params_get(out, &params.triad_ref_acc, sizeof(struct vec3));
 }
 
-result_t params_get_triad_ref_mag(vec3_t *out)
+result_t params_get_triad_ref_mag(struct vec3 *out)
 {
-    return params_get(out, &params.triad_ref_mag, sizeof(vec3_t));
+    return params_get(out, &params.triad_ref_mag, sizeof(struct vec3));
 }
 
 result_t params_get_madgwick_beta(float *out)

@@ -34,7 +34,7 @@ result_t control_init(void);
 
 result_t control_get_current(struct cmd_control *out);
 
-pid_t* control_get_pid(enum pid_type type);
+struct pid* control_get_pid(enum pid_type type);
 
 //-----------------------------------------------------------------
 

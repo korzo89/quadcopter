@@ -31,9 +31,9 @@ struct imu_sensor_data
 
 struct imu_real
 {
-    vec3_t acc;
-    vec3_t mag;
-    vec3_t gyro;
+    struct vec3 acc;
+    struct vec3 mag;
+    struct vec3 gyro;
 };
 
 struct quat
@@ -50,12 +50,12 @@ void imu_update(void);
 result_t imu_get_sensors(struct imu_sensor_data *out);
 result_t imu_sensors_transform(struct imu_sensor_data *sens, struct imu_real *real);
 
-result_t imu_get_angles(vec3_t *out);
-result_t imu_get_rates(vec3_t *out);
+result_t imu_get_angles(struct vec3 *out);
+result_t imu_get_rates(struct vec3 *out);
 
-result_t imu_estimate_triad(vec3_t acc, vec3_t mag, struct quat *quat, vec3_t *angles);
-result_t imu_estimate_madgwick(vec3_t *acc, vec3_t *mag, vec3_t *gyro);
-result_t imu_estimate_madgwick_no_mag(vec3_t *acc, vec3_t *gyro);
+result_t imu_estimate_triad(struct vec3 acc, struct vec3 mag, struct quat *quat, struct vec3 *angles);
+result_t imu_estimate_madgwick(struct vec3 *acc, struct vec3 *mag, struct vec3 *gyro);
+result_t imu_estimate_madgwick_no_mag(struct vec3 *acc, struct vec3 *gyro);
 
 //-----------------------------------------------------------------
 

@@ -38,8 +38,8 @@
 //-----------------------------------------------------------------
 
 static struct imu_sensor_data sensors;
-static vec3_t angles;
-static vec3_t rates;
+static struct vec3 angles;
+static struct vec3 rates;
 
 // quaternion values
 static float q0, q1, q2, q3;
@@ -49,7 +49,7 @@ static bool init_quat;
 
 static void imu_poll_sensors(struct imu_sensor_data *data);
 
-static result_t imu_quaternion_to_euler(vec3_t *out);
+static result_t imu_quaternion_to_euler(struct vec3 *out);
 
 //-----------------------------------------------------------------
 
@@ -206,7 +206,7 @@ void imu_update(void)
         q3 = est.q3;
     }
 
-    vec3_t gyro = {
+    struct vec3 gyro = {
         .x = DEG_TO_RAD(real_sens.gyro.x),
         .y = DEG_TO_RAD(real_sens.gyro.y),
         .z = DEG_TO_RAD(real_sens.gyro.z)
@@ -220,7 +220,7 @@ void imu_update(void)
 
 //-----------------------------------------------------------------
 
-result_t imu_estimate_madgwick(vec3_t *acc, vec3_t *mag, vec3_t *gyro)
+result_t imu_estimate_madgwick(struct vec3 *acc, struct vec3 *mag, struct vec3 *gyro)
 {
     if (!acc || !mag || !gyro)
         return RES_ERR_BAD_PARAM;
@@ -331,7 +331,7 @@ result_t imu_estimate_madgwick(vec3_t *acc, vec3_t *mag, vec3_t *gyro)
 
 //-----------------------------------------------------------------
 
-result_t imu_estimate_madgwick_no_mag(vec3_t *acc, vec3_t *gyro)
+result_t imu_estimate_madgwick_no_mag(struct vec3 *acc, struct vec3 *gyro)
 {
     if (!acc || !gyro)
         return RES_ERR_BAD_PARAM;
@@ -413,7 +413,7 @@ result_t imu_estimate_madgwick_no_mag(vec3_t *acc, vec3_t *gyro)
 
 //-----------------------------------------------------------------
 
-static result_t imu_quaternion_to_euler(vec3_t *out)
+static result_t imu_quaternion_to_euler(struct vec3 *out)
 {
     if (!out)
         return RES_ERR_BAD_PARAM;
@@ -486,46 +486,46 @@ result_t imu_sensors_transform(struct imu_sensor_data *sens, struct imu_real *re
 
 //-----------------------------------------------------------------
 
-result_t imu_get_angles(vec3_t *out)
+result_t imu_get_angles(struct vec3 *out)
 {
     if (!out)
         return RES_ERR_BAD_PARAM;
 
-    memcpy(out, &angles, sizeof(vec3_t));
+    memcpy(out, &angles, sizeof(struct vec3));
     return RES_OK;
 }
 
 //-----------------------------------------------------------------
 
-result_t imu_get_rates(vec3_t *out)
+result_t imu_get_rates(struct vec3 *out)
 {
     if (!out)
         return RES_ERR_BAD_PARAM;
 
-    memcpy(out, &rates, sizeof(vec3_t));
+    memcpy(out, &rates, sizeof(struct vec3));
     return RES_OK;
 }
 
 //-----------------------------------------------------------------
 
-result_t imu_estimate_triad(vec3_t acc, vec3_t mag, struct quat *quat, vec3_t *angles)
+result_t imu_estimate_triad(struct vec3 acc, struct vec3 mag, struct quat *quat, struct vec3 *angles)
 {
-    vec3_t ref_acc;
-    vec3_t ref_mag;
+    struct vec3 ref_acc;
+    struct vec3 ref_mag;
     params_get_triad_ref_acc(&ref_acc);
     params_get_triad_ref_mag(&ref_mag);
 
     float temp;
-    vec3_t t1b = ref_acc;
+    struct vec3 t1b = ref_acc;
     VEC3_NORMALIZE_VAR(t1b, temp);
-    vec3_t t1r = acc;
+    struct vec3 t1r = acc;
     VEC3_NORMALIZE_VAR(t1r, temp);
-    vec3_t t2b = VEC3_CROSS(ref_acc, ref_mag);
+    struct vec3 t2b = VEC3_CROSS(ref_acc, ref_mag);
     VEC3_NORMALIZE_VAR(t2b, temp);
-    vec3_t t2r = VEC3_CROSS(acc, mag);
+    struct vec3 t2r = VEC3_CROSS(acc, mag);
     VEC3_NORMALIZE_VAR(t2r, temp);
-    vec3_t t3b = VEC3_CROSS(t1b, t2b);
-    vec3_t t3r = VEC3_CROSS(t1r, t2r);
+    struct vec3 t3b = VEC3_CROSS(t1b, t2b);
+    struct vec3 t3r = VEC3_CROSS(t1r, t2r);
 
     float d11 = t1b.x*t1r.x + t2b.x*t2r.x + t3b.x*t3r.x;
     float d21 = t1b.y*t1r.x + t2b.y*t2r.x + t3b.y*t3r.x;

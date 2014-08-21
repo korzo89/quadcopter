@@ -10,7 +10,7 @@
 
 //-----------------------------------------------------------------
 
-result_t pid_init(pid_t *pid, const struct pid_params *params)
+result_t pid_init(struct pid *pid, const struct pid_params *params)
 {
     if (!pid || !params)
         return RES_ERR_BAD_PARAM;
@@ -21,7 +21,7 @@ result_t pid_init(pid_t *pid, const struct pid_params *params)
 
 //-----------------------------------------------------------------
 
-result_t pid_reset(pid_t *pid)
+result_t pid_reset(struct pid *pid)
 {
     if (!pid)
         return RES_ERR_BAD_PARAM;
@@ -37,7 +37,7 @@ result_t pid_reset(pid_t *pid)
 
 //-----------------------------------------------------------------
 
-result_t pid_update(pid_t *pid, float meas, float dt, bool manual, float control)
+result_t pid_update(struct pid *pid, float meas, float dt, bool manual, float control)
 {
     if (!pid)
         return RES_ERR_BAD_PARAM;
@@ -78,14 +78,14 @@ result_t pid_update(pid_t *pid, float meas, float dt, bool manual, float control
 
 //-----------------------------------------------------------------
 
-result_t pid_update_auto(pid_t *pid, float value, float dt)
+result_t pid_update_auto(struct pid *pid, float value, float dt)
 {
     return pid_update(pid, value, dt, false, 0.0f);
 }
 
 //-----------------------------------------------------------------
 
-result_t pid_update_manual(pid_t *pid, float value, float dt, float control)
+result_t pid_update_manual(struct pid *pid, float value, float dt, float control)
 {
     return pid_update(pid, value, dt, true, control);
 }

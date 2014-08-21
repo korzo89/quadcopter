@@ -114,11 +114,11 @@ void gps_task(void *params)
 
 //-----------------------------------------------------------------
 
-bool gps_parse_nmea(const char *data, unsigned int len)
+bool gps_parse_nmea(const char *data, uint32_t len)
 {
     bool res = false;
 
-    unsigned int i;
+    uint32_t i;
     for (i = 0; i < len; ++i)
         res |= gps_parse_nmea_char(data[i]);
 

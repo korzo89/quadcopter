@@ -31,7 +31,7 @@ struct pid_params
     enum pid_deriv_type deriv;
 };
 
-typedef struct
+struct pid
 {
     struct pid_params params;
 
@@ -42,16 +42,16 @@ typedef struct
     float prev_error;
     float prev_meas;
     float integral;
-} pid_t;
+};
 
 //-----------------------------------------------------------------
 
-result_t pid_init(pid_t *pid, const struct pid_params *params);
-result_t pid_reset(pid_t *pid);
+result_t pid_init(struct pid *pid, const struct pid_params *params);
+result_t pid_reset(struct pid *pid);
 
-result_t pid_update(pid_t *pid, float meas, float dt, bool manual, float control);
-result_t pid_update_auto(pid_t *pid, float meas, float dt);
-result_t pid_update_manual(pid_t *pid, float meas, float dt, float control);
+result_t pid_update(struct pid *pid, float meas, float dt, bool manual, float control);
+result_t pid_update_auto(struct pid *pid, float meas, float dt);
+result_t pid_update_manual(struct pid *pid, float meas, float dt, float control);
 
 //-----------------------------------------------------------------
 
