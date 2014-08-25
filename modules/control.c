@@ -23,50 +23,82 @@
 
 //-----------------------------------------------------------------
 
-#define CONTROL_THROTTLE_DEAD_ZONE  100.0f
-#define CONTROL_PITCH_DEAD_ZONE     100.0f
-#define CONTROL_ROLL_DEAD_ZONE      100.0f
-#define CONTROL_YAW_DEAD_ZONE       100.0f
+#define CONTROL_THROTTLE_DEAD_ZONE      100.0f
+#define CONTROL_PITCH_DEAD_ZONE         100.0f
+#define CONTROL_ROLL_DEAD_ZONE          100.0f
+#define CONTROL_YAW_DEAD_ZONE           100.0f
 
-#define CONTROL_WATCHDOG_RELOAD     ( SysCtlClockGet() / 2 )
+#define CONTROL_WATCHDOG_RELOAD         ( SysCtlClockGet() / 2 )
+
+#define DAQ_REGISTER_PID(_name, _unit, _pid)   \
+    do {                                                                                \
+        daq_register_value(_name" error", _unit, &_pid.error, DAQ_TYPE_FLOAT);          \
+        daq_register_value(_name" control", _unit, &_pid.output, DAQ_TYPE_FLOAT);       \
+        daq_register_value(_name" setpoint", _unit, &_pid.setpoint, DAQ_TYPE_FLOAT);    \
+    } while(0)
+
+#define DAQ_REGISTER_PID_AXIS(_name, _pid)   \
+    do {                                                        \
+        DAQ_REGISTER_PID(_name, "deg", _pid.angle);             \
+        DAQ_REGISTER_PID(_name" rate", "deg/s", _pid.rate);    \
+    } while (0)
 
 //-----------------------------------------------------------------
 
-static bool armed;
-static bool connected;
-static struct cmd_control control;
+enum pid_mode
+{
+    PID_MODE_DISABLED = 0,
+    PID_MODE_ANGLE,
+    PID_MODE_RATE
+};
 
-static struct pid pid_pitch;
-static struct pid pid_roll;
-static struct pid pid_yaw;
-static struct pid pid_pitch_rate;
-static struct pid pid_roll_rate;
-static struct pid pid_yaw_rate;
+struct pid_axis
+{
+    enum pid_mode   mode;
+    struct pid      angle;
+    struct pid      rate;
+};
+
+struct control_obj
+{
+    bool armed;
+    bool connected;
+
+    struct pid_axis pid_pitch;
+    struct pid_axis pid_roll;
+    struct pid_axis pid_yaw;
+
+    struct cmd_control cmd;
+};
+
+//-----------------------------------------------------------------
+
+static struct control_obj control;
 
 static struct pid *pid_ptr[] = {
-    [PID_PITCH]         = &pid_pitch,
-    [PID_ROLL]          = &pid_roll,
-    [PID_YAW]           = &pid_yaw,
-    [PID_PITCH_RATE]    = &pid_pitch_rate,
-    [PID_ROLL_RATE]     = &pid_roll_rate,
-    [PID_YAW_RATE]      = &pid_yaw_rate
+    [PID_PITCH]         = &control.pid_pitch.angle,
+    [PID_ROLL]          = &control.pid_roll.angle,
+    [PID_YAW]           = &control.pid_yaw.angle,
+    [PID_PITCH_RATE]    = &control.pid_pitch.rate,
+    [PID_ROLL_RATE]     = &control.pid_roll.rate,
+    [PID_YAW_RATE]      = &control.pid_yaw.rate
 };
 
 //-----------------------------------------------------------------
 
 static void rcp_cb_angles(struct rcp_msg *msg)
 {
-    memcpy(&control, &msg->control, sizeof(control));
+    memcpy(&control.cmd, &msg->control, sizeof(control.cmd));
 
-    if (armed && !control.flags.sw1)
+    if (control.armed && !control.cmd.flags.armed)
     {
-        armed = false;
+        control.armed = false;
         motors_disarm();
         buzzer_seq_lib_play(BUZZER_SEQ_DISARM);
     }
-    else if (!armed && control.flags.sw1)
+    else if (!control.armed && control.cmd.flags.armed)
     {
-        armed = true;
+        control.armed = true;
         motors_arm();
         buzzer_seq_lib_play(BUZZER_SEQ_ARM);
     }
@@ -122,17 +154,17 @@ static void control_task(void *params)
 
         if (rcp_is_connected())
         {
-            if (!connected)
+            if (!control.connected)
             {
                 buzzer_seq_lib_play(BUZZER_SEQ_CONNECTED);
-                connected = true;
+                control.connected = true;
             }
         }
-        else if (connected)
+        else if (control.connected)
         {
             buzzer_seq_lib_play(BUZZER_SEQ_LOST);
-            connected = false;
-            armed = false;
+            control.connected = false;
+            control.armed = false;
             motors_disarm();
         }
 
@@ -143,6 +175,7 @@ static void control_task(void *params)
 
         const float dt = 0.01f;
 
+#if 0
         if (armed)
         {
             float throttle = (float)control.throttle;
@@ -182,6 +215,7 @@ static void control_task(void *params)
         {
             pid_update_manual(&pid_pitch_rate, rates.y, dt, 0.0f);
         }
+#endif
 
         vTaskDelayUntil(&last_wake, MSEC_TO_TICKS(10));
     }
@@ -194,42 +228,27 @@ result_t control_init(void)
     watchdog_init();
     watchdog_reload_set(CONTROL_WATCHDOG_RELOAD);
 
-    armed = false;
-    connected = false;
+    control.armed = false;
+    control.connected = false;
 
     int i;
     for (i = 0; i < PID_TYPE_NUM; ++i)
         pid_reset(pid_ptr[i]);
 
-    params_get_pid_pitch(&pid_pitch.params);
-    params_get_pid_roll(&pid_roll.params);
-    params_get_pid_yaw(&pid_yaw.params);
-    params_get_pid_pitch_rate(&pid_pitch_rate.params);
-    params_get_pid_roll_rate(&pid_roll_rate.params);
-    params_get_pid_yaw_rate(&pid_yaw_rate.params);
+    params_get_pid_pitch(&control.pid_pitch.angle.params);
+    params_get_pid_roll(&control.pid_roll.angle.params);
+    params_get_pid_yaw(&control.pid_yaw.angle.params);
+    params_get_pid_pitch_rate(&control.pid_pitch.rate.params);
+    params_get_pid_roll_rate(&control.pid_roll.rate.params);
+    params_get_pid_yaw_rate(&control.pid_yaw.rate.params);
 
     rcp_register_callback(RCP_CMD_CONTROL, rcp_cb_angles, false);
     rcp_register_callback(RCP_CMD_PID, rcp_cb_pid_set, false);
     rcp_register_callback(RCP_CMD_PID, rcp_cb_pid_get, true);
 
-    daq_register_value("Pitch error", "deg", &pid_pitch.error, DAQ_TYPE_FLOAT);
-    daq_register_value("Roll error", "deg", &pid_roll.error, DAQ_TYPE_FLOAT);
-    daq_register_value("Yaw error", "deg", &pid_yaw.error, DAQ_TYPE_FLOAT);
-    daq_register_value("Pitch control", "deg", &pid_pitch.output, DAQ_TYPE_FLOAT);
-    daq_register_value("Roll control", "deg", &pid_roll.output, DAQ_TYPE_FLOAT);
-    daq_register_value("Yaw control", "deg", &pid_yaw.output, DAQ_TYPE_FLOAT);
-    daq_register_value("Pitch setpoint", "deg", &pid_pitch.setpoint, DAQ_TYPE_FLOAT);
-    daq_register_value("Roll setpoint", "deg", &pid_roll.setpoint, DAQ_TYPE_FLOAT);
-    daq_register_value("Yaw setpoint", "deg", &pid_yaw.setpoint, DAQ_TYPE_FLOAT);
-    daq_register_value("Pitch rate error", "deg/s", &pid_pitch_rate.error, DAQ_TYPE_FLOAT);
-    daq_register_value("Roll rate error", "deg/s", &pid_roll_rate.error, DAQ_TYPE_FLOAT);
-    daq_register_value("Yaw rate error", "deg/s", &pid_yaw_rate.error, DAQ_TYPE_FLOAT);
-    daq_register_value("Pitch rate control", "deg/s", &pid_pitch_rate.output, DAQ_TYPE_FLOAT);
-    daq_register_value("Roll rate control", "deg/s", &pid_roll_rate.output, DAQ_TYPE_FLOAT);
-    daq_register_value("Yaw rate control", "deg/s", &pid_yaw_rate.output, DAQ_TYPE_FLOAT);
-    daq_register_value("Pitch rate setpoint", "deg/s", &pid_pitch_rate.setpoint, DAQ_TYPE_FLOAT);
-    daq_register_value("Roll rate setpoint", "deg/s", &pid_roll_rate.setpoint, DAQ_TYPE_FLOAT);
-    daq_register_value("Yaw rate setpoint", "deg/s", &pid_yaw_rate.setpoint, DAQ_TYPE_FLOAT);
+    DAQ_REGISTER_PID_AXIS("Pitch", control.pid_pitch);
+    DAQ_REGISTER_PID_AXIS("Roll", control.pid_roll);
+    DAQ_REGISTER_PID_AXIS("Yaw", control.pid_yaw);
 
     if (xTaskCreate(control_task, TASK_NAME("CTRL"),
             CONTROL_TASK_STACK, NULL, CONTROL_TASK_PRIORITY, NULL) != pdPASS)
@@ -244,7 +263,7 @@ result_t control_init(void)
 
 result_t control_get_current(struct cmd_control *out)
 {
-    memcpy(out, &control, sizeof(control));
+    memcpy(out, &control.cmd, sizeof(control.cmd));
     return RES_OK;
 }
 

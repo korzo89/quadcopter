@@ -44,18 +44,33 @@ enum rcp_cmd
 };
 
 
-struct cmd_control
+struct control_value
 {
-    uint16_t throttle;
-    uint16_t pitch;
-    uint16_t roll;
-    uint16_t yaw;
+    float   value;
+    uint8_t absolute;
+} PACK_STRUCT;
+
+struct control_axis
+{
+    struct control_value value;
     struct
     {
-        uint8_t sw1 : 1;
-        uint8_t sw2 : 2;
-        uint8_t sw3 : 3;
-    } flags;
+        uint8_t ignore  : 1;
+        uint8_t mode    : 7;
+    } mode;
+} PACK_STRUCT;
+
+struct cmd_control
+{
+    struct
+    {
+        uint8_t armed       : 1;
+        uint8_t reserved    : 7;
+    }  flags;
+    struct control_value    throttle;
+    struct control_axis     pitch;
+    struct control_axis     roll;
+    struct control_axis     yaw;
 } PACK_STRUCT;
 
 

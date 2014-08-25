@@ -196,22 +196,18 @@ static void gui_task(void *params)
         case 0:
         {
             struct cmd_control control;
-            struct pid *pid;
-
             control_get_current(&control);
 
-            gui_disp_control("1 Thr", control.throttle, 2);
-            gui_disp_control("2 Pit", control.pitch, 3);
-            gui_disp_control("3 Rol", control.roll, 4);
-            gui_disp_control("4 Yaw", control.yaw, 5);
+            uint16_t temp = (uint16_t)(control.throttle.value * 4095.0f);
+            gui_disp_control("1 Thr", temp, 2);
+            temp = (uint16_t)((control.pitch.value.value + 1.0f) / 2.0f * 4095.0f);
+            gui_disp_control("2 Pit", temp, 3);
+            temp = (uint16_t)((control.roll.value.value + 1.0f) / 2.0f * 4095.0f);
+            gui_disp_control("3 Rol", temp, 4);
+            temp = (uint16_t)((control.yaw.value.value + 1.0f) / 2.0f * 4095.0f);
+            gui_disp_control("4 Yaw", temp, 5);
             oled_set_pos(6, 0);
-            oled_disp_char(control.flags.sw1 ? 'X' : '_');
-            oled_disp_char(control.flags.sw2 ? 'X' : '_');
-            oled_disp_char(control.flags.sw3 ? 'X' : '_');
-
-            pid = control_get_pid(PID_PITCH_RATE);
-            usprintf(buf, "s:%5d o:%5d", (int)pid->setpoint, (int)pid->output);
-            oled_disp_str_at(buf, 7, 0);
+            oled_disp_str(control.flags.armed ? "ARMED   " : "DISARMED");
 
             break;
         }
