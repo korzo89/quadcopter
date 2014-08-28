@@ -188,8 +188,9 @@ static void gui_task(void *params)
 
         oled_set_pos(0, 0);
         oled_disp_symbol((uint8_t*)(rcp_is_connected() ? SYMB_CONN : SYMB_LOST), 16);
-        usprintf(buf, "    %d/%d       ", screen + 1, NUM_SCREENS);
+        usprintf(buf, "    %d/%d    ", screen + 1, NUM_SCREENS);
         oled_disp_str(buf);
+        oled_disp_str(control_is_armed() ? "ARM" : "   ");
 
         switch (screen)
         {

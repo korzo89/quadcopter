@@ -20,6 +20,8 @@
 
 #include <stellaris_config.h>
 #include <utils/ustdlib.h>
+#include <FreeRTOS.h>
+#include <semphr.h>
 
 //-----------------------------------------------------------------
 
@@ -69,6 +71,8 @@ struct control_obj
     struct pid_axis pid_yaw;
 
     struct cmd_control cmd;
+
+    xSemaphoreHandle mutex;
 };
 
 //-----------------------------------------------------------------
@@ -86,58 +90,53 @@ static struct pid *pid_ptr[] = {
 
 //-----------------------------------------------------------------
 
-static void rcp_cb_angles(struct rcp_msg *msg)
-{
-    memcpy(&control.cmd, &msg->control, sizeof(control.cmd));
+static void control_task(void *params);
 
-    if (control.armed && !control.cmd.flags.armed)
-    {
-        control.armed = false;
-        motors_disarm();
-        buzzer_seq_lib_play(BUZZER_SEQ_DISARM);
-    }
-    else if (!control.armed && control.cmd.flags.armed)
-    {
-        control.armed = true;
-        motors_arm();
-        buzzer_seq_lib_play(BUZZER_SEQ_ARM);
-    }
-}
+static void control_lock(void);
+static void control_unlock(void);
+
+static void rcp_cb_angles(struct rcp_msg *msg);
+static void rcp_cb_pid_set(struct rcp_msg *msg);
+static void rcp_cb_pid_get(struct rcp_msg *msg);
 
 //-----------------------------------------------------------------
 
-static void rcp_cb_pid_set(struct rcp_msg *msg)
+result_t control_init(void)
 {
-    struct pid *pid = pid_ptr[msg->pid.type];
+    watchdog_init();
+    watchdog_reload_set(CONTROL_WATCHDOG_RELOAD);
 
-    pid->params.kp = msg->pid.kp;
-    pid->params.kd = msg->pid.kd;
-    pid->params.ki = msg->pid.ki;
-    pid->params.kt = msg->pid.kt;
+    control.armed = false;
+    control.connected = false;
 
-    pid_reset(pid);
+    int i;
+    for (i = 0; i < PID_TYPE_NUM; ++i)
+        pid_reset(pid_ptr[i]);
 
-    buzzer_seq_lib_play(BUZZER_SEQ_CONFIRM);
-}
+    params_get_pid_pitch(&control.pid_pitch.angle.params);
+    params_get_pid_roll(&control.pid_roll.angle.params);
+    params_get_pid_yaw(&control.pid_yaw.angle.params);
+    params_get_pid_pitch_rate(&control.pid_pitch.rate.params);
+    params_get_pid_roll_rate(&control.pid_roll.rate.params);
+    params_get_pid_yaw_rate(&control.pid_yaw.rate.params);
 
-//-----------------------------------------------------------------
+    rcp_register_callback(RCP_CMD_CONTROL, rcp_cb_angles, false);
+    rcp_register_callback(RCP_CMD_PID, rcp_cb_pid_set, false);
+    rcp_register_callback(RCP_CMD_PID, rcp_cb_pid_get, true);
 
-static void rcp_cb_pid_get(struct rcp_msg *msg)
-{
-    struct rcp_msg resp;
-    resp.cmd    = RCP_CMD_PID;
-    resp.query  = RCP_CMD_OK;
+    DAQ_REGISTER_PID_AXIS("Pitch", control.pid_pitch);
+    DAQ_REGISTER_PID_AXIS("Roll", control.pid_roll);
+    DAQ_REGISTER_PID_AXIS("Yaw", control.pid_yaw);
 
-    uint8_t type = msg->pid.type;
-    struct pid *pid = pid_ptr[(int)type];
+    control.mutex = xSemaphoreCreateRecursiveMutex();
 
-    resp.pid.type = type;
-    resp.pid.kp = pid->params.kp;
-    resp.pid.ki = pid->params.ki;
-    resp.pid.kd = pid->params.kd;
-    resp.pid.kt = pid->params.kt;
+    if (xTaskCreate(control_task, TASK_NAME("CTRL"),
+            CONTROL_TASK_STACK, NULL, CONTROL_TASK_PRIORITY, NULL) != pdPASS)
+        return RES_ERR_FATAL;
 
-    rcp_send_message(&resp);
+//    watchdog_enable();
+
+    return RES_OK;
 }
 
 //-----------------------------------------------------------------
@@ -223,40 +222,9 @@ static void control_task(void *params)
 
 //-----------------------------------------------------------------
 
-result_t control_init(void)
+bool control_is_armed(void)
 {
-    watchdog_init();
-    watchdog_reload_set(CONTROL_WATCHDOG_RELOAD);
-
-    control.armed = false;
-    control.connected = false;
-
-    int i;
-    for (i = 0; i < PID_TYPE_NUM; ++i)
-        pid_reset(pid_ptr[i]);
-
-    params_get_pid_pitch(&control.pid_pitch.angle.params);
-    params_get_pid_roll(&control.pid_roll.angle.params);
-    params_get_pid_yaw(&control.pid_yaw.angle.params);
-    params_get_pid_pitch_rate(&control.pid_pitch.rate.params);
-    params_get_pid_roll_rate(&control.pid_roll.rate.params);
-    params_get_pid_yaw_rate(&control.pid_yaw.rate.params);
-
-    rcp_register_callback(RCP_CMD_CONTROL, rcp_cb_angles, false);
-    rcp_register_callback(RCP_CMD_PID, rcp_cb_pid_set, false);
-    rcp_register_callback(RCP_CMD_PID, rcp_cb_pid_get, true);
-
-    DAQ_REGISTER_PID_AXIS("Pitch", control.pid_pitch);
-    DAQ_REGISTER_PID_AXIS("Roll", control.pid_roll);
-    DAQ_REGISTER_PID_AXIS("Yaw", control.pid_yaw);
-
-    if (xTaskCreate(control_task, TASK_NAME("CTRL"),
-            CONTROL_TASK_STACK, NULL, CONTROL_TASK_PRIORITY, NULL) != pdPASS)
-        return RES_ERR_FATAL;
-
-//    watchdog_enable();
-
-    return RES_OK;
+    return control.armed;
 }
 
 //-----------------------------------------------------------------
@@ -275,4 +243,74 @@ struct pid* control_get_pid(enum pid_type type)
         return NULL;
 
     return pid_ptr[(int)type];
+}
+
+//-----------------------------------------------------------------
+
+static void control_lock(void)
+{
+    xSemaphoreTakeRecursive(control.mutex, portMAX_DELAY);
+}
+
+//-----------------------------------------------------------------
+
+static void control_unlock(void)
+{
+    xSemaphoreGiveRecursive(control.mutex);
+}
+
+//-----------------------------------------------------------------
+
+static void rcp_cb_angles(struct rcp_msg *msg)
+{
+    memcpy(&control.cmd, &msg->control, sizeof(control.cmd));
+
+    if (control.armed && !control.cmd.flags.armed)
+    {
+        control.armed = false;
+        motors_disarm();
+        buzzer_seq_lib_play(BUZZER_SEQ_DISARM);
+    }
+    else if (!control.armed && control.cmd.flags.armed)
+    {
+        control.armed = true;
+        motors_arm();
+        buzzer_seq_lib_play(BUZZER_SEQ_ARM);
+    }
+}
+
+//-----------------------------------------------------------------
+
+static void rcp_cb_pid_set(struct rcp_msg *msg)
+{
+    struct pid *pid = pid_ptr[msg->pid.type];
+
+    pid->params.kp = msg->pid.kp;
+    pid->params.kd = msg->pid.kd;
+    pid->params.ki = msg->pid.ki;
+    pid->params.kt = msg->pid.kt;
+
+    pid_reset(pid);
+
+    buzzer_seq_lib_play(BUZZER_SEQ_CONFIRM);
+}
+
+//-----------------------------------------------------------------
+
+static void rcp_cb_pid_get(struct rcp_msg *msg)
+{
+    struct rcp_msg resp;
+    resp.cmd    = RCP_CMD_PID;
+    resp.query  = RCP_CMD_OK;
+
+    uint8_t type = msg->pid.type;
+    struct pid *pid = pid_ptr[(int)type];
+
+    resp.pid.type = type;
+    resp.pid.kp = pid->params.kp;
+    resp.pid.ki = pid->params.ki;
+    resp.pid.kd = pid->params.kd;
+    resp.pid.kt = pid->params.kt;
+
+    rcp_send_message(&resp);
 }

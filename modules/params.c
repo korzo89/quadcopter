@@ -42,6 +42,22 @@
             .deriv = _der                     \
         }
 
+#define PARAM_LIMIT(_group, _lim)                                   \
+        PARAM_DEF_FLOAT(_group, "limit", 1, &_lim.limit),           \
+        PARAM_DEF_FLOAT(_group, "dead_zone", 1, &_lim.dead_zone)
+
+#define PARAM_LIMIT_AXES(_pre, _suf, _lim)          \
+        PARAM_LIMIT(_pre"pitch"_suf, _lim.pitch),   \
+        PARAM_LIMIT(_pre"roll"_suf, _lim.roll),     \
+        PARAM_LIMIT(_pre"yaw"_suf, _lim.yaw)
+
+#define LIMIT_DEFAULTS(_lim, _dead) \
+        (struct control_limit){     \
+            .limit      = _lim,     \
+            .dead_zone  = _dead     \
+        }
+
+
 //-----------------------------------------------------------------
 
 struct params_obj
@@ -62,6 +78,10 @@ struct params_obj
     struct vec3  triad_ref_mag;
 
     float   madgwick_beta;
+
+    struct control_limit        limit_throttle;
+    struct control_limit_axes   limit_angles;
+    struct control_limit_axes   limit_rates;
 };
 
 static struct params_obj params;
@@ -82,7 +102,11 @@ const struct param_info infos[] = {
     PARAM_DEF_FLOAT("triad", "ref_acc", 3, &params.triad_ref_acc),
     PARAM_DEF_FLOAT("triad", "ref_mag", 3, &params.triad_ref_mag),
 
-    PARAM_DEF_FLOAT("madgwick", "beta", 1, &params.madgwick_beta)
+    PARAM_DEF_FLOAT("madgwick", "beta", 1, &params.madgwick_beta),
+
+    PARAM_LIMIT("lim_throttle", params.limit_throttle),
+    PARAM_LIMIT_AXES("lim_", "", params.limit_angles),
+    PARAM_LIMIT_AXES("lim_", "_rate", params.limit_rates)
 };
 
 //-----------------------------------------------------------------
@@ -163,6 +187,14 @@ void params_load_defaults(void)
     params.triad_ref_mag = VEC3_NEW(131.6290, 11.9624, -343.7395);
 
     params.madgwick_beta = 0.4f;
+
+    params.limit_throttle       = LIMIT_DEFAULTS(1000.0f, 50.0f);
+    params.limit_angles.pitch   = LIMIT_DEFAULTS(60.0f, 1.0f);
+    params.limit_angles.roll    = LIMIT_DEFAULTS(60.0f, 1.0f);
+    params.limit_angles.yaw     = LIMIT_DEFAULTS(180.0f, 1.0f);
+    params.limit_rates.pitch    = LIMIT_DEFAULTS(10.0f, 0.5f);
+    params.limit_rates.roll     = LIMIT_DEFAULTS(10.0f, 0.5f);
+    params.limit_rates.yaw      = LIMIT_DEFAULTS(10.0f, 0.5f);
 
     params_unlock();
 }
@@ -515,4 +547,19 @@ result_t params_get_triad_ref_mag(struct vec3 *out)
 result_t params_get_madgwick_beta(float *out)
 {
     return params_get(out, &params.madgwick_beta, sizeof(float));
+}
+
+result_t params_get_throttle_limit(struct control_limit *out)
+{
+    return params_get(out, &params.limit_throttle, sizeof(params.limit_throttle));
+}
+
+result_t params_get_angles_limits(struct control_limit_axes *out)
+{
+    return params_get(out, &params.limit_angles, sizeof(params.limit_angles));
+}
+
+result_t params_get_rates_limits(struct control_limit_axes *out)
+{
+    return params_get(out, &params.limit_rates, sizeof(params.limit_rates));
 }

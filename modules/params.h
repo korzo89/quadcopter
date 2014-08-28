@@ -13,6 +13,7 @@
 #include <defs.h>
 #include <utils/pid.h>
 #include <utils/vec3.h>
+#include <modules/control.h>
 
 //-----------------------------------------------------------------
 
@@ -42,6 +43,9 @@ struct param_info
 result_t params_init(void);
 void params_load_defaults(void);
 
+result_t params_eeprom_save(void);
+result_t params_eeprom_load(void);
+
 result_t params_get_pid_pitch(struct pid_params *out);
 result_t params_get_pid_roll(struct pid_params *out);
 result_t params_get_pid_yaw(struct pid_params *out);
@@ -57,8 +61,9 @@ result_t params_get_triad_ref_mag(struct vec3 *out);
 
 result_t params_get_madgwick_beta(float *out);
 
-result_t params_eeprom_save(void);
-result_t params_eeprom_load(void);
+result_t params_get_throttle_limit(struct control_limit *out);
+result_t params_get_angles_limits(struct control_limit_axes *out);
+result_t params_get_rates_limits(struct control_limit_axes *out);
 
 //-----------------------------------------------------------------
 

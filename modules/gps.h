@@ -29,8 +29,6 @@ bool gps_parse_nmea_char(char c);
 
 bool gps_get_message(struct gps_msg *msg);
 
-void gps_task(void *params);
-
 //-----------------------------------------------------------------
 
 #endif /* GPS_H_ */

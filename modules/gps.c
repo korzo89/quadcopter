@@ -12,6 +12,7 @@
 #include <FreeRTOS.h>
 #include <task.h>
 #include <semphr.h>
+#include <string.h>
 
 //-----------------------------------------------------------------
 
@@ -32,23 +33,36 @@ enum gps_parser_state
     GPS_STATE_CHECKSUM2
 };
 
-static char uart_buffer[GPS_UART_BUFFER_LEN];
-static int uart_start = 0, uart_end = 0;
+struct gps_obj
+{
+    char        uart_buffer[GPS_UART_BUFFER_LEN];
+    uint32_t    uart_start;
+    uint32_t    uart_end;
 
-static enum gps_parser_state parser_state = GPS_STATE_SOM;
-static char command[GPS_MAX_CMD_LEN] = "";
-static char data[GPS_MAX_DATA_LEN] = "";
-static int index;
-static uint8_t checksum, recv_checksum;
-static bool has_message = false;
+    enum gps_parser_state parser_state;
+    char        command[GPS_MAX_CMD_LEN];
+    char        data[GPS_MAX_DATA_LEN];
+    uint32_t    index;
+    uint8_t     checksum;
+    uint8_t     recv_checksum;
+    bool        has_message;
 
-static xSemaphoreHandle uart_ready;
+    xSemaphoreHandle uart_ready;
+};
+
+static struct gps_obj gps;
+
+//-----------------------------------------------------------------
+
+static void gps_task(void *params);
 
 //-----------------------------------------------------------------
 
 void gps_init(void)
 {
-    vSemaphoreCreateBinary(uart_ready);
+    memset(&gps, 0, sizeof(gps));
+
+    vSemaphoreCreateBinary(gps.uart_ready);
 
     SysCtlPeripheralEnable(SYSCTL_PERIPH_UART2);
 
@@ -80,11 +94,11 @@ void UART2IntHandler(void)
     {
         while (UARTCharsAvail(UART2_BASE))
         {
-        	uart_buffer[uart_end] = (char)UARTCharGetNonBlocking(UART2_BASE);
-        	uart_end = (uart_end + 1) % GPS_UART_BUFFER_LEN;
+            gps.uart_buffer[gps.uart_end] = (char)UARTCharGetNonBlocking(UART2_BASE);
+            gps.uart_end = (gps.uart_end + 1) % GPS_UART_BUFFER_LEN;
         }
 
-        xSemaphoreGiveFromISR(uart_ready, &woken);
+        xSemaphoreGiveFromISR(gps.uart_ready, &woken);
     }
 
     portEND_SWITCHING_ISR(woken);
@@ -92,22 +106,22 @@ void UART2IntHandler(void)
 
 //-----------------------------------------------------------------
 
-void gps_task(void *params)
+static void gps_task(void *params)
 {
-    xSemaphoreTake(uart_ready, 0);
+    xSemaphoreTake(gps.uart_ready, 0);
 
     while (1)
     {
-        if (xSemaphoreTake(uart_ready, portMAX_DELAY) == pdTRUE)
+        if (xSemaphoreTake(gps.uart_ready, portMAX_DELAY) == pdTRUE)
         {
-            int end = uart_end;
-            while (uart_start != end)
+            int end = gps.uart_end;
+            while (gps.uart_start != end)
             {
-                gps_parse_nmea_char(uart_buffer[uart_start]);
-                uart_start = (uart_start + 1) % GPS_UART_BUFFER_LEN;
+                gps_parse_nmea_char(gps.uart_buffer[gps.uart_start]);
+                gps.uart_start = (gps.uart_start + 1) % GPS_UART_BUFFER_LEN;
             }
 
-            xSemaphoreTake(uart_ready, 0);
+            xSemaphoreTake(gps.uart_ready, 0);
         }
     }
 }
@@ -129,77 +143,77 @@ bool gps_parse_nmea(const char *data, uint32_t len)
 
 bool gps_parse_nmea_char(char c)
 {
-    switch (parser_state)
+    switch (gps.parser_state)
     {
     case GPS_STATE_SOM:
         if (c == '$')
         {
-            checksum = 0;
-            index = 0;
-            has_message = false;
-            parser_state = GPS_STATE_CMD;
+            gps.checksum = 0;
+            gps.index = 0;
+            gps.has_message = false;
+            gps.parser_state = GPS_STATE_CMD;
         }
         break;
 
     case GPS_STATE_CMD:
-        checksum ^= c;
+        gps.checksum ^= c;
         if (c != ',' && c != '*')
         {
-            command[index++] = c;
-            if (index >= GPS_MAX_CMD_LEN)
-                parser_state = GPS_STATE_SOM;
+            gps.command[gps.index++] = c;
+            if (gps.index >= GPS_MAX_CMD_LEN)
+                gps.parser_state = GPS_STATE_SOM;
         }
         else
         {
-            command[index] = '\0';
-            index = 0;
-            parser_state = GPS_STATE_DATA;
+            gps.command[gps.index] = '\0';
+            gps.index = 0;
+            gps.parser_state = GPS_STATE_DATA;
         }
         break;
 
     case GPS_STATE_DATA:
         if (c == '*')
         {
-            data[index] = '\0';
-            parser_state = GPS_STATE_CHECKSUM1;
+            gps.data[gps.index] = '\0';
+            gps.parser_state = GPS_STATE_CHECKSUM1;
         }
         else
         {
             if (c == '\r')
             {
-                data[index] = '\0';
-                parser_state = GPS_STATE_SOM;
-                has_message = true;
+                gps.data[gps.index] = '\0';
+                gps.parser_state = GPS_STATE_SOM;
+                gps.has_message = true;
                 return true;
             }
 
-            checksum ^= c;
-            data[index++] = c;
-            if (index >= GPS_MAX_DATA_LEN)
-                parser_state = GPS_STATE_SOM;
+            gps.checksum ^= c;
+            gps.data[gps.index++] = c;
+            if (gps.index >= GPS_MAX_DATA_LEN)
+                gps.parser_state = GPS_STATE_SOM;
         }
         break;
 
     case GPS_STATE_CHECKSUM1:
         if ((c - '0') <= 9)
-            recv_checksum = (c - '0') << 4;
+            gps.recv_checksum = (c - '0') << 4;
         else
-            recv_checksum = (c - 'A' + 10) << 4;
+            gps.recv_checksum = (c - 'A' + 10) << 4;
 
-        parser_state = GPS_STATE_CHECKSUM2;
+        gps.parser_state = GPS_STATE_CHECKSUM2;
         break;
 
     case GPS_STATE_CHECKSUM2:
         if ((c - '0') <= 9)
-            recv_checksum |= c - '0';
+            gps.recv_checksum |= c - '0';
         else
-            recv_checksum |= c - 'A' + 10;
+            gps.recv_checksum |= c - 'A' + 10;
 
-        parser_state = GPS_STATE_SOM;
+        gps.parser_state = GPS_STATE_SOM;
 
-        if (checksum == recv_checksum)
+        if (gps.checksum == gps.recv_checksum)
         {
-            has_message = true;
+            gps.has_message = true;
             return true;
         }
 
@@ -213,11 +227,11 @@ bool gps_parse_nmea_char(char c)
 
 bool gps_get_message(struct gps_msg *msg)
 {
-    if (!has_message)
+    if (!gps.has_message)
         return false;
 
-    msg->command = (const char*)command;
-    msg->data = (const char*)data;
+    msg->command = (const char*)gps.command;
+    msg->data = (const char*)gps.data;
     return true;
 }
 

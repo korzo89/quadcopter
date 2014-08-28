@@ -28,9 +28,24 @@ enum pid_type
     PID_TYPE_NUM
 };
 
+struct control_limit
+{
+    float limit;
+    float dead_zone;
+};
+
+struct control_limit_axes
+{
+    struct control_limit pitch;
+    struct control_limit roll;
+    struct control_limit yaw;
+};
+
 //-----------------------------------------------------------------
 
 result_t control_init(void);
+
+bool control_is_armed(void);
 
 result_t control_get_current(struct cmd_control *out);
 

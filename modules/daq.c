@@ -24,10 +24,15 @@
 
 //-----------------------------------------------------------------
 
-static struct daq_value *values[DAQ_VALUES_MAX];
-static uint8_t values_num = 0;
+struct daq_obj
+{
+    struct daq_value    *values[DAQ_VALUES_MAX];
+    uint8_t             values_num;
 
-static xSemaphoreHandle mutex;
+    xSemaphoreHandle    mutex;
+};
+
+static struct daq_obj daq;
 
 //-----------------------------------------------------------------
 
@@ -39,7 +44,9 @@ static void rcp_daq_get_cb(struct rcp_msg *msg);
 
 result_t daq_init(void)
 {
-    mutex = xSemaphoreCreateMutex();
+    memset(&daq, 0, sizeof(daq));
+
+    daq.mutex = xSemaphoreCreateMutex();
 
     rcp_register_callback(RCP_CMD_DAQ_LIST, rcp_daq_list_cb, true);
     rcp_register_callback(RCP_CMD_DAQ_INFO, rcp_daq_info_cb, true);
@@ -52,12 +59,12 @@ result_t daq_init(void)
 
 result_t daq_register_value(const char *name, const char *unit, void *ptr, enum daq_type type)
 {
-    if (!xSemaphoreTake(mutex, portMAX_DELAY))
+    if (!xSemaphoreTake(daq.mutex, portMAX_DELAY))
         return RES_ERR_BLOCKED;
 
     if (!ptr || !name || !unit)
         return RES_ERR_BAD_PARAM;
-    if (values_num >= DAQ_VALUES_MAX)
+    if (daq.values_num >= DAQ_VALUES_MAX)
         return RES_ERR_FATAL;
 
     struct daq_value *new_val = malloc(sizeof(struct daq_value));
@@ -69,9 +76,9 @@ result_t daq_register_value(const char *name, const char *unit, void *ptr, enum 
     new_val->type = type;
     new_val->ptr = ptr;
 
-    values[values_num++] = new_val;
+    daq.values[daq.values_num++] = new_val;
 
-    xSemaphoreGive(mutex);
+    xSemaphoreGive(daq.mutex);
     return RES_OK;
 }
 
@@ -79,7 +86,7 @@ result_t daq_register_value(const char *name, const char *unit, void *ptr, enum 
 
 struct daq_value* daq_get_info(uint8_t id)
 {
-    return id >= values_num ? NULL : values[id];
+    return id >= daq.values_num ? NULL : daq.values[id];
 }
 
 //-----------------------------------------------------------------
@@ -154,7 +161,7 @@ static void rcp_daq_list_cb(struct rcp_msg *msg)
     resp.cmd    = RCP_CMD_DAQ_LIST;
     resp.query  = RCP_CMD_OK;
 
-    resp.daq_list.count = values_num;
+    resp.daq_list.count = daq.values_num;
 
     rcp_send_message(&resp);
 }
