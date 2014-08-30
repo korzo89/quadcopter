@@ -22,6 +22,7 @@
 #include <utils/ustdlib.h>
 #include <FreeRTOS.h>
 #include <semphr.h>
+#include <string.h>
 
 //-----------------------------------------------------------------
 
@@ -47,18 +48,10 @@
 
 //-----------------------------------------------------------------
 
-enum pid_mode
-{
-    PID_MODE_DISABLED = 0,
-    PID_MODE_ANGLE,
-    PID_MODE_RATE
-};
-
 struct pid_axis
 {
-    enum pid_mode   mode;
-    struct pid      angle;
-    struct pid      rate;
+    struct pid angle;
+    struct pid rate;
 };
 
 struct control_obj
@@ -70,7 +63,7 @@ struct control_obj
     struct pid_axis pid_roll;
     struct pid_axis pid_yaw;
 
-    struct cmd_control cmd;
+    struct control_vals curr_control;
 
     xSemaphoreHandle mutex;
 };
@@ -79,13 +72,14 @@ struct control_obj
 
 static struct control_obj control;
 
-static struct pid *pid_ptr[] = {
-    [PID_PITCH]         = &control.pid_pitch.angle,
-    [PID_ROLL]          = &control.pid_roll.angle,
-    [PID_YAW]           = &control.pid_yaw.angle,
-    [PID_PITCH_RATE]    = &control.pid_pitch.rate,
-    [PID_ROLL_RATE]     = &control.pid_roll.rate,
-    [PID_YAW_RATE]      = &control.pid_yaw.rate
+static struct pid *pid_ptr[CONTROL_TYPE_NUM] = {
+    [CONTROL_THROTTLE]      = NULL,
+    [CONTROL_PITCH]         = &control.pid_pitch.angle,
+    [CONTROL_ROLL]          = &control.pid_roll.angle,
+    [CONTROL_YAW]           = &control.pid_yaw.angle,
+    [CONTROL_PITCH_RATE]    = &control.pid_pitch.rate,
+    [CONTROL_ROLL_RATE]     = &control.pid_roll.rate,
+    [CONTROL_YAW_RATE]      = &control.pid_yaw.rate
 };
 
 //-----------------------------------------------------------------
@@ -95,9 +89,16 @@ static void control_task(void *params);
 static void control_lock(void);
 static void control_unlock(void);
 
-static void rcp_cb_angles(struct rcp_msg *msg);
+static void rcp_cb_control(struct rcp_msg *msg);
 static void rcp_cb_pid_set(struct rcp_msg *msg);
 static void rcp_cb_pid_get(struct rcp_msg *msg);
+static void rcp_cb_limits_set(struct rcp_msg *msg);
+static void rcp_cb_limits_get(struct rcp_msg *msg);
+
+static result_t calc_control(const struct cmd_control *cmd, struct control_vals *out);
+static result_t calc_axis_control(const struct control_axis *cmd, struct control_axis_val *out,
+        enum control_type type_angle, enum control_type type_rate);
+static result_t limit_control(enum control_type type, bool absolute, bool bipolar, float val, float *out);
 
 //-----------------------------------------------------------------
 
@@ -108,9 +109,10 @@ result_t control_init(void)
 
     control.armed = false;
     control.connected = false;
+    memset(&control.curr_control, 0, sizeof(control.curr_control));
 
     int i;
-    for (i = 0; i < PID_TYPE_NUM; ++i)
+    for (i = 0; i < CONTROL_TYPE_NUM; ++i)
         pid_reset(pid_ptr[i]);
 
     params_get_pid_pitch(&control.pid_pitch.angle.params);
@@ -120,9 +122,11 @@ result_t control_init(void)
     params_get_pid_roll_rate(&control.pid_roll.rate.params);
     params_get_pid_yaw_rate(&control.pid_yaw.rate.params);
 
-    rcp_register_callback(RCP_CMD_CONTROL, rcp_cb_angles, false);
+    rcp_register_callback(RCP_CMD_CONTROL, rcp_cb_control, false);
     rcp_register_callback(RCP_CMD_PID, rcp_cb_pid_set, false);
     rcp_register_callback(RCP_CMD_PID, rcp_cb_pid_get, true);
+    rcp_register_callback(RCP_CMD_LIMITS, rcp_cb_limits_set, false);
+    rcp_register_callback(RCP_CMD_LIMITS, rcp_cb_limits_get, true);
 
     DAQ_REGISTER_PID_AXIS("Pitch", control.pid_pitch);
     DAQ_REGISTER_PID_AXIS("Roll", control.pid_roll);
@@ -141,83 +145,112 @@ result_t control_init(void)
 
 //-----------------------------------------------------------------
 
-static void control_task(void *params)
+void control_process(void)
 {
-    portTickType last_wake = xTaskGetTickCount();
+    control_lock();
+
+    watchdog_clear();
+
+    if (rcp_is_connected())
+    {
+        if (!control.connected)
+        {
+            buzzer_seq_lib_play(BUZZER_SEQ_CONNECTED);
+            control.connected = true;
+        }
+    }
+    else if (control.connected)
+    {
+        buzzer_seq_lib_play(BUZZER_SEQ_LOST);
+        control.connected = false;
+        control.armed = false;
+        motors_disarm();
+    }
 
     struct vec3 angles, rates;
+    imu_get_angles(&angles);
+    imu_get_rates(&rates);
 
-    while (1)
-    {
-        watchdog_clear();
-
-        if (rcp_is_connected())
-        {
-            if (!control.connected)
-            {
-                buzzer_seq_lib_play(BUZZER_SEQ_CONNECTED);
-                control.connected = true;
-            }
-        }
-        else if (control.connected)
-        {
-            buzzer_seq_lib_play(BUZZER_SEQ_LOST);
-            control.connected = false;
-            control.armed = false;
-            motors_disarm();
-        }
-
-        imu_get_angles(&angles);
-        imu_get_rates(&rates);
-
-//        pid_pitch_rate.set_point = 45.0f;
-
-        const float dt = 0.01f;
+    const float dt = 0.01f;
 
 #if 0
-        if (armed)
-        {
-            float throttle = (float)control.throttle;
-            if (throttle < CONTROL_THROTTLE_DEAD_ZONE)
-                throttle = 0.0f;
-            throttle = throttle / 4095.0 * THROTTLE_MAX;
+    if (armed)
+    {
+        float throttle = (float)control.throttle;
+        if (throttle < CONTROL_THROTTLE_DEAD_ZONE)
+            throttle = 0.0f;
+        throttle = throttle / 4095.0 * THROTTLE_MAX;
 
 //            pid_update_auto(&pid_pitch_rate, angles.y, dt);
 
 //            throttle = pid_pitch_rate.output;
 
-            if (throttle <= 100.0f)
-            {
-                motors_set_throttle(throttle, throttle, throttle, throttle);
+        if (throttle <= 100.0f)
+        {
+            motors_set_throttle(throttle, throttle, throttle, throttle);
 //                motors_set_throttle(0, 0, 0, 0);
-                pid_update_manual(&pid_pitch_rate, rates.y, dt, 0.0f);
-            }
-            else
-            {
-                float sp = (float)control.pitch - 4095.0f / 2.0f;
-                if (fabs(sp) < CONTROL_PITCH_DEAD_ZONE)
-                    sp = 0.0f;
-                else
-                    sp = sp / 4095.0f * 100.0f;
-
-                pid_pitch_rate.setpoint = sp;
-                pid_update_auto(&pid_pitch_rate, rates.y, dt);
-
-                float pitch_out = pid_pitch_rate.output;
-
-                motors_set_throttle(throttle - pitch_out, throttle + pitch_out,
-                        throttle + pitch_out, throttle - pitch_out);
-//                motors_set_throttle(-pitch_out, pitch_out, pitch_out, -pitch_out);
-            }
+            pid_update_manual(&pid_pitch_rate, rates.y, dt, 0.0f);
         }
         else
         {
-            pid_update_manual(&pid_pitch_rate, rates.y, dt, 0.0f);
+            float sp = (float)control.pitch - 4095.0f / 2.0f;
+            if (fabs(sp) < CONTROL_PITCH_DEAD_ZONE)
+                sp = 0.0f;
+            else
+                sp = sp / 4095.0f * 100.0f;
+
+            pid_pitch_rate.setpoint = sp;
+            pid_update_auto(&pid_pitch_rate, rates.y, dt);
+
+            float pitch_out = pid_pitch_rate.output;
+
+            motors_set_throttle(throttle - pitch_out, throttle + pitch_out,
+                    throttle + pitch_out, throttle - pitch_out);
+//                motors_set_throttle(-pitch_out, pitch_out, pitch_out, -pitch_out);
         }
+    }
+    else
+    {
+        pid_update_manual(&pid_pitch_rate, rates.y, dt, 0.0f);
+    }
 #endif
 
+    control_unlock();
+}
+
+//-----------------------------------------------------------------
+
+static void control_task(void *params)
+{
+    portTickType last_wake = xTaskGetTickCount();
+
+    while (1)
+    {
+        control_process();
         vTaskDelayUntil(&last_wake, MSEC_TO_TICKS(10));
     }
+}
+
+//-----------------------------------------------------------------
+
+void control_arm(void)
+{
+    control_lock();
+    control.armed = true;
+    motors_arm();
+    control_unlock();
+    buzzer_seq_lib_play(BUZZER_SEQ_ARM);
+}
+
+//-----------------------------------------------------------------
+
+void control_disarm(void)
+{
+    control_lock();
+    control.armed = false;
+    motors_disarm();
+    control_unlock();
+    buzzer_seq_lib_play(BUZZER_SEQ_DISARM);
 }
 
 //-----------------------------------------------------------------
@@ -229,17 +262,35 @@ bool control_is_armed(void)
 
 //-----------------------------------------------------------------
 
-result_t control_get_current(struct cmd_control *out)
+result_t control_set_vals(const struct control_vals *vals)
 {
-    memcpy(out, &control.cmd, sizeof(control.cmd));
+    if (!vals)
+        return RES_ERR_BAD_PARAM;
+
+    control_lock();
+    memcpy(&control.curr_control, vals, sizeof(control.curr_control));
+    control_unlock();
     return RES_OK;
 }
 
 //-----------------------------------------------------------------
 
-struct pid* control_get_pid(enum pid_type type)
+result_t control_get_vals(struct control_vals *out)
 {
-    if ((int)type >= (int)PID_TYPE_NUM)
+    if (!out)
+        return RES_ERR_BAD_PARAM;
+
+    control_lock();
+    memcpy(out, &control.curr_control, sizeof(control.curr_control));
+    control_unlock();
+    return RES_OK;
+}
+
+//-----------------------------------------------------------------
+
+struct pid* control_get_pid(enum control_type type)
+{
+    if ((int)type >= (int)CONTROL_TYPE_NUM)
         return NULL;
 
     return pid_ptr[(int)type];
@@ -261,28 +312,110 @@ static void control_unlock(void)
 
 //-----------------------------------------------------------------
 
-static void rcp_cb_angles(struct rcp_msg *msg)
+static result_t calc_control(const struct cmd_control *cmd, struct control_vals *out)
 {
-    memcpy(&control.cmd, &msg->control, sizeof(control.cmd));
+    if (!cmd || !out)
+        return RES_ERR_BAD_PARAM;
 
-    if (control.armed && !control.cmd.flags.armed)
+    result_t res;
+    res = limit_control(CONTROL_THROTTLE, cmd->throttle.absolute, false, cmd->throttle.value, &out->throttle);
+    if (res != RES_OK)
+        return res;
+
+    res = calc_axis_control(&cmd->pitch, &out->pitch, CONTROL_PITCH, CONTROL_PITCH_RATE);
+    if (res != RES_OK)
+        return res;
+    res = calc_axis_control(&cmd->roll, &out->roll, CONTROL_ROLL, CONTROL_ROLL_RATE);
+    if (res != RES_OK)
+        return res;
+    res = calc_axis_control(&cmd->yaw, &out->yaw, CONTROL_YAW, CONTROL_YAW_RATE);
+    if (res != RES_OK)
+        return res;
+
+    return RES_OK;
+}
+
+//-----------------------------------------------------------------
+
+static result_t calc_axis_control(const struct control_axis *cmd, struct control_axis_val *out,
+        enum control_type type_angle, enum control_type type_rate)
+{
+    if (!cmd || !out)
+        return RES_ERR_BAD_PARAM;
+
+    out->mode = (enum axis_mode)cmd->mode;
+    enum control_type type;
+    switch (out->mode)
     {
-        control.armed = false;
-        motors_disarm();
-        buzzer_seq_lib_play(BUZZER_SEQ_DISARM);
+    case AXIS_MODE_ANGLE:
+        type = type_angle;
+        break;
+    case AXIS_MODE_RATE:
+        type = type_rate;
+        break;
+    default:
+        out->value = 0.0f;
+        return RES_OK;
     }
-    else if (!control.armed && control.cmd.flags.armed)
-    {
-        control.armed = true;
-        motors_arm();
-        buzzer_seq_lib_play(BUZZER_SEQ_ARM);
-    }
+
+    return limit_control(type, cmd->value.absolute, true, cmd->value.value, &out->value);
+}
+
+//-----------------------------------------------------------------
+
+static result_t limit_control(enum control_type type, bool absolute, bool bipolar, float val, float *out)
+{
+    if (!out)
+        return RES_ERR_BAD_PARAM;
+
+    struct control_limit limit;
+    result_t res = params_get_limit(type, &limit);
+    if (res != RES_OK)
+        return RES_ERR_FATAL;
+
+    if (!absolute)
+        val *= limit.limit;
+
+    if (val > limit.limit)
+        val = limit.limit;
+    else if (bipolar && (val < -limit.limit))
+        val = -limit.limit;
+    else if (!bipolar && (val < 0.0f))
+        val = 0.0f;
+
+    if (fabsf(val) < limit.dead_zone)
+        val = 0.0f;
+
+    *out = val;
+    return RES_OK;
+}
+
+//-----------------------------------------------------------------
+
+static void rcp_cb_control(struct rcp_msg *msg)
+{
+    control_lock();
+
+    struct cmd_control *cmd = &msg->control;
+
+    if (control.armed && !cmd->flags.armed)
+        control_disarm();
+    else if (!control.armed && cmd->flags.armed)
+        control_arm();
+
+    struct control_vals vals;
+    if (calc_control(cmd, &vals) == RES_OK)
+        control_set_vals(&vals);
+
+    control_unlock();
 }
 
 //-----------------------------------------------------------------
 
 static void rcp_cb_pid_set(struct rcp_msg *msg)
 {
+    control_lock();
+
     struct pid *pid = pid_ptr[msg->pid.type];
 
     pid->params.kp = msg->pid.kp;
@@ -291,6 +424,8 @@ static void rcp_cb_pid_set(struct rcp_msg *msg)
     pid->params.kt = msg->pid.kt;
 
     pid_reset(pid);
+
+    control_unlock();
 
     buzzer_seq_lib_play(BUZZER_SEQ_CONFIRM);
 }
@@ -311,6 +446,68 @@ static void rcp_cb_pid_get(struct rcp_msg *msg)
     resp.pid.ki = pid->params.ki;
     resp.pid.kd = pid->params.kd;
     resp.pid.kt = pid->params.kt;
+
+    rcp_send_message(&resp);
+}
+
+//-----------------------------------------------------------------
+
+static void rcp_cb_limits_set(struct rcp_msg *msg)
+{
+    control_lock();
+
+    uint8_t i;
+    for (i = 0; i < LIMITS_MAX; ++i)
+    {
+        const struct limit_data *arg = &msg->limits.limits[i];
+        if (arg->valid)
+        {
+            struct control_limit par;
+            result_t res = params_get_limit((enum control_type)arg->type, &par);
+            if (res == RES_OK)
+            {
+                struct control_limit data = {
+                    .limit      = arg->limit.limit,
+                    .dead_zone  = arg->limit.dead_zone
+                };
+                params_set_limit((enum control_type)arg->type, &data);
+            }
+        }
+    }
+
+    control_unlock();
+
+    buzzer_seq_lib_play(BUZZER_SEQ_CONFIRM);
+}
+
+//-----------------------------------------------------------------
+
+static void rcp_cb_limits_get(struct rcp_msg *msg)
+{
+    struct rcp_msg resp;
+    resp.cmd    = RCP_CMD_LIMITS;
+    resp.query  = RCP_CMD_OK;
+
+    memset(&resp.limits, 0, sizeof(resp.limits));
+
+    uint8_t i;
+    for (i = 0; i < LIMITS_MAX; ++i)
+    {
+        const struct limit_data *arg = &msg->limits.limits[i];
+        if (arg->valid)
+        {
+            struct control_limit par;
+            result_t res = params_get_limit((enum control_type)arg->type, &par);
+            if (res == RES_OK)
+            {
+                struct limit_data *dst = &resp.limits.limits[i];
+                dst->valid = true;
+                dst->type = arg->type;
+                dst->limit.limit = par.limit;
+                dst->limit.dead_zone = par.dead_zone;
+            }
+        }
+    }
 
     rcp_send_message(&resp);
 }

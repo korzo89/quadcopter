@@ -81,7 +81,7 @@ void oled_set_pos(uint8_t row, uint8_t col)
 
 //-----------------------------------------------------------------
 
-void oled_disp_str(char *str)
+void oled_disp_str(const char *str)
 {
     char c;
     while (c = *str++)
@@ -90,7 +90,7 @@ void oled_disp_str(char *str)
 
 //-----------------------------------------------------------------
 
-void oled_disp_str_at(char *str, uint8_t row, uint8_t col)
+void oled_disp_str_at(const char *str, uint8_t row, uint8_t col)
 {
     oled_set_pos(row, col);
     oled_disp_str(str);
@@ -113,7 +113,7 @@ void oled_disp_char(char c)
 
 //-----------------------------------------------------------------
 
-void oled_disp_symbol(uint8_t *sym, uint8_t len)
+void oled_disp_symbol(const uint8_t *sym, uint8_t len)
 {
     while (len--)
         oled_send_data(*sym++);

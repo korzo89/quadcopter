@@ -43,15 +43,15 @@ void adxl345_get_accel(int16_t *x, int16_t *y, int16_t *z)
 
 //-----------------------------------------------------------------
 
-adxl345_range_t adxl345_get_range()
+enum adxl345_range adxl345_get_range()
 {
     uint8_t range = i2c_read_reg_byte(i2c_if, ADXL345_ADDR, ADXL345_DATA_FORMAT, NULL);
-    return (adxl345_range_t)(range & ADXL345_RANGE_MASK);
+    return (enum adxl345_range)(range & ADXL345_RANGE_MASK);
 }
 
 //-----------------------------------------------------------------
 
-void adxl345_set_range(adxl345_range_t range)
+void adxl345_set_range(enum adxl345_range range)
 {
     uint8_t reg = i2c_read_reg_byte(i2c_if, ADXL345_ADDR, ADXL345_POWER_CTL, NULL);
     reg = (reg & ~ADXL345_RANGE_MASK) | (uint8_t)range;

@@ -20,11 +20,11 @@
 
 //-----------------------------------------------------------------
 
-typedef struct
+struct buzzer_step
 {
     uint32_t freq;
     int action;
-} buzzer_step_t;
+};
 
 //-----------------------------------------------------------------
 
@@ -32,7 +32,7 @@ void buzzer_init(void);
 
 void buzzer_set_freq(uint32_t freq);
 
-result_t buzzer_play_seq(buzzer_step_t *seq);
+result_t buzzer_play_seq(const struct buzzer_step *seq);
 result_t buzzer_stop_seq(void);
 
 //-----------------------------------------------------------------

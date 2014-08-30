@@ -8,11 +8,13 @@
 #ifndef ADC_H_
 #define ADC_H_
 
+#include <stdint.h>
+
 //-----------------------------------------------------------------
 
 void adc_init(void);
 
-unsigned long adc_get_value(void);
+uint32_t adc_get_value(void);
 
 //-----------------------------------------------------------------
 

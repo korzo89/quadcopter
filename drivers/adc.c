@@ -31,7 +31,7 @@ void adc_init(void)
 
 //-----------------------------------------------------------------
 
-unsigned long adc_get_value(void)
+uint32_t adc_get_value(void)
 {
     ADCIntClear(ADC0_BASE, 0);
     ADCProcessorTrigger(ADC0_BASE, 0);

@@ -124,8 +124,10 @@ static void rcp_cb_get(struct rcp_msg *msg);
 static void rcp_cb_set(struct rcp_msg *msg);
 static void rcp_cb_save(struct rcp_msg *msg);
 
-static result_t params_get(void *out, void *src, size_t size);
+static result_t params_copy(void *out, const void *src, size_t size);
 static result_t params_get_pid(struct pid_params *out, struct pid_params *src);
+
+static struct control_limit* get_limit(enum control_type type);
 
 //-----------------------------------------------------------------
 
@@ -475,9 +477,9 @@ static void rcp_cb_save(struct rcp_msg *msg)
 
 //-----------------------------------------------------------------
 
-static result_t params_get(void *out, void *src, size_t size)
+static result_t params_copy(void *out, const void *src, size_t size)
 {
-    if (!out)
+    if (!out || !src)
         return RES_ERR_BAD_PARAM;
     params_lock();
     memcpy(out, src, size);
@@ -489,7 +491,7 @@ static result_t params_get(void *out, void *src, size_t size)
 
 static result_t params_get_pid(struct pid_params *out, struct pid_params *pid)
 {
-    return params_get(out, pid, sizeof(struct pid_params));
+    return params_copy(out, pid, sizeof(struct pid_params));
 }
 
 //-----------------------------------------------------------------
@@ -499,67 +501,119 @@ result_t params_get_pid_pitch(struct pid_params *out)
     return params_get_pid(out, &params.pid_pitch);
 }
 
+//-----------------------------------------------------------------
+
 result_t params_get_pid_roll(struct pid_params *out)
 {
     return params_get_pid(out, &params.pid_roll);
 }
+
+//-----------------------------------------------------------------
 
 result_t params_get_pid_yaw(struct pid_params *out)
 {
     return params_get_pid(out, &params.pid_yaw);
 }
 
+//-----------------------------------------------------------------
+
 result_t params_get_pid_pitch_rate(struct pid_params *out)
 {
     return params_get_pid(out, &params.pid_pitch_rate);
 }
+
+//-----------------------------------------------------------------
 
 result_t params_get_pid_roll_rate(struct pid_params *out)
 {
     return params_get_pid(out, &params.pid_roll_rate);
 }
 
+//-----------------------------------------------------------------
+
 result_t params_get_pid_yaw_rate(struct pid_params *out)
 {
     return params_get_pid(out, &params.pid_yaw_rate);
 }
 
+//-----------------------------------------------------------------
+
 result_t params_get_mag_calib_scale(float *out)
 {
-    return params_get(out, params.mag_calib_scale, sizeof(params.mag_calib_scale));
+    return params_copy(out, params.mag_calib_scale, sizeof(params.mag_calib_scale));
 }
+
+//-----------------------------------------------------------------
 
 result_t params_get_mag_calib_offset(float *out)
 {
-    return params_get(out, params.mag_calib_offset, sizeof(params.mag_calib_offset));
+    return params_copy(out, params.mag_calib_offset, sizeof(params.mag_calib_offset));
 }
+
+//-----------------------------------------------------------------
 
 result_t params_get_triad_ref_acc(struct vec3 *out)
 {
-    return params_get(out, &params.triad_ref_acc, sizeof(struct vec3));
+    return params_copy(out, &params.triad_ref_acc, sizeof(struct vec3));
 }
+
+//-----------------------------------------------------------------
 
 result_t params_get_triad_ref_mag(struct vec3 *out)
 {
-    return params_get(out, &params.triad_ref_mag, sizeof(struct vec3));
+    return params_copy(out, &params.triad_ref_mag, sizeof(struct vec3));
 }
+
+//-----------------------------------------------------------------
 
 result_t params_get_madgwick_beta(float *out)
 {
-    return params_get(out, &params.madgwick_beta, sizeof(float));
+    return params_copy(out, &params.madgwick_beta, sizeof(float));
 }
 
-result_t params_get_throttle_limit(struct control_limit *out)
+//-----------------------------------------------------------------
+
+static struct control_limit* get_limit(enum control_type type)
 {
-    return params_get(out, &params.limit_throttle, sizeof(params.limit_throttle));
+    switch (type)
+    {
+    case CONTROL_THROTTLE:
+        return &params.limit_throttle;
+    case CONTROL_PITCH:
+        return &params.limit_angles.pitch;
+    case CONTROL_ROLL:
+        return &params.limit_angles.roll;
+    case CONTROL_YAW:
+        return &params.limit_angles.yaw;
+    case CONTROL_PITCH_RATE:
+        return &params.limit_rates.pitch;
+    case CONTROL_ROLL_RATE:
+        return &params.limit_rates.roll;
+    case CONTROL_YAW_RATE:
+        return &params.limit_rates.yaw;
+    default:
+        return NULL;
+    }
 }
 
-result_t params_get_angles_limits(struct control_limit_axes *out)
+//-----------------------------------------------------------------
+
+result_t params_get_limit(enum control_type type, struct control_limit *out)
 {
-    return params_get(out, &params.limit_angles, sizeof(params.limit_angles));
+    struct control_limit *par = get_limit(type);
+    if (!out || !par)
+        return RES_ERR_BAD_PARAM;
+    params_copy(out, par, sizeof(struct control_limit));
+    return RES_OK;
 }
 
-result_t params_get_rates_limits(struct control_limit_axes *out)
+//-----------------------------------------------------------------
+
+result_t params_set_limit(enum control_type type, const struct control_limit *limit)
 {
-    return params_get(out, &params.limit_rates, sizeof(params.limit_rates));
+    struct control_limit *par = get_limit(type);
+    if (!limit || !par)
+        return RES_ERR_BAD_PARAM;
+    params_copy(par, limit, sizeof(struct control_limit));
+    return RES_OK;
 }

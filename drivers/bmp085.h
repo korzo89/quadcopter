@@ -51,11 +51,11 @@
 
 void bmp085_init(void);
 
-int16_t bmp085_read_temp();
-int32_t bmp085_read_pressure();
+int16_t bmp085_read_temp(void);
+int32_t bmp085_read_pressure(void);
 
-int16_t bmp085_read_ut();
-int32_t bmp085_read_up();
+int16_t bmp085_read_ut(void);
+int32_t bmp085_read_up(void);
 
 int16_t bmp085_read_int(uint8_t reg);
 

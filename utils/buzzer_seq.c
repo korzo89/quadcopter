@@ -11,62 +11,62 @@
 
 //-----------------------------------------------------------------
 
-static const buzzer_step_t SEQ_ARM[] = {
+static const struct buzzer_step seq_arm[] = {
     { NOTE_F4, SEQ_WAIT(80) },
     { NOTE_A4, SEQ_WAIT(80) },
     { NOTE_C5, SEQ_WAIT(80) },
     { 0,       SEQ_STOP     }
 };
 
-static const buzzer_step_t SEQ_DISARM[] = {
+static const struct buzzer_step seq_disarm[] = {
     { NOTE_C5, SEQ_WAIT(80) },
     { NOTE_A4, SEQ_WAIT(80) },
     { NOTE_F4, SEQ_WAIT(80) },
     { 0,       SEQ_STOP     }
 };
 
-static const buzzer_step_t SEQ_CONNECTED[] = {
+static const struct buzzer_step seq_connected[] = {
     { NOTE_D5, SEQ_WAIT(100) },
     { NOTE_G5, SEQ_WAIT(100) },
     { 0,       SEQ_STOP      }
 };
 
-static const buzzer_step_t SEQ_LOST[] = {
+static const struct buzzer_step seq_lost[] = {
     { NOTE_G5, SEQ_WAIT(100) },
     { NOTE_D5, SEQ_WAIT(100) },
     { 0,       SEQ_STOP      }
 };
 
-static const buzzer_step_t SEQ_CONFIRM[] = {
+static const struct buzzer_step seq_confirm[] = {
     { NOTE_C5, SEQ_WAIT(30) },
     { NOTE_D5, SEQ_WAIT(30) },
     { 0,       SEQ_STOP     }
 };
 
-static const buzzer_step_t SEQ_PRESS[] = {
+static const struct buzzer_step seq_press[] = {
     { NOTE_C5, SEQ_WAIT(10) },
     { 0,       SEQ_STOP     }
 };
 
-const buzzer_step_t *SEQUENCES[] = {
-    [BUZZER_SEQ_ARM]        = SEQ_ARM,
-    [BUZZER_SEQ_DISARM]     = SEQ_DISARM,
-    [BUZZER_SEQ_CONNECTED]  = SEQ_CONNECTED,
-    [BUZZER_SEQ_LOST]       = SEQ_LOST,
-    [BUZZER_SEQ_CONFIRM]    = SEQ_CONFIRM,
-    [BUZZER_SEQ_PRESS]      = SEQ_PRESS
+const struct buzzer_step *sequences[] = {
+    [BUZZER_SEQ_ARM]        = seq_arm,
+    [BUZZER_SEQ_DISARM]     = seq_disarm,
+    [BUZZER_SEQ_CONNECTED]  = seq_connected,
+    [BUZZER_SEQ_LOST]       = seq_lost,
+    [BUZZER_SEQ_CONFIRM]    = seq_confirm,
+    [BUZZER_SEQ_PRESS]      = seq_press
 };
 
 //-----------------------------------------------------------------
 
-buzzer_step_t* buzzer_seq_lib_get(buzzer_seq_t type)
+const struct buzzer_step* buzzer_seq_lib_get(enum buzzer_seq type)
 {
-    return (buzzer_step_t*)SEQUENCES[(int)type];
+    return sequences[(uint32_t)type];
 }
 
 //-----------------------------------------------------------------
 
-result_t buzzer_seq_lib_play(buzzer_seq_t type)
+result_t buzzer_seq_lib_play(enum buzzer_seq type)
 {
     return buzzer_play_seq(buzzer_seq_lib_get(type));
 }

@@ -119,17 +119,34 @@ static void button_task(void *params)
 
 //-----------------------------------------------------------------
 
-static void gui_disp_control(const char *name, uint16_t val, int row)
+static void gui_disp_control(const char *name, uint8_t row, char mode, float val)
 {
-    usprintf(buf, "%5s %4d ", name, val);
-    oled_disp_str_at(buf, row, 0);
+    int dec = (int)val;
+    int frac = (int)(val * 10) % 10;
 
-    const int num = 5;
-    uint32_t len = (uint32_t)val * 100 / 4095;
-    len = len * num / 100;
-    int i;
-    for (i = 0; i < num; ++i)
-        oled_disp_char(i < len ? '=' : '.');
+    usprintf(buf, "%5s %c %5d.%1d", name, mode, dec, frac);
+    oled_disp_str_at(name, row, 0);
+}
+
+//-----------------------------------------------------------------
+
+static void gui_disp_control_axis(const char *name, uint8_t row, const struct control_axis_val *axis)
+{
+    char mode;
+    switch (axis->mode)
+    {
+    case AXIS_MODE_ANGLE:
+        mode = 'A';
+        break;
+    case AXIS_MODE_RATE:
+        mode = 'R';
+        break;
+    default:
+        mode = 'D';
+        break;
+    }
+
+    gui_disp_control(name, row, mode, axis->value);
 }
 
 //-----------------------------------------------------------------
@@ -196,19 +213,15 @@ static void gui_task(void *params)
         {
         case 0:
         {
-            struct cmd_control control;
-            control_get_current(&control);
+            struct control_vals control;
+            control_get_vals(&control);
 
-            uint16_t temp = (uint16_t)(control.throttle.value * 4095.0f);
-            gui_disp_control("1 Thr", temp, 2);
-            temp = (uint16_t)((control.pitch.value.value + 1.0f) / 2.0f * 4095.0f);
-            gui_disp_control("2 Pit", temp, 3);
-            temp = (uint16_t)((control.roll.value.value + 1.0f) / 2.0f * 4095.0f);
-            gui_disp_control("3 Rol", temp, 4);
-            temp = (uint16_t)((control.yaw.value.value + 1.0f) / 2.0f * 4095.0f);
-            gui_disp_control("4 Yaw", temp, 5);
+            gui_disp_control("1 Thr", 2, 'T', control.throttle);
+            gui_disp_control_axis("2 Pit", 3, &control.pitch);
+            gui_disp_control_axis("3 Rol", 4, &control.roll);
+            gui_disp_control_axis("4 Yaw", 5, &control.yaw);
             oled_set_pos(6, 0);
-            oled_disp_str(control.flags.armed ? "ARMED   " : "DISARMED");
+            oled_disp_str(control_is_armed() ? "ARMED   " : "DISARMED");
 
             break;
         }

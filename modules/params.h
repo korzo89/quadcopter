@@ -61,9 +61,8 @@ result_t params_get_triad_ref_mag(struct vec3 *out);
 
 result_t params_get_madgwick_beta(float *out);
 
-result_t params_get_throttle_limit(struct control_limit *out);
-result_t params_get_angles_limits(struct control_limit_axes *out);
-result_t params_get_rates_limits(struct control_limit_axes *out);
+result_t params_get_limit(enum control_type type, struct control_limit *out);
+result_t params_set_limit(enum control_type type, const struct control_limit *limit);
 
 //-----------------------------------------------------------------
 

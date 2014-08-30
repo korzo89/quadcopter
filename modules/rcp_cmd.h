@@ -40,6 +40,8 @@ enum rcp_cmd
     RCP_CMD_DAQ_INFO,
     RCP_CMD_DAQ_GET,
 
+    RCP_CMD_LIMITS,
+
     RCP_CMD_NUM
 };
 
@@ -53,11 +55,7 @@ struct control_value
 struct control_axis
 {
     struct control_value value;
-    struct
-    {
-        uint8_t ignore  : 1;
-        uint8_t mode    : 7;
-    } mode;
+    uint8_t mode;
 } PACK_STRUCT;
 
 struct cmd_control
@@ -169,6 +167,26 @@ struct cmd_daq_get
     float       values[DAQ_GET_VALS_MAX];
 } PACK_STRUCT;
 
+#define LIMITS_MAX      3
+
+struct control_limit_packed
+{
+    float limit;
+    float dead_zone;
+} PACK_STRUCT;
+
+struct limit_data
+{
+    uint8_t valid;
+    uint8_t type;
+    struct control_limit_packed limit;
+} PACK_STRUCT;
+
+struct cmd_limits
+{
+    struct limit_data limits[LIMITS_MAX];
+} PACK_STRUCT;
+
 
 struct rcp_msg
 {
@@ -188,6 +206,7 @@ struct rcp_msg
         struct cmd_daq_info     daq_info;
         struct cmd_daq_get_req  daq_get_req;
         struct cmd_daq_get      daq_get;
+        struct cmd_limits       limits;
     };
 } PACK_STRUCT;
 

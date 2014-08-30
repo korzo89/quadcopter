@@ -69,13 +69,13 @@
 
 //-----------------------------------------------------------------
 
-typedef enum
+enum adxl345_range
 {
     ADXL345_RANGE_2G    = 0x00,
     ADXL345_RANGE_4G    = 0x01,
     ADXL345_RANGE_8G    = 0x02,
     ADXL345_RANGE_16G   = 0x03
-} adxl345_range_t;
+};
 
 //-----------------------------------------------------------------
 
@@ -83,8 +83,8 @@ void adxl345_init(void);
 
 void adxl345_get_accel(int16_t *x, int16_t *y, int16_t *z);
 
-adxl345_range_t adxl345_get_range();
-void adxl345_set_range(adxl345_range_t range);
+enum adxl345_range adxl345_get_range();
+void adxl345_set_range(enum adxl345_range range);
 
 void adxl345_get_offsets(int8_t *x, int8_t *y, int8_t *z);
 void adxl345_set_offsets(int8_t x, int8_t y, int8_t z);

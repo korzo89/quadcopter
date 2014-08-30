@@ -20,7 +20,7 @@ static uint8_t buffer[6];
 
 //-----------------------------------------------------------------
 
-void hmc5883_init()
+void hmc5883_init(void)
 {
     i2c_if = imu_i2c_get_if();
 

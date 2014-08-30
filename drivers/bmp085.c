@@ -57,7 +57,7 @@ void bmp085_init(void)
 
 //-----------------------------------------------------------------
 
-int16_t bmp085_read_temp()
+int16_t bmp085_read_temp(void)
 {
     int32_t x1, x2;
     int16_t ut;
@@ -74,7 +74,7 @@ int16_t bmp085_read_temp()
 
 //-----------------------------------------------------------------
 
-int32_t bmp085_read_pressure()
+int32_t bmp085_read_pressure(void)
 {
     int32_t x1, x2, x3, b3, b6, p, up;
     uint32_t b4, b7;
@@ -109,7 +109,7 @@ int32_t bmp085_read_pressure()
 
 //-----------------------------------------------------------------
 
-int16_t bmp085_read_ut()
+int16_t bmp085_read_ut(void)
 {
     i2c_write_reg_byte(i2c_if, BMP085_ADDR, BMP085_CONTROL, BMP085_UT);
     DELAY_MS(6);
@@ -119,7 +119,7 @@ int16_t bmp085_read_ut()
 
 //-----------------------------------------------------------------
 
-int32_t bmp085_read_up()
+int32_t bmp085_read_up(void)
 {
     i2c_write_reg_byte(i2c_if, BMP085_ADDR, BMP085_CONTROL, BMP085_UP + (BMP085_OSS << 6));
     DELAY_MS(3 + (3 << BMP085_OSS));

@@ -16,16 +16,17 @@
 
 //-----------------------------------------------------------------
 
-enum pid_type
+enum control_type
 {
-    PID_PITCH = 0,
-    PID_ROLL,
-    PID_YAW,
-    PID_PITCH_RATE,
-    PID_ROLL_RATE,
-    PID_YAW_RATE,
+    CONTROL_THROTTLE = 0,
+    CONTROL_PITCH,
+    CONTROL_ROLL,
+    CONTROL_YAW,
+    CONTROL_PITCH_RATE,
+    CONTROL_ROLL_RATE,
+    CONTROL_YAW_RATE,
 
-    PID_TYPE_NUM
+    CONTROL_TYPE_NUM
 };
 
 struct control_limit
@@ -41,15 +42,41 @@ struct control_limit_axes
     struct control_limit yaw;
 };
 
+enum axis_mode
+{
+    AXIS_MODE_DISABLED = 0,
+    AXIS_MODE_ANGLE,
+    AXIS_MODE_RATE
+};
+
+struct control_axis_val
+{
+    float           value;
+    enum axis_mode  mode;
+};
+
+struct control_vals
+{
+    float throttle;
+    struct control_axis_val pitch;
+    struct control_axis_val roll;
+    struct control_axis_val yaw;
+};
+
 //-----------------------------------------------------------------
 
 result_t control_init(void);
 
+void control_arm(void);
+void control_disarm(void);
 bool control_is_armed(void);
 
-result_t control_get_current(struct cmd_control *out);
+result_t control_set_vals(const struct control_vals *vals);
+result_t control_get_vals(struct control_vals *out);
 
-struct pid* control_get_pid(enum pid_type type);
+struct pid* control_get_pid(enum control_type type);
+
+void control_process(void);
 
 //-----------------------------------------------------------------
 

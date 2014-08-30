@@ -25,14 +25,23 @@
 
 //-----------------------------------------------------------------
 
-static xSemaphoreHandle mutex;
-static xTimerHandle timer;
-static buzzer_step_t *curr_sequence;
-static unsigned int curr_step, curr_loop;
+struct buzzer_obj
+{
+    xSemaphoreHandle    mutex;
+    xTimerHandle        timer;
+    uint32_t            curr_step;
+    uint32_t            curr_loop;
+    const struct buzzer_step *curr_sequence;
+};
+
+static struct buzzer_obj buzzer;
 
 //-----------------------------------------------------------------
 
-static void buzzer_process_seq(xTimerHandle);
+static void buzzer_process_seq(xTimerHandle tim);
+
+static void buzzer_lock(void);
+static void buzzer_unlock(void);
 
 //-----------------------------------------------------------------
 
@@ -53,9 +62,9 @@ void buzzer_init(void)
     buzzer_set_freq(10);
     buzzer_set_freq(0);
 
-    mutex = xSemaphoreCreateMutex();
+    buzzer.mutex = xSemaphoreCreateRecursiveMutex();
 
-    timer = xTimerCreate((const signed char*)"buz_tim", MSEC_TO_TICKS(1000), pdFALSE,
+    buzzer.timer = xTimerCreate((const signed char*)"buz_tim", MSEC_TO_TICKS(1000), pdFALSE,
             BUZZER_SEQ_TIMER_ID, buzzer_process_seq);
 }
 
@@ -63,6 +72,8 @@ void buzzer_init(void)
 
 void buzzer_set_freq(uint32_t freq)
 {
+    buzzer_lock();
+
     uint32_t cycle = SysCtlClockGet() / freq;
     uint32_t period = cycle;
 
@@ -78,24 +89,25 @@ void buzzer_set_freq(uint32_t freq)
         TimerEnable(BUZZER_TIMER, TIMER_A);
     else
         TimerDisable(BUZZER_TIMER, TIMER_A);
+
+    buzzer_unlock();
 }
 
 //-----------------------------------------------------------------
 
-result_t buzzer_play_seq(buzzer_step_t *seq)
+result_t buzzer_play_seq(const struct buzzer_step *seq)
 {
-    if (xSemaphoreTake(mutex, portMAX_DELAY) != pdTRUE)
-        return RES_ERR_FATAL;
+    buzzer_lock();
 
-    xTimerStop(timer, 0);
+    xTimerStop(buzzer.timer, 0);
 
-    curr_sequence = seq;
-    curr_step = 0;
-    curr_loop = 0;
+    buzzer.curr_sequence = seq;
+    buzzer.curr_step = 0;
+    buzzer.curr_loop = 0;
 
-    buzzer_process_seq(timer);
+    buzzer_process_seq(buzzer.timer);
 
-    xSemaphoreGive(mutex);
+    buzzer_unlock();
     return RES_OK;
 }
 
@@ -103,13 +115,12 @@ result_t buzzer_play_seq(buzzer_step_t *seq)
 
 result_t buzzer_stop_seq(void)
 {
-    if (xSemaphoreTake(mutex, portMAX_DELAY) != pdTRUE)
-        return RES_ERR_FATAL;
+    buzzer_lock();
 
-    xTimerStop(timer, 0);
+    xTimerStop(buzzer.timer, 0);
     buzzer_set_freq(0);
 
-    xSemaphoreGive(mutex);
+    buzzer_unlock();
     return RES_OK;
 }
 
@@ -119,29 +130,47 @@ static void buzzer_process_seq(xTimerHandle tim)
 {
     (void)tim;
 
-    buzzer_step_t step = curr_sequence[curr_step];
+    buzzer_lock();
 
-    switch (step.action)
+    const struct buzzer_step *step = &buzzer.curr_sequence[buzzer.curr_step];
+
+    switch (step->action)
     {
     case SEQ_STOP:
         buzzer_set_freq(0);
         return;
     case SEQ_LOOP:
-        if (++curr_loop == step.freq && step.freq > 0)
+        if (++buzzer.curr_loop == step->freq && step->freq > 0)
         {
             buzzer_set_freq(0);
             return;
         }
-        curr_step = 0;
-        step = curr_sequence[0];
+        buzzer.curr_step = 0;
+        step = &buzzer.curr_sequence[0];
         break;
     default:
         break;
     }
 
-    buzzer_set_freq(step.freq);
-    curr_step++;
+    buzzer_set_freq(step->freq);
+    buzzer.curr_step++;
 
-    xTimerChangePeriod(timer, MSEC_TO_TICKS(step.action), 0);
-    xTimerStart(timer, 0);
+    xTimerChangePeriod(buzzer.timer, MSEC_TO_TICKS(step->action), 0);
+    xTimerStart(buzzer.timer, 0);
+
+    buzzer_unlock();
+}
+
+//-----------------------------------------------------------------
+
+static void buzzer_lock(void)
+{
+    xSemaphoreTakeRecursive(buzzer.mutex, portMAX_DELAY);
+}
+
+//-----------------------------------------------------------------
+
+static void buzzer_unlock(void)
+{
+    xSemaphoreGiveRecursive(buzzer.mutex);
 }
