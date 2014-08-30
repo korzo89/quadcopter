@@ -50,6 +50,7 @@
 
 struct pid_axis
 {
+    enum axis_mode mode;
     struct pid angle;
     struct pid rate;
 };
@@ -97,7 +98,7 @@ static void rcp_cb_limits_get(struct rcp_msg *msg);
 
 static result_t calc_control(const struct cmd_control *cmd, struct control_vals *out);
 static result_t calc_axis_control(const struct control_axis *cmd, struct control_axis_val *out,
-        enum control_type type_angle, enum control_type type_rate);
+        const struct pid_axis *pid, enum control_type type_angle, enum control_type type_rate);
 static result_t limit_control(enum control_type type, bool absolute, bool bipolar, float val, float *out);
 
 //-----------------------------------------------------------------
@@ -107,11 +108,9 @@ result_t control_init(void)
     watchdog_init();
     watchdog_reload_set(CONTROL_WATCHDOG_RELOAD);
 
-    control.armed = false;
-    control.connected = false;
-    memset(&control.curr_control, 0, sizeof(control.curr_control));
+    memset(&control, 0, sizeof(control));
 
-    int i;
+    uint32_t i;
     for (i = 0; i < CONTROL_TYPE_NUM; ++i)
         pid_reset(pid_ptr[i]);
 
@@ -121,6 +120,10 @@ result_t control_init(void)
     params_get_pid_pitch_rate(&control.pid_pitch.rate.params);
     params_get_pid_roll_rate(&control.pid_roll.rate.params);
     params_get_pid_yaw_rate(&control.pid_yaw.rate.params);
+
+    params_get_pitch_mode(&control.pid_pitch.mode);
+    params_get_roll_mode(&control.pid_roll.mode);
+    params_get_yaw_mode(&control.pid_yaw.mode);
 
     rcp_register_callback(RCP_CMD_CONTROL, rcp_cb_control, false);
     rcp_register_callback(RCP_CMD_PID, rcp_cb_pid_set, false);
@@ -268,7 +271,14 @@ result_t control_set_vals(const struct control_vals *vals)
         return RES_ERR_BAD_PARAM;
 
     control_lock();
+
+    enum axis_mode pitch = vals->pitch.override ? vals->pitch.mode : control.pid_pitch.mode;
+    enum axis_mode roll = vals->roll.override ? vals->roll.mode : control.pid_roll.mode;
+    enum axis_mode yaw = vals->yaw.override ? vals->yaw.mode : control.pid_yaw.mode;
+    control_set_axis_modes(pitch, roll, yaw);
+
     memcpy(&control.curr_control, vals, sizeof(control.curr_control));
+
     control_unlock();
     return RES_OK;
 }
@@ -282,6 +292,20 @@ result_t control_get_vals(struct control_vals *out)
 
     control_lock();
     memcpy(out, &control.curr_control, sizeof(control.curr_control));
+    control_unlock();
+    return RES_OK;
+}
+
+//-----------------------------------------------------------------
+
+result_t control_set_axis_modes(enum axis_mode pitch, enum axis_mode roll, enum axis_mode yaw)
+{
+    control_lock();
+
+    control.pid_pitch.mode = pitch;
+    control.pid_roll.mode = roll;
+    control.pid_yaw.mode = yaw;
+
     control_unlock();
     return RES_OK;
 }
@@ -322,13 +346,13 @@ static result_t calc_control(const struct cmd_control *cmd, struct control_vals 
     if (res != RES_OK)
         return res;
 
-    res = calc_axis_control(&cmd->pitch, &out->pitch, CONTROL_PITCH, CONTROL_PITCH_RATE);
+    res = calc_axis_control(&cmd->pitch, &out->pitch, &control.pid_pitch, CONTROL_PITCH, CONTROL_PITCH_RATE);
     if (res != RES_OK)
         return res;
-    res = calc_axis_control(&cmd->roll, &out->roll, CONTROL_ROLL, CONTROL_ROLL_RATE);
+    res = calc_axis_control(&cmd->roll, &out->roll, &control.pid_roll, CONTROL_ROLL, CONTROL_ROLL_RATE);
     if (res != RES_OK)
         return res;
-    res = calc_axis_control(&cmd->yaw, &out->yaw, CONTROL_YAW, CONTROL_YAW_RATE);
+    res = calc_axis_control(&cmd->yaw, &out->yaw, &control.pid_yaw, CONTROL_YAW, CONTROL_YAW_RATE);
     if (res != RES_OK)
         return res;
 
@@ -338,12 +362,17 @@ static result_t calc_control(const struct cmd_control *cmd, struct control_vals 
 //-----------------------------------------------------------------
 
 static result_t calc_axis_control(const struct control_axis *cmd, struct control_axis_val *out,
-        enum control_type type_angle, enum control_type type_rate)
+        const struct pid_axis *pid, enum control_type type_angle, enum control_type type_rate)
 {
-    if (!cmd || !out)
+    if (!cmd || !out || !pid)
         return RES_ERR_BAD_PARAM;
 
-    out->mode = (enum axis_mode)cmd->mode;
+    out->override = cmd->mode.override;
+    if (out->override)
+        out->mode = (enum axis_mode)cmd->mode.mode;
+    else
+        out->mode = pid->mode;
+
     enum control_type type;
     switch (out->mode)
     {

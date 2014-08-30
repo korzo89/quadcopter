@@ -57,6 +57,9 @@
             .dead_zone  = _dead     \
         }
 
+#define PARAM_AXIS_MODE(_name, _ptr)    \
+        PARAM_DEF("axis_mode", _name, PARAM_TYPE_UINT32, sizeof(enum axis_mode), 1, _ptr)
+
 
 //-----------------------------------------------------------------
 
@@ -82,6 +85,10 @@ struct params_obj
     struct control_limit        limit_throttle;
     struct control_limit_axes   limit_angles;
     struct control_limit_axes   limit_rates;
+
+    enum axis_mode mode_pitch;
+    enum axis_mode mode_roll;
+    enum axis_mode mode_yaw;
 };
 
 static struct params_obj params;
@@ -106,7 +113,11 @@ const struct param_info infos[] = {
 
     PARAM_LIMIT("lim_throttle", params.limit_throttle),
     PARAM_LIMIT_AXES("lim_", "", params.limit_angles),
-    PARAM_LIMIT_AXES("lim_", "_rate", params.limit_rates)
+    PARAM_LIMIT_AXES("lim_", "_rate", params.limit_rates),
+
+    PARAM_AXIS_MODE("pitch", &params.mode_pitch),
+    PARAM_AXIS_MODE("roll", &params.mode_roll),
+    PARAM_AXIS_MODE("yaw", &params.mode_yaw)
 };
 
 //-----------------------------------------------------------------
@@ -601,10 +612,7 @@ static struct control_limit* get_limit(enum control_type type)
 result_t params_get_limit(enum control_type type, struct control_limit *out)
 {
     struct control_limit *par = get_limit(type);
-    if (!out || !par)
-        return RES_ERR_BAD_PARAM;
-    params_copy(out, par, sizeof(struct control_limit));
-    return RES_OK;
+    return params_copy(out, par, sizeof(struct control_limit));
 }
 
 //-----------------------------------------------------------------
@@ -612,8 +620,26 @@ result_t params_get_limit(enum control_type type, struct control_limit *out)
 result_t params_set_limit(enum control_type type, const struct control_limit *limit)
 {
     struct control_limit *par = get_limit(type);
-    if (!limit || !par)
-        return RES_ERR_BAD_PARAM;
-    params_copy(par, limit, sizeof(struct control_limit));
-    return RES_OK;
+    return params_copy(par, limit, sizeof(struct control_limit));
+}
+
+//-----------------------------------------------------------------
+
+result_t params_get_pitch_mode(enum axis_mode *out)
+{
+    return params_copy(out, &params.mode_pitch, sizeof(enum axis_mode));
+}
+
+//-----------------------------------------------------------------
+
+result_t params_get_roll_mode(enum axis_mode *out)
+{
+    return params_copy(out, &params.mode_roll, sizeof(enum axis_mode));
+}
+
+//-----------------------------------------------------------------
+
+result_t params_get_yaw_mode(enum axis_mode *out)
+{
+    return params_copy(out, &params.mode_yaw, sizeof(enum axis_mode));
 }

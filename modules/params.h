@@ -64,6 +64,10 @@ result_t params_get_madgwick_beta(float *out);
 result_t params_get_limit(enum control_type type, struct control_limit *out);
 result_t params_set_limit(enum control_type type, const struct control_limit *limit);
 
+result_t params_get_pitch_mode(enum axis_mode *out);
+result_t params_get_roll_mode(enum axis_mode *out);
+result_t params_get_yaw_mode(enum axis_mode *out);
+
 //-----------------------------------------------------------------
 
 #endif /* PARAMS_H_ */

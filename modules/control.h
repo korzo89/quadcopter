@@ -52,6 +52,7 @@ enum axis_mode
 struct control_axis_val
 {
     float           value;
+    bool            override;
     enum axis_mode  mode;
 };
 
@@ -73,6 +74,7 @@ bool control_is_armed(void);
 
 result_t control_set_vals(const struct control_vals *vals);
 result_t control_get_vals(struct control_vals *out);
+result_t control_set_axis_modes(enum axis_mode pitch, enum axis_mode roll, enum axis_mode yaw);
 
 struct pid* control_get_pid(enum control_type type);
 

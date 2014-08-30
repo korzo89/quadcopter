@@ -55,7 +55,11 @@ struct control_value
 struct control_axis
 {
     struct control_value value;
-    uint8_t mode;
+    struct
+    {
+        uint8_t override    : 1;
+        uint8_t mode        : 7;
+    } mode;
 } PACK_STRUCT;
 
 struct cmd_control
