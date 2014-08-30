@@ -95,11 +95,13 @@ static void rcp_cb_pid_set(struct rcp_msg *msg);
 static void rcp_cb_pid_get(struct rcp_msg *msg);
 static void rcp_cb_limits_set(struct rcp_msg *msg);
 static void rcp_cb_limits_get(struct rcp_msg *msg);
+static void rcp_cb_axis_modes_set(struct rcp_msg *msg);
+static void rcp_cb_axis_modes_get(struct rcp_msg *msg);
 
 static result_t calc_control(const struct cmd_control *cmd, struct control_vals *out);
 static result_t calc_axis_control(const struct control_axis *cmd, struct control_axis_val *out,
         const struct pid_axis *pid, enum control_type type_angle, enum control_type type_rate);
-static result_t limit_control(enum control_type type, bool absolute, bool bipolar, float val, float *out);
+static result_t limit_control(enum control_type type, bool absolute, bool bipolar, bool dead, float val, float *out);
 
 //-----------------------------------------------------------------
 
@@ -130,6 +132,8 @@ result_t control_init(void)
     rcp_register_callback(RCP_CMD_PID, rcp_cb_pid_get, true);
     rcp_register_callback(RCP_CMD_LIMITS, rcp_cb_limits_set, false);
     rcp_register_callback(RCP_CMD_LIMITS, rcp_cb_limits_get, true);
+    rcp_register_callback(RCP_CMD_AXIS_MODES, rcp_cb_axis_modes_set, false);
+    rcp_register_callback(RCP_CMD_AXIS_MODES, rcp_cb_axis_modes_get, true);
 
     DAQ_REGISTER_PID_AXIS("Pitch", control.pid_pitch);
     DAQ_REGISTER_PID_AXIS("Roll", control.pid_roll);
@@ -342,7 +346,7 @@ static result_t calc_control(const struct cmd_control *cmd, struct control_vals 
         return RES_ERR_BAD_PARAM;
 
     result_t res;
-    res = limit_control(CONTROL_THROTTLE, cmd->throttle.absolute, false, cmd->throttle.value, &out->throttle);
+    res = limit_control(CONTROL_THROTTLE, cmd->throttle.absolute, false, false, cmd->throttle.value, &out->throttle);
     if (res != RES_OK)
         return res;
 
@@ -387,12 +391,12 @@ static result_t calc_axis_control(const struct control_axis *cmd, struct control
         return RES_OK;
     }
 
-    return limit_control(type, cmd->value.absolute, true, cmd->value.value, &out->value);
+    return limit_control(type, cmd->value.absolute, true, true, cmd->value.value, &out->value);
 }
 
 //-----------------------------------------------------------------
 
-static result_t limit_control(enum control_type type, bool absolute, bool bipolar, float val, float *out)
+static result_t limit_control(enum control_type type, bool absolute, bool bipolar, bool dead, float val, float *out)
 {
     if (!out)
         return RES_ERR_BAD_PARAM;
@@ -412,7 +416,7 @@ static result_t limit_control(enum control_type type, bool absolute, bool bipola
     else if (!bipolar && (val < 0.0f))
         val = 0.0f;
 
-    if (fabsf(val) < limit.dead_zone)
+    if (dead && (fabsf(val) < limit.dead_zone))
         val = 0.0f;
 
     *out = val;
@@ -443,9 +447,11 @@ static void rcp_cb_control(struct rcp_msg *msg)
 
 static void rcp_cb_pid_set(struct rcp_msg *msg)
 {
-    control_lock();
+    struct pid *pid = control_get_pid((enum control_type)msg->pid.type);
+    if (!pid)
+        return;
 
-    struct pid *pid = pid_ptr[msg->pid.type];
+    control_lock();
 
     pid->params.kp = msg->pid.kp;
     pid->params.kd = msg->pid.kd;
@@ -467,10 +473,11 @@ static void rcp_cb_pid_get(struct rcp_msg *msg)
     resp.cmd    = RCP_CMD_PID;
     resp.query  = RCP_CMD_OK;
 
-    uint8_t type = msg->pid.type;
-    struct pid *pid = pid_ptr[(int)type];
+    struct pid *pid = control_get_pid((enum control_type)msg->pid.type);
+    if (!pid)
+        return;
 
-    resp.pid.type = type;
+    resp.pid.type = msg->pid.type;
     resp.pid.kp = pid->params.kp;
     resp.pid.ki = pid->params.ki;
     resp.pid.kd = pid->params.kd;
@@ -537,6 +544,36 @@ static void rcp_cb_limits_get(struct rcp_msg *msg)
             }
         }
     }
+
+    rcp_send_message(&resp);
+}
+
+//-----------------------------------------------------------------
+
+static void rcp_cb_axis_modes_set(struct rcp_msg *msg)
+{
+    struct cmd_axis_modes *cmd = &msg->axis_modes;
+    control_set_axis_modes((enum axis_mode)cmd->pitch,
+            (enum axis_mode)cmd->roll, (enum axis_mode)cmd->yaw);
+
+    buzzer_seq_lib_play(BUZZER_SEQ_CONFIRM);
+}
+
+//-----------------------------------------------------------------
+
+static void rcp_cb_axis_modes_get(struct rcp_msg *msg)
+{
+    struct rcp_msg resp;
+    resp.cmd    = RCP_CMD_AXIS_MODES;
+    resp.query  = RCP_CMD_OK;
+
+    control_lock();
+
+    resp.axis_modes.pitch = (uint8_t)control.pid_pitch.mode;
+    resp.axis_modes.roll = (uint8_t)control.pid_roll.mode;
+    resp.axis_modes.yaw = (uint8_t)control.pid_yaw.mode;
+
+    control_unlock();
 
     rcp_send_message(&resp);
 }

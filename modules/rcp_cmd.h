@@ -41,6 +41,7 @@ enum rcp_cmd
     RCP_CMD_DAQ_GET,
 
     RCP_CMD_LIMITS,
+    RCP_CMD_AXIS_MODES,
 
     RCP_CMD_NUM
 };
@@ -192,6 +193,14 @@ struct cmd_limits
 } PACK_STRUCT;
 
 
+struct cmd_axis_modes
+{
+    uint8_t pitch;
+    uint8_t roll;
+    uint8_t yaw;
+} PACK_STRUCT;
+
+
 struct rcp_msg
 {
     uint8_t cmd;
@@ -211,6 +220,7 @@ struct rcp_msg
         struct cmd_daq_get_req  daq_get_req;
         struct cmd_daq_get      daq_get;
         struct cmd_limits       limits;
+        struct cmd_axis_modes   axis_modes;
     };
 } PACK_STRUCT;
 

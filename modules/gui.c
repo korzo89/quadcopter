@@ -122,10 +122,10 @@ static void button_task(void *params)
 static void gui_disp_control(const char *name, uint8_t row, char mode, float val)
 {
     int dec = (int)val;
-    int frac = (int)(val * 10) % 10;
+    int frac = abs((int)(val * 10) % 10);
 
-    usprintf(buf, "%5s %c %5d.%1d", name, mode, dec, frac);
-    oled_disp_str_at(name, row, 0);
+    usprintf(buf, "%5s %c %6d.%1d", name, mode, dec, frac);
+    oled_disp_str_at(buf, row, 0);
 }
 
 //-----------------------------------------------------------------

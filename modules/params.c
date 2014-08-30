@@ -58,7 +58,7 @@
         }
 
 #define PARAM_AXIS_MODE(_name, _ptr)    \
-        PARAM_DEF("axis_mode", _name, PARAM_TYPE_UINT32, sizeof(enum axis_mode), 1, _ptr)
+        PARAM_DEF("axis_mode", _name, PARAM_TYPE_UINT8, sizeof(enum axis_mode), 1, _ptr)
 
 
 //-----------------------------------------------------------------
@@ -208,6 +208,10 @@ void params_load_defaults(void)
     params.limit_rates.pitch    = LIMIT_DEFAULTS(10.0f, 0.5f);
     params.limit_rates.roll     = LIMIT_DEFAULTS(10.0f, 0.5f);
     params.limit_rates.yaw      = LIMIT_DEFAULTS(10.0f, 0.5f);
+
+    params.mode_pitch = AXIS_MODE_ANGLE;
+    params.mode_roll = AXIS_MODE_ANGLE;
+    params.mode_yaw = AXIS_MODE_RATE;
 
     params_unlock();
 }

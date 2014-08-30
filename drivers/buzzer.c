@@ -47,6 +47,11 @@ static void buzzer_unlock(void);
 
 void buzzer_init(void)
 {
+    buzzer.mutex = xSemaphoreCreateRecursiveMutex();
+
+    buzzer.timer = xTimerCreate((const signed char*)"buz_tim", MSEC_TO_TICKS(1000), pdFALSE,
+            BUZZER_SEQ_TIMER_ID, buzzer_process_seq);
+
     SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOC);
     SysCtlPeripheralEnable(SYSCTL_PERIPH_WTIMER1);
 
@@ -61,11 +66,6 @@ void buzzer_init(void)
 
     buzzer_set_freq(10);
     buzzer_set_freq(0);
-
-    buzzer.mutex = xSemaphoreCreateRecursiveMutex();
-
-    buzzer.timer = xTimerCreate((const signed char*)"buz_tim", MSEC_TO_TICKS(1000), pdFALSE,
-            BUZZER_SEQ_TIMER_ID, buzzer_process_seq);
 }
 
 //-----------------------------------------------------------------
@@ -105,9 +105,10 @@ result_t buzzer_play_seq(const struct buzzer_step *seq)
     buzzer.curr_step = 0;
     buzzer.curr_loop = 0;
 
+    buzzer_unlock();
+
     buzzer_process_seq(buzzer.timer);
 
-    buzzer_unlock();
     return RES_OK;
 }
 
@@ -138,11 +139,13 @@ static void buzzer_process_seq(xTimerHandle tim)
     {
     case SEQ_STOP:
         buzzer_set_freq(0);
+        buzzer_unlock();
         return;
     case SEQ_LOOP:
         if (++buzzer.curr_loop == step->freq && step->freq > 0)
         {
             buzzer_set_freq(0);
+            buzzer_unlock();
             return;
         }
         buzzer.curr_step = 0;
