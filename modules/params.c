@@ -478,7 +478,7 @@ static void rcp_cb_set(struct rcp_msg *msg)
     memcpy((uint8_t*)param->ptr + off, args->data, num * param->size);
     params_unlock();
 
-    buzzer_seq_lib_play(BUZZER_SEQ_CONFIRM);
+    buzzer_seq_lib_play(BUZZER_SEQ_CONFIRM, BUZZER_MODE_QUEUE);
 }
 
 //-----------------------------------------------------------------
@@ -487,7 +487,7 @@ static void rcp_cb_save(struct rcp_msg *msg)
 {
     (void)msg;
     if (params_eeprom_save() == RES_OK)
-        buzzer_seq_lib_play(BUZZER_SEQ_CONFIRM);
+        buzzer_seq_lib_play(BUZZER_SEQ_CONFIRM, BUZZER_MODE_QUEUE);
 }
 
 //-----------------------------------------------------------------

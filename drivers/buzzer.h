@@ -26,14 +26,21 @@ struct buzzer_step
     int action;
 };
 
+enum buzzer_mode
+{
+    BUZZER_MODE_FORCE,
+    BUZZER_MODE_IGNORE,
+    BUZZER_MODE_QUEUE
+};
+
 //-----------------------------------------------------------------
 
 void buzzer_init(void);
 
 void buzzer_set_freq(uint32_t freq);
 
-result_t buzzer_play_seq(const struct buzzer_step *seq);
-result_t buzzer_stop_seq(void);
+bool buzzer_play_seq(const struct buzzer_step *seq, enum buzzer_mode mode);
+void buzzer_stop(bool clear_queue);
 
 //-----------------------------------------------------------------
 

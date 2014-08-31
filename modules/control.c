@@ -162,13 +162,13 @@ void control_process(void)
     {
         if (!control.connected)
         {
-            buzzer_seq_lib_play(BUZZER_SEQ_CONNECTED);
+            buzzer_seq_lib_play(BUZZER_SEQ_CONNECTED, BUZZER_MODE_FORCE);
             control.connected = true;
         }
     }
     else if (control.connected)
     {
-        buzzer_seq_lib_play(BUZZER_SEQ_LOST);
+        buzzer_seq_lib_play(BUZZER_SEQ_LOST, BUZZER_MODE_FORCE);
         control.connected = false;
         control.armed = false;
         motors_disarm();
@@ -246,7 +246,7 @@ void control_arm(void)
     control.armed = true;
     motors_arm();
     control_unlock();
-    buzzer_seq_lib_play(BUZZER_SEQ_ARM);
+    buzzer_seq_lib_play(BUZZER_SEQ_ARM, BUZZER_MODE_FORCE);
 }
 
 //-----------------------------------------------------------------
@@ -257,7 +257,7 @@ void control_disarm(void)
     control.armed = false;
     motors_disarm();
     control_unlock();
-    buzzer_seq_lib_play(BUZZER_SEQ_DISARM);
+    buzzer_seq_lib_play(BUZZER_SEQ_DISARM, BUZZER_MODE_FORCE);
 }
 
 //-----------------------------------------------------------------
@@ -462,7 +462,7 @@ static void rcp_cb_pid_set(struct rcp_msg *msg)
 
     control_unlock();
 
-    buzzer_seq_lib_play(BUZZER_SEQ_CONFIRM);
+    buzzer_seq_lib_play(BUZZER_SEQ_CONFIRM, BUZZER_MODE_QUEUE);
 }
 
 //-----------------------------------------------------------------
@@ -513,7 +513,7 @@ static void rcp_cb_limits_set(struct rcp_msg *msg)
 
     control_unlock();
 
-    buzzer_seq_lib_play(BUZZER_SEQ_CONFIRM);
+    buzzer_seq_lib_play(BUZZER_SEQ_CONFIRM, BUZZER_MODE_QUEUE);
 }
 
 //-----------------------------------------------------------------
@@ -556,7 +556,7 @@ static void rcp_cb_axis_modes_set(struct rcp_msg *msg)
     control_set_axis_modes((enum axis_mode)cmd->pitch,
             (enum axis_mode)cmd->roll, (enum axis_mode)cmd->yaw);
 
-    buzzer_seq_lib_play(BUZZER_SEQ_CONFIRM);
+    buzzer_seq_lib_play(BUZZER_SEQ_CONFIRM, BUZZER_MODE_QUEUE);
 }
 
 //-----------------------------------------------------------------

@@ -196,7 +196,7 @@ static void gui_task(void *params)
 
                 oled_clear();
 
-                buzzer_seq_lib_play(BUZZER_SEQ_PRESS);
+                buzzer_seq_lib_play(BUZZER_SEQ_PRESS, BUZZER_MODE_IGNORE);
                 break;
             default:
                 break;

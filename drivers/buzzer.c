@@ -17,11 +17,15 @@
 #include <semphr.h>
 #include <timers.h>
 #include <utils/delay.h>
+#include <utils/fifo.h>
+#include <string.h>
 
 //-----------------------------------------------------------------
 
 #define BUZZER_TIMER            WTIMER1_BASE
 #define BUZZER_SEQ_TIMER_ID     0
+
+#define BUZZER_QUEUE_MAX        8
 
 //-----------------------------------------------------------------
 
@@ -29,16 +33,24 @@ struct buzzer_obj
 {
     xSemaphoreHandle    mutex;
     xTimerHandle        timer;
+
     uint32_t            curr_step;
     uint32_t            curr_loop;
     const struct buzzer_step *curr_sequence;
+    bool                playing;
+
+    struct fifo         queue;
+    const struct buzzer_step *queue_buf[BUZZER_QUEUE_MAX];
 };
 
 static struct buzzer_obj buzzer;
 
 //-----------------------------------------------------------------
 
-static void buzzer_process_seq(xTimerHandle tim);
+static void process_seq(xTimerHandle tim);
+static void finish_seq(void);
+static void play_seq(const struct buzzer_step *seq);
+static void stop_seq(void);
 
 static void buzzer_lock(void);
 static void buzzer_unlock(void);
@@ -47,10 +59,13 @@ static void buzzer_unlock(void);
 
 void buzzer_init(void)
 {
-    buzzer.mutex = xSemaphoreCreateRecursiveMutex();
+    memset(&buzzer, 0, sizeof(buzzer));
 
-    buzzer.timer = xTimerCreate((const signed char*)"buz_tim", MSEC_TO_TICKS(1000), pdFALSE,
-            BUZZER_SEQ_TIMER_ID, buzzer_process_seq);
+    buzzer.mutex = xSemaphoreCreateRecursiveMutex();
+    buzzer.timer = xTimerCreate(TASK_NAME("buz_tim"), MSEC_TO_TICKS(1000), pdFALSE,
+            BUZZER_SEQ_TIMER_ID, process_seq);
+
+    fifo_init(&buzzer.queue, buzzer.queue_buf, BUZZER_QUEUE_MAX, sizeof(const struct buzzer_step*));
 
     SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOC);
     SysCtlPeripheralEnable(SYSCTL_PERIPH_WTIMER1);
@@ -95,39 +110,81 @@ void buzzer_set_freq(uint32_t freq)
 
 //-----------------------------------------------------------------
 
-result_t buzzer_play_seq(const struct buzzer_step *seq)
+bool buzzer_play_seq(const struct buzzer_step *seq, enum buzzer_mode mode)
 {
+    if (!seq)
+        return false;
+
     buzzer_lock();
 
-    xTimerStop(buzzer.timer, 0);
+    bool res = false;
 
+    switch (mode)
+    {
+    case BUZZER_MODE_FORCE:
+        stop_seq();
+        play_seq(seq);
+        res = true;
+        break;
+    case BUZZER_MODE_QUEUE:
+        if (buzzer.playing)
+        {
+            res = fifo_enqueue(&buzzer.queue, &seq);
+        }
+        else
+        {
+            play_seq(seq);
+            res = true;
+        }
+        break;
+    default:
+        res = true;
+        if (!buzzer.playing)
+            play_seq(seq);
+        break;
+    }
+
+    buzzer_unlock();
+    return res;
+}
+
+//-----------------------------------------------------------------
+
+static void play_seq(const struct buzzer_step *seq)
+{
     buzzer.curr_sequence = seq;
     buzzer.curr_step = 0;
     buzzer.curr_loop = 0;
+    buzzer.playing = true;
 
-    buzzer_unlock();
-
-    buzzer_process_seq(buzzer.timer);
-
-    return RES_OK;
+    process_seq(buzzer.timer);
 }
 
 //-----------------------------------------------------------------
 
-result_t buzzer_stop_seq(void)
+static void stop_seq(void)
+{
+    xTimerStop(buzzer.timer, 0);
+    buzzer_set_freq(0);
+}
+
+//-----------------------------------------------------------------
+
+void buzzer_stop(bool clear_queue)
 {
     buzzer_lock();
 
-    xTimerStop(buzzer.timer, 0);
-    buzzer_set_freq(0);
+    stop_seq();
+
+    if (clear_queue)
+        fifo_clear(&buzzer.queue);
 
     buzzer_unlock();
-    return RES_OK;
 }
 
 //-----------------------------------------------------------------
 
-static void buzzer_process_seq(xTimerHandle tim)
+static void process_seq(xTimerHandle tim)
 {
     (void)tim;
 
@@ -138,13 +195,13 @@ static void buzzer_process_seq(xTimerHandle tim)
     switch (step->action)
     {
     case SEQ_STOP:
-        buzzer_set_freq(0);
+        finish_seq();
         buzzer_unlock();
         return;
     case SEQ_LOOP:
         if (++buzzer.curr_loop == step->freq && step->freq > 0)
         {
-            buzzer_set_freq(0);
+            finish_seq();
             buzzer_unlock();
             return;
         }
@@ -162,6 +219,18 @@ static void buzzer_process_seq(xTimerHandle tim)
     xTimerStart(buzzer.timer, 0);
 
     buzzer_unlock();
+}
+
+//-----------------------------------------------------------------
+
+static void finish_seq(void)
+{
+    buzzer_set_freq(0);
+    buzzer.playing = false;
+
+    const struct buzzer_step *next = NULL;
+    if (fifo_dequeue(&buzzer.queue, &next))
+        play_seq(next);
 }
 
 //-----------------------------------------------------------------

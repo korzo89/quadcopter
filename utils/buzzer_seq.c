@@ -66,8 +66,8 @@ const struct buzzer_step* buzzer_seq_lib_get(enum buzzer_seq type)
 
 //-----------------------------------------------------------------
 
-result_t buzzer_seq_lib_play(enum buzzer_seq type)
+bool buzzer_seq_lib_play(enum buzzer_seq type, enum buzzer_mode mode)
 {
-    return buzzer_play_seq(buzzer_seq_lib_get(type));
+    return buzzer_play_seq(buzzer_seq_lib_get(type), mode);
 }
 
