@@ -133,7 +133,7 @@ static void rcp_cb_list(struct rcp_msg *msg);
 static void rcp_cb_info(struct rcp_msg *msg);
 static void rcp_cb_get(struct rcp_msg *msg);
 static void rcp_cb_set(struct rcp_msg *msg);
-static void rcp_cb_save(struct rcp_msg *msg);
+static void rcp_cb_action(struct rcp_msg *msg);
 
 static result_t params_copy(void *out, const void *src, size_t size);
 static result_t params_get_pid(struct pid_params *out, struct pid_params *src);
@@ -150,7 +150,7 @@ result_t params_init(void)
     rcp_register_callback(RCP_CMD_PARAM_INFO, rcp_cb_info, true);
     rcp_register_callback(RCP_CMD_PARAM_GET,  rcp_cb_get,  true);
     rcp_register_callback(RCP_CMD_PARAM_SET,  rcp_cb_set,  false);
-    rcp_register_callback(RCP_CMD_PARAM_SAVE, rcp_cb_save, false);
+    rcp_register_callback(RCP_CMD_PARAM_ACTION, rcp_cb_action, false);
 
     params_load_defaults();
 
@@ -483,11 +483,28 @@ static void rcp_cb_set(struct rcp_msg *msg)
 
 //-----------------------------------------------------------------
 
-static void rcp_cb_save(struct rcp_msg *msg)
+static void rcp_cb_action(struct rcp_msg *msg)
 {
-    (void)msg;
-    if (params_eeprom_save() == RES_OK)
+    enum param_action action = (enum param_action)msg->param_action.action;
+    switch (action)
+    {
+    case PARAM_LOAD_DEFAULTS:
+        params_load_defaults();
         buzzer_seq_lib_play(BUZZER_SEQ_CONFIRM, BUZZER_MODE_QUEUE);
+        break;
+    case PARAM_LOAD_EEPROM:
+        if (params_eeprom_load() == RES_OK)
+            buzzer_seq_lib_play(BUZZER_SEQ_CONFIRM, BUZZER_MODE_QUEUE);
+        else
+            params_load_defaults();
+        break;
+    case PARAM_SAVE_EEPROM:
+        if (params_eeprom_save() == RES_OK)
+            buzzer_seq_lib_play(BUZZER_SEQ_CONFIRM, BUZZER_MODE_QUEUE);
+        break;
+    default:
+        break;
+    }
 }
 
 //-----------------------------------------------------------------

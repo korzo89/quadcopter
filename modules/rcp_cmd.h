@@ -34,7 +34,7 @@ enum rcp_cmd
     RCP_CMD_PARAM_INFO,
     RCP_CMD_PARAM_GET,
     RCP_CMD_PARAM_SET,
-    RCP_CMD_PARAM_SAVE,
+    RCP_CMD_PARAM_ACTION,
 
     RCP_CMD_DAQ_LIST,
     RCP_CMD_DAQ_INFO,
@@ -141,6 +141,18 @@ struct cmd_param_data
     uint8_t data[RCP_PAYLOAD_SIZE - 5];
 };
 
+enum param_action
+{
+    PARAM_LOAD_DEFAULTS,
+    PARAM_LOAD_EEPROM,
+    PARAM_SAVE_EEPROM
+};
+
+struct cmd_param_action
+{
+    uint8_t action;
+};
+
 
 #define DAQ_NAME_MAX_LEN    22
 #define DAQ_UNIT_MAX_LEN    7
@@ -171,6 +183,7 @@ struct cmd_daq_get
     uint8_t     num;
     float       values[DAQ_GET_VALS_MAX];
 } PACK_STRUCT;
+
 
 #define LIMITS_MAX      3
 
@@ -215,6 +228,7 @@ struct rcp_msg
         struct cmd_param_list   param_list;
         struct cmd_param_info   param_info;
         struct cmd_param_data   param_data;
+        struct cmd_param_action param_action;
         struct cmd_daq_list     daq_list;
         struct cmd_daq_info     daq_info;
         struct cmd_daq_get_req  daq_get_req;
