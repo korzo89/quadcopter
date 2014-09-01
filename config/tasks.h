@@ -15,11 +15,11 @@
 #define TASK_NAME(_name)            ((const signed char*)_name)
 
 #define SYSTEM_INIT_TASK_PRIORITY   1
-#define RCP_TASK_PRIORITY           1
-#define GUI_TASK_PRIORITY           2
+#define RCP_TASK_PRIORITY           2
+#define GUI_TASK_PRIORITY           1
 #define GPS_TASK_PRIORITY           1
-#define CONTROL_TASK_PRIORITY       2
-#define IMU_TASK_PRIORITY           2
+#define CONTROL_TASK_PRIORITY       3
+#define IMU_TASK_PRIORITY           3
 
 #define SYSTEM_INIT_TASK_STACK      256
 #define RCP_TASK_STACK              200
