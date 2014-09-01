@@ -40,7 +40,7 @@ struct param_info
 
 //-----------------------------------------------------------------
 
-result_t params_init(void);
+void params_init(void);
 void params_load_defaults(void);
 
 result_t params_eeprom_save(void);

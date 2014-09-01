@@ -71,9 +71,10 @@ static void system_init_task(void *params)
     ext_i2c_init();
 
     eeprom_init();
-    oled_init();
     buzzer_init();
     led_init();
+
+    bool has_oled = oled_init();
 
     motors_init();
     motors_set_throttle(0, 0, 0, 0);
@@ -110,19 +111,24 @@ static void system_init_task(void *params)
     }
 
     rcp_init();
+
     params_init();
+#if 0
+    if (params_eeprom_load() != RES_OK)
+        params_load_defaults();
+#endif
 
     daq_init();
 
     adc_init();
     ultrasonic_init();
     imu_init();
-//    params_eeprom_load();
 
     gps_init();
     control_init();
 
-    gui_init();
+    if (has_oled)
+        gui_init();
 
     vTaskDelete(NULL);
 }

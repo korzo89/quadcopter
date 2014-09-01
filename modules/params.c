@@ -142,7 +142,7 @@ static struct control_limit* get_limit(enum control_type type);
 
 //-----------------------------------------------------------------
 
-result_t params_init(void)
+void params_init(void)
 {
     params.mutex = xSemaphoreCreateRecursiveMutex();
 
@@ -153,8 +153,6 @@ result_t params_init(void)
     rcp_register_callback(RCP_CMD_PARAM_ACTION, rcp_cb_action, false);
 
     params_load_defaults();
-
-    return RES_OK;
 }
 
 //-----------------------------------------------------------------
@@ -494,9 +492,14 @@ static void rcp_cb_action(struct rcp_msg *msg)
         break;
     case PARAM_LOAD_EEPROM:
         if (params_eeprom_load() == RES_OK)
+        {
             buzzer_seq_lib_play(BUZZER_SEQ_CONFIRM, BUZZER_MODE_QUEUE);
+        }
         else
+        {
             params_load_defaults();
+            buzzer_seq_lib_play(BUZZER_SEQ_ERROR, BUZZER_MODE_QUEUE);
+        }
         break;
     case PARAM_SAVE_EEPROM:
         if (params_eeprom_save() == RES_OK)

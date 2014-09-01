@@ -43,6 +43,13 @@ static const struct buzzer_step seq_confirm[] = {
     { 0,       SEQ_STOP     }
 };
 
+static const struct buzzer_step seq_error[] = {
+    { NOTE_C4, SEQ_WAIT(80) },
+    { 0,       SEQ_WAIT(30) },
+    { NOTE_C4, SEQ_WAIT(80) },
+    { 0,       SEQ_STOP     }
+};
+
 static const struct buzzer_step seq_press[] = {
     { NOTE_C5, SEQ_WAIT(10) },
     { 0,       SEQ_STOP     }
@@ -54,6 +61,7 @@ const struct buzzer_step *sequences[] = {
     [BUZZER_SEQ_CONNECTED]  = seq_connected,
     [BUZZER_SEQ_LOST]       = seq_lost,
     [BUZZER_SEQ_CONFIRM]    = seq_confirm,
+    [BUZZER_SEQ_ERROR]      = seq_error,
     [BUZZER_SEQ_PRESS]      = seq_press
 };
 
