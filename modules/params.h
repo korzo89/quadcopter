@@ -68,6 +68,9 @@ result_t params_get_pitch_mode(enum axis_mode *out);
 result_t params_get_roll_mode(enum axis_mode *out);
 result_t params_get_yaw_mode(enum axis_mode *out);
 
+result_t params_get_motor_max(float *out);
+result_t params_get_control_min_throttle(float *out);
+
 //-----------------------------------------------------------------
 
 #endif /* PARAMS_H_ */

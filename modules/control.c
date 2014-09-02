@@ -103,6 +103,8 @@ static result_t calc_axis_control(const struct control_axis *cmd, struct control
         const struct pid_axis *pid, enum control_type type_angle, enum control_type type_rate);
 static result_t limit_control(enum control_type type, bool absolute, bool bipolar, bool dead, float val, float *out);
 
+static float update_axis_control(struct pid_axis *axis, float val, float angle, float rate, float dt);
+
 //-----------------------------------------------------------------
 
 result_t control_init(void)
@@ -180,49 +182,83 @@ void control_process(void)
 
     const float dt = 0.01f;
 
-#if 0
-    if (armed)
+    bool manual_all = false;
+    if (control.armed)
     {
-        float throttle = (float)control.throttle;
-        if (throttle < CONTROL_THROTTLE_DEAD_ZONE)
-            throttle = 0.0f;
-        throttle = throttle / 4095.0 * THROTTLE_MAX;
+        float control_min;
+        params_get_control_min_throttle(&control_min);
 
-//            pid_update_auto(&pid_pitch_rate, angles.y, dt);
-
-//            throttle = pid_pitch_rate.output;
-
-        if (throttle <= 100.0f)
+        float throttle = control.curr_control.throttle;
+        if (throttle < control_min)
         {
+            manual_all = true;
+
             motors_set_throttle(throttle, throttle, throttle, throttle);
-//                motors_set_throttle(0, 0, 0, 0);
-            pid_update_manual(&pid_pitch_rate, rates.y, dt, 0.0f);
         }
         else
         {
-            float sp = (float)control.pitch - 4095.0f / 2.0f;
-            if (fabs(sp) < CONTROL_PITCH_DEAD_ZONE)
-                sp = 0.0f;
-            else
-                sp = sp / 4095.0f * 100.0f;
+            float motor_max;
+            params_get_motor_max(&motor_max);
 
-            pid_pitch_rate.setpoint = sp;
-            pid_update_auto(&pid_pitch_rate, rates.y, dt);
+            float pitch = update_axis_control(&control.pid_pitch, control.curr_control.pitch.value, angles.y, rates.y, dt);
+            float roll  = update_axis_control(&control.pid_roll, control.curr_control.roll.value, angles.x, rates.x, dt);
+            float yaw   = update_axis_control(&control.pid_yaw, control.curr_control.yaw.value, angles.z, rates.z, dt);
 
-            float pitch_out = pid_pitch_rate.output;
+            float m1 = (throttle - pitch + roll + yaw) * 0.25;
+            float m2 = (throttle + pitch + roll - yaw) * 0.25;
+            float m3 = (throttle + pitch - roll + yaw) * 0.25;
+            float m4 = (throttle - pitch - roll - yaw) * 0.25;
 
-            motors_set_throttle(throttle - pitch_out, throttle + pitch_out,
-                    throttle + pitch_out, throttle - pitch_out);
-//                motors_set_throttle(-pitch_out, pitch_out, pitch_out, -pitch_out);
+            motors_set_throttle(m1, m2, m3, m4);
         }
     }
     else
     {
-        pid_update_manual(&pid_pitch_rate, rates.y, dt, 0.0f);
+        manual_all = true;
     }
-#endif
+
+    if (manual_all)
+    {
+        pid_update_manual(&control.pid_pitch.angle, angles.y, dt, 0.0f);
+        pid_update_manual(&control.pid_pitch.rate, rates.y, dt, 0.0f);
+        pid_update_manual(&control.pid_roll.angle, angles.x, dt, 0.0f);
+        pid_update_manual(&control.pid_roll.rate, rates.x, dt, 0.0f);
+        pid_update_manual(&control.pid_yaw.angle, angles.z, dt, 0.0f);
+        pid_update_manual(&control.pid_yaw.rate, rates.z, dt, 0.0f);
+    }
 
     control_unlock();
+}
+
+//-----------------------------------------------------------------
+
+static float update_axis_control(struct pid_axis *axis, float val, float angle, float rate, float dt)
+{
+    switch (axis->mode)
+    {
+    case AXIS_MODE_ANGLE:
+        axis->angle.setpoint = val;
+        pid_update_auto(&axis->angle, angle, dt);
+
+        axis->rate.setpoint = axis->angle.output;
+        pid_update_auto(&axis->rate, rate, dt);
+
+        return axis->rate.output;
+
+    case AXIS_MODE_RATE:
+        pid_update_manual(&axis->angle, angle, dt, val);
+
+        axis->rate.setpoint = val;
+        pid_update_auto(&axis->rate, rate, dt);
+
+        return axis->rate.output;
+
+    default:
+        pid_update_manual(&axis->angle, angle, dt, 0.0f);
+        pid_update_manual(&axis->rate, rate, dt, 0.0f);
+
+        return 0.0f;
+    }
 }
 
 //-----------------------------------------------------------------
@@ -550,13 +586,38 @@ static void rcp_cb_limits_get(struct rcp_msg *msg)
 
 //-----------------------------------------------------------------
 
+static void confirm_mode_set(enum axis_mode mode)
+{
+    enum buzzer_seq seq;
+    switch (mode)
+    {
+    case AXIS_MODE_DISABLED:
+        seq = BUZZER_SEQ_AXIS_DISABLED;
+        break;
+    case AXIS_MODE_ANGLE:
+        seq = BUZZER_SEQ_AXIS_ANGLE;
+        break;
+    case AXIS_MODE_RATE:
+        seq = BUZZER_SEQ_AXIS_RATE;
+        break;
+    default:
+        seq = BUZZER_SEQ_ERROR;
+        break;
+    }
+    buzzer_seq_lib_play(seq, BUZZER_MODE_QUEUE);
+}
+
+//-----------------------------------------------------------------
+
 static void rcp_cb_axis_modes_set(struct rcp_msg *msg)
 {
     struct cmd_axis_modes *cmd = &msg->axis_modes;
     control_set_axis_modes((enum axis_mode)cmd->pitch,
             (enum axis_mode)cmd->roll, (enum axis_mode)cmd->yaw);
 
-    buzzer_seq_lib_play(BUZZER_SEQ_CONFIRM, BUZZER_MODE_QUEUE);
+    confirm_mode_set((enum axis_mode)cmd->pitch);
+    confirm_mode_set((enum axis_mode)cmd->roll);
+    confirm_mode_set((enum axis_mode)cmd->yaw);
 }
 
 //-----------------------------------------------------------------

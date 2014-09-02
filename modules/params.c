@@ -89,6 +89,9 @@ struct params_obj
     enum axis_mode mode_pitch;
     enum axis_mode mode_roll;
     enum axis_mode mode_yaw;
+
+    float motor_max;
+    float control_min_throttle;
 };
 
 static struct params_obj params;
@@ -117,7 +120,10 @@ const struct param_info infos[] = {
 
     PARAM_AXIS_MODE("pitch", &params.mode_pitch),
     PARAM_AXIS_MODE("roll", &params.mode_roll),
-    PARAM_AXIS_MODE("yaw", &params.mode_yaw)
+    PARAM_AXIS_MODE("yaw", &params.mode_yaw),
+
+    PARAM_DEF_FLOAT("control", "motor_max", 1, &params.motor_max),
+    PARAM_DEF_FLOAT("control", "min_thrott", 1, &params.control_min_throttle)
 };
 
 //-----------------------------------------------------------------
@@ -210,6 +216,9 @@ void params_load_defaults(void)
     params.mode_pitch = AXIS_MODE_ANGLE;
     params.mode_roll = AXIS_MODE_ANGLE;
     params.mode_yaw = AXIS_MODE_RATE;
+
+    params.motor_max = 1000.0f;
+    params.control_min_throttle = 100.0f;
 
     params_unlock();
 }
@@ -666,4 +675,18 @@ result_t params_get_roll_mode(enum axis_mode *out)
 result_t params_get_yaw_mode(enum axis_mode *out)
 {
     return params_copy(out, &params.mode_yaw, sizeof(enum axis_mode));
+}
+
+//-----------------------------------------------------------------
+
+result_t params_get_motor_max(float *out)
+{
+    return params_copy(out, &params.motor_max, sizeof(float));
+}
+
+//-----------------------------------------------------------------
+
+result_t params_get_control_min_throttle(float *out)
+{
+    return params_copy(out, &params.control_min_throttle, sizeof(float));
 }
