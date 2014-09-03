@@ -55,14 +55,41 @@ static const struct buzzer_step seq_press[] = {
     { 0,       SEQ_STOP     }
 };
 
+static const struct buzzer_step seq_axis_disabled[] = {
+    { NOTE_C5, SEQ_WAIT(80)  },
+    { 0,       SEQ_WAIT(80)  },
+    { NOTE_C5, SEQ_WAIT(80)  },
+    { 0,       SEQ_WAIT(200) },
+    { 0,       SEQ_STOP      }
+};
+
+static const struct buzzer_step seq_axis_angle[] = {
+    { NOTE_C5, SEQ_WAIT(80)  },
+    { 0,       SEQ_WAIT(80)  },
+    { NOTE_E5, SEQ_WAIT(80)  },
+    { 0,       SEQ_WAIT(200) },
+    { 0,       SEQ_STOP      }
+};
+
+static const struct buzzer_step seq_axis_rate[] = {
+    { NOTE_E5, SEQ_WAIT(80)  },
+    { 0,       SEQ_WAIT(80)  },
+    { NOTE_E5, SEQ_WAIT(80)  },
+    { 0,       SEQ_WAIT(200) },
+    { 0,       SEQ_STOP      }
+};
+
 const struct buzzer_step *sequences[] = {
-    [BUZZER_SEQ_ARM]        = seq_arm,
-    [BUZZER_SEQ_DISARM]     = seq_disarm,
-    [BUZZER_SEQ_CONNECTED]  = seq_connected,
-    [BUZZER_SEQ_LOST]       = seq_lost,
-    [BUZZER_SEQ_CONFIRM]    = seq_confirm,
-    [BUZZER_SEQ_ERROR]      = seq_error,
-    [BUZZER_SEQ_PRESS]      = seq_press
+    [BUZZER_SEQ_ARM]            = seq_arm,
+    [BUZZER_SEQ_DISARM]         = seq_disarm,
+    [BUZZER_SEQ_CONNECTED]      = seq_connected,
+    [BUZZER_SEQ_LOST]           = seq_lost,
+    [BUZZER_SEQ_CONFIRM]        = seq_confirm,
+    [BUZZER_SEQ_ERROR]          = seq_error,
+    [BUZZER_SEQ_PRESS]          = seq_press,
+    [BUZZER_SEQ_AXIS_DISABLED]  = seq_axis_disabled,
+    [BUZZER_SEQ_AXIS_ANGLE]     = seq_axis_angle,
+    [BUZZER_SEQ_AXIS_RATE]      = seq_axis_rate
 };
 
 //-----------------------------------------------------------------

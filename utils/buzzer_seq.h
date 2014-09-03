@@ -23,7 +23,10 @@ enum buzzer_seq
     BUZZER_SEQ_LOST,
     BUZZER_SEQ_CONFIRM,
     BUZZER_SEQ_ERROR,
-    BUZZER_SEQ_PRESS
+    BUZZER_SEQ_PRESS,
+    BUZZER_SEQ_AXIS_DISABLED,
+    BUZZER_SEQ_AXIS_ANGLE,
+    BUZZER_SEQ_AXIS_RATE
 };
 
 //-----------------------------------------------------------------

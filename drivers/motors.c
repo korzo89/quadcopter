@@ -48,20 +48,25 @@
 
 //-----------------------------------------------------------------
 
-static uint32_t cycle20ms;
+struct motors_obj
+{
+    uint32_t    cycle_20ms;
+    bool        armed;
+};
 
-static bool armed = false;
+static struct motors_obj motors;
 
 //-----------------------------------------------------------------
 
-void motors_init()
+void motors_init(void)
 {
     SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER0);
     SysCtlPeripheralEnable(SYSCTL_PERIPH_TIMER1);
 
-    cycle20ms = SysCtlClockGet() / 50;
+    motors.armed = false;
+    motors.cycle_20ms = SysCtlClockGet() / 50;
 
-    uint32_t period = cycle20ms;
+    uint32_t period = motors.cycle_20ms;
     uint8_t ext = period >> 16;
     period &= 0xFFFF;
 
@@ -97,21 +102,21 @@ void motors_init()
 
 bool motors_armed(void)
 {
-    return armed;
+    return motors.armed;
 }
 
 //-----------------------------------------------------------------
 
 void motors_arm(void)
 {
-    armed = true;
+    motors.armed = true;
 }
 
 //-----------------------------------------------------------------
 
 void motors_disarm(void)
 {
-    armed = false;
+    motors.armed = false;
     motors_set_throttle(0.0f, 0.0f, 0.0f, 0.0f);
 }
 
@@ -119,6 +124,9 @@ void motors_disarm(void)
 
 void motors_set_throttle(float m1, float m2, float m3, float m4)
 {
+    if (!motors.armed)
+        return;
+
     motors_servo_pulse(MOTOR1_BASE, MOTOR1_TIMER, THROTTLE_TO_PULSE(m1));
     motors_servo_pulse(MOTOR2_BASE, MOTOR2_TIMER, THROTTLE_TO_PULSE(m2));
     motors_servo_pulse(MOTOR3_BASE, MOTOR3_TIMER, THROTTLE_TO_PULSE(m3));
@@ -129,7 +137,7 @@ void motors_set_throttle(float m1, float m2, float m3, float m4)
 
 void motors_servo_pulse(uint32_t base, uint32_t timer, uint16_t pulse)
 {
-    uint32_t period = cycle20ms * pulse / 20000;
+    uint32_t period = motors.cycle_20ms * pulse / 20000;
     uint8_t ext = period >> 16;
     period &= 0xFFFF;
 
