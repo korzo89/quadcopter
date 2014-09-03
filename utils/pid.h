@@ -16,9 +16,11 @@
 
 enum pid_deriv_type
 {
-    PID_DERIV_ON_MEASUREMENT,
+    PID_DERIV_ON_MEASUREMENT = 0,
     PID_DERIV_ON_ERROR
 };
+
+#define PID_DERIV_TYPE_META     "pid_deriv_type;PID_DERIV_;ON_MEASUREMENT;ON_ERROR"
 
 struct pid_params
 {

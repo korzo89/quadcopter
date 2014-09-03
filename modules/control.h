@@ -49,6 +49,8 @@ enum axis_mode
     AXIS_MODE_RATE
 };
 
+#define AXIS_MODE_META      "axis_mode;AXIS_MODE_;DISABLED;ANGLE;RATE"
+
 struct control_axis_val
 {
     float           value;

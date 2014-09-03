@@ -25,13 +25,15 @@ enum param_type
     PARAM_TYPE_INT8,
     PARAM_TYPE_INT16,
     PARAM_TYPE_INT32,
-    PARAM_TYPE_FLOAT
+    PARAM_TYPE_FLOAT,
+    PARAM_TYPE_ENUM
 };
 
 struct param_info
 {
     const char      *group;     // max group len: 14 chars + zero = 15
     const char      *name;      // max name len: 10 chars + zero = 11
+    const char      *meta;
     enum param_type type;
     uint8_t         size;
     uint8_t         count;

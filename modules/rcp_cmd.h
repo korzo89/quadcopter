@@ -32,6 +32,7 @@ enum rcp_cmd
 
     RCP_CMD_PARAM_LIST,
     RCP_CMD_PARAM_INFO,
+    RCP_CMD_PARAM_META,
     RCP_CMD_PARAM_GET,
     RCP_CMD_PARAM_SET,
     RCP_CMD_PARAM_ACTION,
@@ -133,17 +134,26 @@ struct cmd_param_info
     uint8_t count;
 } PACK_STRUCT;
 
+struct cmd_param_meta
+{
+    uint8_t id;
+    uint8_t offset;
+    uint8_t total;
+    uint8_t len;
+    char    data[RCP_PAYLOAD_SIZE - 6];
+} PACK_STRUCT;
+
 struct cmd_param_data
 {
     uint8_t id;
     uint8_t offset;
     uint8_t count;
     uint8_t data[RCP_PAYLOAD_SIZE - 5];
-};
+} PACK_STRUCT;
 
 enum param_action
 {
-    PARAM_LOAD_DEFAULTS,
+    PARAM_LOAD_DEFAULTS = 0,
     PARAM_LOAD_EEPROM,
     PARAM_SAVE_EEPROM
 };
@@ -151,7 +161,7 @@ enum param_action
 struct cmd_param_action
 {
     uint8_t action;
-};
+} PACK_STRUCT;
 
 
 #define DAQ_NAME_MAX_LEN    22
@@ -227,6 +237,7 @@ struct rcp_msg
         struct cmd_pid          pid;
         struct cmd_param_list   param_list;
         struct cmd_param_info   param_info;
+        struct cmd_param_meta   param_meta;
         struct cmd_param_data   param_data;
         struct cmd_param_action param_action;
         struct cmd_daq_list     daq_list;

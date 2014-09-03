@@ -20,26 +20,39 @@
 
 #define PARAM_EEPROM_ADDR       0x0000
 
-#define PARAM_DEF(_group, _name, _type, _size, _count, _ptr)    \
-        { .group = _group, .name = _name, .type = _type, .size = _size, .count = _count, .ptr = _ptr }
+#define PARAM_DEF(_group, _name, _type, _size, _count, _ptr, _meta) {   \
+        .group  = _group,   \
+        .name   = _name,    \
+        .type   = _type,    \
+        .size   = _size,    \
+        .count  = _count,   \
+        .ptr    = _ptr,     \
+        .meta   = _meta     \
+    }
 
 #define PARAM_DEF_FLOAT(_group, _name, _count, _ptr)    \
-        PARAM_DEF(_group, _name, PARAM_TYPE_FLOAT, sizeof(float), _count, _ptr)
+        PARAM_DEF(_group, _name, PARAM_TYPE_FLOAT, sizeof(float), _count, _ptr, NULL)
 
-#define PARAM_PID_BATCH(_group, _pid)                       \
-        PARAM_DEF_FLOAT(_group, "kp", 1, &_pid.kp),         \
-        PARAM_DEF_FLOAT(_group, "ki", 1, &_pid.ki),         \
-        PARAM_DEF_FLOAT(_group, "kd", 1, &_pid.kd),         \
-        PARAM_DEF_FLOAT(_group, "kt", 1, &_pid.kt),         \
-        PARAM_DEF_FLOAT(_group, "out_max", 1, &_pid.kt),    \
-        PARAM_DEF_FLOAT(_group, "out_min", 1, &_pid.kt)
+#define PARAM_DEF_ENUM(_group, _name, _size, _count, _ptr, _meta)    \
+        PARAM_DEF(_group, _name, PARAM_TYPE_ENUM, _size, _count, _ptr, _meta)
 
-#define PID_DEFAULTS(_kp, _ki, _kd, _kt, _out_max, _out_min, _der)    \
-        (struct pid_params){                  \
-            .kp = _kp, .ki = _ki, .kd = _kd,  \
-            .out_max = _out_max,              \
-            .out_min = _out_min,              \
-            .deriv = _der                     \
+
+#define PARAM_PID_BATCH(_group, _pid)                                   \
+        PARAM_DEF_FLOAT(_group, "kp", 1, &_pid.kp),                     \
+        PARAM_DEF_FLOAT(_group, "ki", 1, &_pid.ki),                     \
+        PARAM_DEF_FLOAT(_group, "kd", 1, &_pid.kd),                     \
+        PARAM_DEF_FLOAT(_group, "kt", 1, &_pid.kt),                     \
+        PARAM_DEF_FLOAT(_group, "out_max", 1, &_pid.kt),                \
+        PARAM_DEF_FLOAT(_group, "out_min", 1, &_pid.kt),                \
+        PARAM_DEF_ENUM(_group, "deriv", sizeof(enum pid_deriv_type),    \
+                1, &_pid.deriv, PID_DERIV_TYPE_META)
+
+#define PID_DEFAULTS(_kp, _ki, _kd, _kt, _min, _max, _der)    \
+        (struct pid_params){                    \
+            .kp = _kp, .ki = _ki, .kd = _kd,    \
+            .out_min = _min,                    \
+            .out_max = _max,                    \
+            .deriv = _der                       \
         }
 
 #define PARAM_LIMIT(_group, _lim)                                   \
@@ -58,7 +71,7 @@
         }
 
 #define PARAM_AXIS_MODE(_name, _ptr)    \
-        PARAM_DEF("axis_mode", _name, PARAM_TYPE_UINT8, sizeof(enum axis_mode), 1, _ptr)
+        PARAM_DEF_ENUM("axis_mode", _name, sizeof(enum axis_mode), 1, _ptr, AXIS_MODE_META)
 
 
 //-----------------------------------------------------------------
@@ -137,6 +150,7 @@ static const struct param_info* params_get_info(uint8_t id);
 
 static void rcp_cb_list(struct rcp_msg *msg);
 static void rcp_cb_info(struct rcp_msg *msg);
+static void rcp_cb_meta(struct rcp_msg *msg);
 static void rcp_cb_get(struct rcp_msg *msg);
 static void rcp_cb_set(struct rcp_msg *msg);
 static void rcp_cb_action(struct rcp_msg *msg);
@@ -154,6 +168,7 @@ void params_init(void)
 
     rcp_register_callback(RCP_CMD_PARAM_LIST, rcp_cb_list, true);
     rcp_register_callback(RCP_CMD_PARAM_INFO, rcp_cb_info, true);
+    rcp_register_callback(RCP_CMD_PARAM_META, rcp_cb_meta, true);
     rcp_register_callback(RCP_CMD_PARAM_GET,  rcp_cb_get,  true);
     rcp_register_callback(RCP_CMD_PARAM_SET,  rcp_cb_set,  false);
     rcp_register_callback(RCP_CMD_PARAM_ACTION, rcp_cb_action, false);
@@ -181,12 +196,12 @@ void params_load_defaults(void)
 {
     params_lock();
 
-    params.pid_pitch        = PID_DEFAULTS(1.0f, 0.0f, 0.0f, 0.5f, 1000.0f, 0.0f, PID_DERIV_ON_ERROR);
-    params.pid_roll         = PID_DEFAULTS(1.0f, 0.0f, 0.0f, 0.5f, 20.0f, 0.0f, PID_DERIV_ON_ERROR);
-    params.pid_yaw          = PID_DEFAULTS(1.0f, 0.0f, 0.0f, 0.5f, 20.0f, 0.0f, PID_DERIV_ON_ERROR);
-    params.pid_pitch_rate   = PID_DEFAULTS(1.0f, 0.1f, 0.0f, 0.5f, 1000.0f, -1000.0f, PID_DERIV_ON_ERROR);
-    params.pid_roll_rate    = PID_DEFAULTS(1.0f, 0.0f, 0.0f, 0.5f, 1000.0f, 0.0f, PID_DERIV_ON_ERROR);
-    params.pid_yaw_rate     = PID_DEFAULTS(1.0f, 0.0f, 0.0f, 0.5f, 1000.0f, 0.0f, PID_DERIV_ON_ERROR);
+    params.pid_pitch        = PID_DEFAULTS(1.0f, 0.0f, 0.0f, 0.5f, -90.0f, 90.0f, PID_DERIV_ON_ERROR);
+    params.pid_roll         = PID_DEFAULTS(1.0f, 0.0f, 0.0f, 0.5f, -90.0f, 90.0f, PID_DERIV_ON_ERROR);
+    params.pid_yaw          = PID_DEFAULTS(1.0f, 0.0f, 0.0f, 0.5f, -90.0f, 90.0f, PID_DERIV_ON_ERROR);
+    params.pid_pitch_rate   = PID_DEFAULTS(1.0f, 0.1f, 0.0f, 0.5f, 0.0f, 1000.0f, PID_DERIV_ON_ERROR);
+    params.pid_roll_rate    = PID_DEFAULTS(1.0f, 0.0f, 0.0f, 0.5f, 0.0f, 1000.0f, PID_DERIV_ON_ERROR);
+    params.pid_yaw_rate     = PID_DEFAULTS(1.0f, 0.0f, 0.0f, 0.5f, 0.0f, 1000.0f, PID_DERIV_ON_ERROR);
 
     const float def_mag_calib_scale[] = {
         0.70892, 0.00171642, 0.0316637,
@@ -425,6 +440,55 @@ static void rcp_cb_info(struct rcp_msg *msg)
         resp.param_info.size  = param->size;
         resp.param_info.count = param->count;
     }
+
+    rcp_send_message(&resp);
+}
+
+//-----------------------------------------------------------------
+
+static void rcp_cb_meta(struct rcp_msg *msg)
+{
+    struct cmd_param_meta *cmd = &msg->param_meta;
+
+    struct rcp_msg resp;
+    resp.cmd = RCP_CMD_PARAM_META;
+    memset(&resp.param_meta, 0, sizeof(resp.param_meta));
+
+    resp.param_meta.id = cmd->id;
+    resp.param_meta.offset = cmd->offset;
+
+    const struct param_info *param = params_get_info(cmd->id);
+    if (!param)
+    {
+        resp.query = RCP_CMD_ERROR;
+        rcp_send_message(&resp);
+        return;
+    }
+
+    resp.query = RCP_CMD_OK;
+
+    if (!param->meta)
+    {
+        rcp_send_message(&resp);
+        return;
+    }
+
+    uint8_t total = strlen(param->meta);
+    if (cmd->offset >= total)
+    {
+        resp.query = RCP_CMD_ERROR;
+        rcp_send_message(&resp);
+        return;
+    }
+
+    resp.param_meta.total = total;
+
+    const uint8_t avail = ARRAY_COUNT(resp.param_meta.data);
+    uint8_t rem = total - cmd->offset;
+    uint8_t len = min(avail, rem);
+
+    memcpy(resp.param_meta.data, param->meta + cmd->offset, len);
+    resp.param_meta.len = len;
 
     rcp_send_message(&resp);
 }
