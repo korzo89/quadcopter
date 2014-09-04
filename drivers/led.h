@@ -10,10 +10,8 @@
 
 //-----------------------------------------------------------------
 
-#include <stdbool.h>
-#include <inc/hw_types.h>
-#include <inc/hw_memmap.h>
-#include <driverlib/gpio.h>
+#include <defs.h>
+#include <stellaris_config.h>
 
 //-----------------------------------------------------------------
 
@@ -32,10 +30,10 @@
 
 void led_init(void);
 
-void led_turn_on(unsigned char leds);
-void led_turn_off(unsigned char leds);
-void led_toggle(unsigned char leds, bool on);
-void led_set(unsigned char leds);
+void led_turn_on(uint8_t leds);
+void led_turn_off(uint8_t leds);
+void led_toggle(uint8_t leds, bool on);
+void led_set(uint8_t leds);
 
 //-----------------------------------------------------------------
 

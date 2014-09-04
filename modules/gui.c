@@ -30,33 +30,23 @@
 
 //-----------------------------------------------------------------
 
-static xSemaphoreHandle mutex;
 static xQueueHandle button_queue;
-
-static int led_counter = 0;
-static int button_counter = 0;
 
 static char buf[17];
 
 //-----------------------------------------------------------------
 
 static void gui_task(void *params);
-static void led_task(void *params);
 static void button_task(void *params);
 
 //-----------------------------------------------------------------
 
 result_t gui_init(void)
 {
-    mutex = xSemaphoreCreateMutex();
     button_queue = xQueueCreate(10, sizeof(uint8_t));
 
-    if (xTaskCreate(led_task, TASK_NAME("LED"),
-            configMINIMAL_STACK_SIZE, NULL, 2, NULL) != pdPASS)
-        return RES_ERR_FATAL;
-
     if (xTaskCreate(button_task, TASK_NAME("BTN"),
-            configMINIMAL_STACK_SIZE, NULL, 2, NULL) != pdPASS)
+            configMINIMAL_STACK_SIZE, NULL, 1, NULL) != pdPASS)
         return RES_ERR_FATAL;
 
     if (xTaskCreate(gui_task, TASK_NAME("GUI"),
@@ -64,23 +54,6 @@ result_t gui_init(void)
         return RES_ERR_FATAL;
 
     return RES_OK;
-}
-
-//-----------------------------------------------------------------
-
-static void led_task(void *params)
-{
-    while (1)
-    {
-        led_turn_on(LED_GREEN);
-        DELAY_MS(150);
-        led_turn_off(LED_GREEN);
-        DELAY_MS(150);
-
-        xSemaphoreTake(mutex, portMAX_DELAY);
-        ++led_counter;
-        xSemaphoreGive(mutex);
-    }
 }
 
 //-----------------------------------------------------------------
@@ -151,6 +124,14 @@ static void gui_disp_control_axis(const char *name, uint8_t row, const struct co
 
 //-----------------------------------------------------------------
 
+static void gui_disp_motor(uint8_t num, uint8_t row, float val)
+{
+    usprintf(buf, "M%d %4d", num, (int)val);
+    oled_disp_str_at(buf, row, 0);
+}
+
+//-----------------------------------------------------------------
+
 const uint8_t SYMB_CONN[] = {
     0x03, 0x05, 0x09, 0x7F, 0x09, 0x05, 0x03, 0x00,
     0x00, 0x1C, 0x00, 0x22, 0x1C, 0x41, 0x22, 0x1C
@@ -169,7 +150,7 @@ static void gui_task(void *params)
     oled_disp_str("Hello world!");
     DELAY_MS(1000);
 
-    uint8_t i, state;
+    uint8_t state;
     float dist;
     float battery;
 
@@ -189,14 +170,13 @@ static void gui_task(void *params)
             case 0:
                 break;
             case 1:
-                ++button_counter;
-                break;
-            case 2:
                 screen = (screen + 1) % NUM_SCREENS;
 
                 oled_clear();
 
                 buzzer_seq_lib_play(BUZZER_SEQ_PRESS, BUZZER_MODE_IGNORE);
+                break;
+            case 2:
                 break;
             default:
                 break;
@@ -227,32 +207,36 @@ static void gui_task(void *params)
         }
 
         case 1:
-            xSemaphoreTake(mutex, portMAX_DELAY);
-            usprintf(buf, "Count: %4d", led_counter);
-            xSemaphoreGive(mutex);
-            oled_disp_str_at(buf, 2, 0);
+        {
+            struct control_motors motors;
+            control_get_motors(&motors);
 
-            usprintf(buf, "Button: %3d", button_counter);
-            oled_disp_str_at(buf, 3, 0);
+            /***0123456789ABCDEF**/
+            /*********************/
+            /*0 *Y))   2/8    ARM*/
+            /*1 *                */
+            /*2 *M1 1000  M3   M2*/
+            /*3 *M2 1000    \ /  */
+            /*4 *M3 1000     O   */
+            /*5 *M4 1000    / \  */
+            /*6 *         M4 | M1*/
+            /*7 *            V   */
+            /*********************/
 
-//            *(&button_counter + 54377887) = 666; // trigger cpu fault
+            gui_disp_motor(1, 2, motors.m1);
+            gui_disp_motor(2, 3, motors.m2);
+            gui_disp_motor(3, 4, motors.m3);
+            gui_disp_motor(4, 5, motors.m4);
 
-            oled_set_pos(6, 0);
-            state = led_counter % 16;
-            for (i = 0; i < state; ++i)
-                oled_disp_char('_');
-            oled_disp_char('*');
-            for (i = state + 1; i < 16; ++i)
-                oled_disp_char('_');
+            oled_disp_str_at("M3   M2", 2, 9);
+            oled_disp_str_at( "\\ /",   3, 11);
+            oled_disp_str_at(   "O",    4, 12);
+            oled_disp_str_at(  "/ \\",  5, 11);
+            oled_disp_str_at("M4 | M1", 6, 9);
+            oled_disp_str_at(   "V",    7, 12);
 
-            oled_set_pos(7, 0);
-            state = button_counter % 16;
-            for (i = 0; i < state; ++i)
-                oled_disp_char('_');
-            oled_disp_char('*');
-            for (i = state + 1; i < 16; ++i)
-                oled_disp_char('_');
             break;
+        }
 
         case 2:
             dist = ultrasonic_get_distance();

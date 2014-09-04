@@ -66,6 +66,11 @@ struct control_vals
     struct control_axis_val yaw;
 };
 
+struct control_motors
+{
+    float m1, m2, m3, m4;
+};
+
 //-----------------------------------------------------------------
 
 result_t control_init(void);
@@ -77,6 +82,8 @@ bool control_is_armed(void);
 result_t control_set_vals(const struct control_vals *vals);
 result_t control_get_vals(struct control_vals *out);
 result_t control_set_axis_modes(enum axis_mode pitch, enum axis_mode roll, enum axis_mode yaw);
+
+result_t control_get_motors(struct control_motors *out);
 
 struct pid* control_get_pid(enum control_type type);
 

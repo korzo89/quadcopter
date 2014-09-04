@@ -196,12 +196,12 @@ void params_load_defaults(void)
 {
     params_lock();
 
-    params.pid_pitch        = PID_DEFAULTS(1.0f, 0.0f, 0.0f, 0.5f, -90.0f, 90.0f, PID_DERIV_ON_ERROR);
-    params.pid_roll         = PID_DEFAULTS(1.0f, 0.0f, 0.0f, 0.5f, -90.0f, 90.0f, PID_DERIV_ON_ERROR);
-    params.pid_yaw          = PID_DEFAULTS(1.0f, 0.0f, 0.0f, 0.5f, -90.0f, 90.0f, PID_DERIV_ON_ERROR);
-    params.pid_pitch_rate   = PID_DEFAULTS(1.0f, 0.1f, 0.0f, 0.5f, 0.0f, 1000.0f, PID_DERIV_ON_ERROR);
-    params.pid_roll_rate    = PID_DEFAULTS(1.0f, 0.0f, 0.0f, 0.5f, 0.0f, 1000.0f, PID_DERIV_ON_ERROR);
-    params.pid_yaw_rate     = PID_DEFAULTS(1.0f, 0.0f, 0.0f, 0.5f, 0.0f, 1000.0f, PID_DERIV_ON_ERROR);
+    params.pid_pitch        = PID_DEFAULTS(1.0f, 0.0f, 0.0f, 0.0f, -90.0f, 90.0f, PID_DERIV_ON_ERROR);
+    params.pid_roll         = PID_DEFAULTS(1.0f, 0.0f, 0.0f, 0.0f, -90.0f, 90.0f, PID_DERIV_ON_ERROR);
+    params.pid_yaw          = PID_DEFAULTS(1.0f, 0.0f, 0.0f, 0.0f, -90.0f, 90.0f, PID_DERIV_ON_ERROR);
+    params.pid_pitch_rate   = PID_DEFAULTS(1.0f, 0.0f, 0.0f, 0.0f, -1000.0f, 1000.0f, PID_DERIV_ON_ERROR);
+    params.pid_roll_rate    = PID_DEFAULTS(1.0f, 0.0f, 0.0f, 0.0f, -1000.0f, 1000.0f, PID_DERIV_ON_ERROR);
+    params.pid_yaw_rate     = PID_DEFAULTS(1.0f, 0.0f, 0.0f, 0.0f, -1000.0f, 1000.0f, PID_DERIV_ON_ERROR);
 
     const float def_mag_calib_scale[] = {
         0.70892, 0.00171642, 0.0316637,
@@ -220,7 +220,7 @@ void params_load_defaults(void)
 
     params.madgwick_beta = 0.4f;
 
-    params.limit_throttle       = LIMIT_DEFAULTS(1000.0f, 50.0f);
+    params.limit_throttle       = LIMIT_DEFAULTS(1000.0f, 10.0f);
     params.limit_angles.pitch   = LIMIT_DEFAULTS(60.0f, 1.0f);
     params.limit_angles.roll    = LIMIT_DEFAULTS(60.0f, 1.0f);
     params.limit_angles.yaw     = LIMIT_DEFAULTS(180.0f, 1.0f);

@@ -10,6 +10,7 @@
 #include <drivers/buzzer.h>
 #include <drivers/motors.h>
 #include <drivers/watchdog.h>
+#include <drivers/led.h>
 #include <modules/rcp.h>
 #include <modules/imu.h>
 #include <modules/daq.h>
@@ -33,17 +34,28 @@
 
 #define CONTROL_WATCHDOG_RELOAD         ( SysCtlClockGet() / 2 )
 
-#define DAQ_REGISTER_PID(_name, _unit, _pid)   \
+#define DAQ_REGISTER_PID(_name, _unit, _pid)                                            \
     do {                                                                                \
         daq_register_value(_name" error", _unit, &_pid.error, DAQ_TYPE_FLOAT);          \
         daq_register_value(_name" control", _unit, &_pid.output, DAQ_TYPE_FLOAT);       \
         daq_register_value(_name" setpoint", _unit, &_pid.setpoint, DAQ_TYPE_FLOAT);    \
     } while(0)
 
-#define DAQ_REGISTER_PID_AXIS(_name, _pid)   \
+#define DAQ_REGISTER_PID_AXIS(_name, _pid)                      \
     do {                                                        \
         DAQ_REGISTER_PID(_name, "deg", _pid.angle);             \
-        DAQ_REGISTER_PID(_name" rate", "deg/s", _pid.rate);    \
+        DAQ_REGISTER_PID(_name" rate", "deg/s", _pid.rate);     \
+    } while (0)
+
+#define DAQ_REGISTER_MOTOR(_num, _ptr)  \
+    daq_register_value("Motor " #_num " control", "raw", _ptr, DAQ_TYPE_FLOAT)
+
+#define DAQ_REGISTER_MOTORS(_mot)     \
+    do {                                    \
+        DAQ_REGISTER_MOTOR(1, &_mot.m1);    \
+        DAQ_REGISTER_MOTOR(2, &_mot.m2);    \
+        DAQ_REGISTER_MOTOR(3, &_mot.m3);    \
+        DAQ_REGISTER_MOTOR(4, &_mot.m4);    \
     } while (0)
 
 //-----------------------------------------------------------------
@@ -65,6 +77,7 @@ struct control_obj
     struct pid_axis pid_yaw;
 
     struct control_vals curr_control;
+    struct control_motors motors;
 
     xSemaphoreHandle mutex;
 };
@@ -105,6 +118,9 @@ static result_t limit_control(enum control_type type, bool absolute, bool bipola
 
 static float update_axis_control(struct pid_axis *axis, float val, float angle, float rate, float dt);
 
+static void set_motors(const struct control_motors *val);
+static float limit_motor_val(float val, float max);
+
 //-----------------------------------------------------------------
 
 result_t control_init(void)
@@ -140,6 +156,8 @@ result_t control_init(void)
     DAQ_REGISTER_PID_AXIS("Pitch", control.pid_pitch);
     DAQ_REGISTER_PID_AXIS("Roll", control.pid_roll);
     DAQ_REGISTER_PID_AXIS("Yaw", control.pid_yaw);
+
+    DAQ_REGISTER_MOTORS(control.motors);
 
     control.mutex = xSemaphoreCreateRecursiveMutex();
 
@@ -182,6 +200,13 @@ void control_process(void)
 
     const float dt = 0.01f;
 
+    struct control_motors motors = {
+        .m1 = 0.0f,
+        .m2 = 0.0f,
+        .m3 = 0.0f,
+        .m4 = 0.0f
+    };
+
     bool manual_all = false;
     if (control.armed)
     {
@@ -193,7 +218,10 @@ void control_process(void)
         {
             manual_all = true;
 
-            motors_set_throttle(throttle, throttle, throttle, throttle);
+            motors.m1 = throttle;
+            motors.m2 = throttle;
+            motors.m3 = throttle;
+            motors.m4 = throttle;
         }
         else
         {
@@ -204,18 +232,18 @@ void control_process(void)
             float roll  = update_axis_control(&control.pid_roll, control.curr_control.roll.value, angles.x, rates.x, dt);
             float yaw   = update_axis_control(&control.pid_yaw, control.curr_control.yaw.value, angles.z, rates.z, dt);
 
-            float m1 = (throttle - pitch + roll + yaw) * 0.25;
-            float m2 = (throttle + pitch + roll - yaw) * 0.25;
-            float m3 = (throttle + pitch - roll + yaw) * 0.25;
-            float m4 = (throttle - pitch - roll - yaw) * 0.25;
-
-            motors_set_throttle(m1, m2, m3, m4);
+            motors.m1 = (throttle - pitch + roll + yaw) * 0.25;
+            motors.m2 = (throttle + pitch + roll - yaw) * 0.25;
+            motors.m3 = (throttle + pitch - roll + yaw) * 0.25;
+            motors.m4 = (throttle - pitch - roll - yaw) * 0.25;
         }
     }
     else
     {
         manual_all = true;
     }
+
+    set_motors(&motors);
 
     if (manual_all)
     {
@@ -228,6 +256,34 @@ void control_process(void)
     }
 
     control_unlock();
+}
+
+//-----------------------------------------------------------------
+
+static void set_motors(const struct control_motors *val)
+{
+    float motor_max;
+    params_get_motor_max(&motor_max);
+
+    control.motors.m1 = limit_motor_val(val->m1, motor_max);
+    control.motors.m2 = limit_motor_val(val->m2, motor_max);
+    control.motors.m3 = limit_motor_val(val->m3, motor_max);
+    control.motors.m4 = limit_motor_val(val->m4, motor_max);
+
+    motors_set_throttle(control.motors.m1, control.motors.m2,
+            control.motors.m3, control.motors.m4);
+}
+
+//-----------------------------------------------------------------
+
+static float limit_motor_val(float val, float max)
+{
+    if (val < 0.0f)
+        return 0.0f;
+    else if (val > max)
+        return max;
+    else
+        return val;
 }
 
 //-----------------------------------------------------------------
@@ -263,6 +319,16 @@ static float update_axis_control(struct pid_axis *axis, float val, float angle, 
 
 //-----------------------------------------------------------------
 
+result_t control_get_motors(struct control_motors *out)
+{
+    if (!out)
+        return RES_ERR_BAD_PARAM;
+    memcpy(out, &control.motors, sizeof(control.motors));
+    return RES_OK;
+}
+
+//-----------------------------------------------------------------
+
 static void control_task(void *params)
 {
     portTickType last_wake = xTaskGetTickCount();
@@ -279,9 +345,14 @@ static void control_task(void *params)
 void control_arm(void)
 {
     control_lock();
+
     control.armed = true;
     motors_arm();
+
+    led_turn_on(LED_GREEN);
+
     control_unlock();
+
     buzzer_seq_lib_play(BUZZER_SEQ_ARM, BUZZER_MODE_FORCE);
 }
 
@@ -290,9 +361,14 @@ void control_arm(void)
 void control_disarm(void)
 {
     control_lock();
+
     control.armed = false;
     motors_disarm();
+
+    led_turn_off(LED_GREEN);
+
     control_unlock();
+
     buzzer_seq_lib_play(BUZZER_SEQ_DISARM, BUZZER_MODE_FORCE);
 }
 
@@ -382,7 +458,7 @@ static result_t calc_control(const struct cmd_control *cmd, struct control_vals 
         return RES_ERR_BAD_PARAM;
 
     result_t res;
-    res = limit_control(CONTROL_THROTTLE, cmd->throttle.absolute, false, false, cmd->throttle.value, &out->throttle);
+    res = limit_control(CONTROL_THROTTLE, cmd->throttle.absolute, false, true, cmd->throttle.value, &out->throttle);
     if (res != RES_OK)
         return res;
 

@@ -26,28 +26,28 @@ void led_init()
 
 //-----------------------------------------------------------------
 
-void led_turn_on(unsigned char leds)
+void led_turn_on(uint8_t leds)
 {
     GPIOPinWrite(LED_GPIO, leds & LED_MASK, 0xFF);
 }
 
 //-----------------------------------------------------------------
 
-void led_turn_off(unsigned char leds)
+void led_turn_off(uint8_t leds)
 {
     GPIOPinWrite(LED_GPIO, leds & LED_MASK, 0x00);
 }
 
 //-----------------------------------------------------------------
 
-void led_toggle(unsigned char leds, bool on)
+void led_toggle(uint8_t leds, bool on)
 {
     GPIOPinWrite(LED_GPIO, leds & LED_MASK, on ? 0xFF : 0x00);
 }
 
 //-----------------------------------------------------------------
 
-void led_set(unsigned char leds)
+void led_set(uint8_t leds)
 {
     GPIOPinWrite(LED_GPIO, LED0_PIN | LED1_PIN | LED2_PIN, leds);
 }
