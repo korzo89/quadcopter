@@ -569,6 +569,8 @@ static void rcp_cb_pid_set(struct rcp_msg *msg)
     pid->params.kd = msg->pid.kd;
     pid->params.ki = msg->pid.ki;
     pid->params.kt = msg->pid.kt;
+    pid->params.out_min = msg->pid.out_min;
+    pid->params.out_max = msg->pid.out_max;
 
     pid_reset(pid);
 
@@ -594,6 +596,8 @@ static void rcp_cb_pid_get(struct rcp_msg *msg)
     resp.pid.ki = pid->params.ki;
     resp.pid.kd = pid->params.kd;
     resp.pid.kt = pid->params.kt;
+    resp.pid.out_min = pid->params.out_min;
+    resp.pid.out_max = pid->params.out_max;
 
     rcp_send_message(&resp);
 }

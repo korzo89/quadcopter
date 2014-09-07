@@ -112,6 +112,8 @@ struct cmd_pid
     float   ki;
     float   kd;
     float   kt;
+    float   out_min;
+    float   out_max;
 } PACK_STRUCT;
 
 
