@@ -190,8 +190,7 @@ void control_process(void)
     {
         buzzer_seq_lib_play(BUZZER_SEQ_LOST, BUZZER_MODE_FORCE);
         control.connected = false;
-        control.armed = false;
-        motors_disarm();
+        control_disarm();
     }
 
     struct vec3 angles, rates;
@@ -362,14 +361,15 @@ void control_disarm(void)
 {
     control_lock();
 
+    if (control.armed)
+        buzzer_seq_lib_play(BUZZER_SEQ_DISARM, BUZZER_MODE_FORCE);
+
     control.armed = false;
     motors_disarm();
 
     led_turn_off(LED_GREEN);
 
     control_unlock();
-
-    buzzer_seq_lib_play(BUZZER_SEQ_DISARM, BUZZER_MODE_FORCE);
 }
 
 //-----------------------------------------------------------------

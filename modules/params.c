@@ -20,7 +20,7 @@
 
 #define PARAM_EEPROM_ADDR       0x0000
 
-#define PARAM_DEF(_group, _name, _type, _size, _count, _ptr, _meta) {   \
+#define PARAM_DEF_META(_group, _name, _type, _size, _count, _ptr, _meta) {   \
         .group  = _group,   \
         .name   = _name,    \
         .type   = _type,    \
@@ -30,11 +30,14 @@
         .meta   = _meta     \
     }
 
+#define PARAM_DEF(_group, _name, _type, _size, _count, _ptr)    \
+        PARAM_DEF_META(_group, _name, _type, _size, _count, _ptr, NULL)
+
 #define PARAM_DEF_FLOAT(_group, _name, _count, _ptr)    \
-        PARAM_DEF(_group, _name, PARAM_TYPE_FLOAT, sizeof(float), _count, _ptr, NULL)
+        PARAM_DEF(_group, _name, PARAM_TYPE_FLOAT, sizeof(float), _count, _ptr)
 
 #define PARAM_DEF_ENUM(_group, _name, _size, _count, _ptr, _meta)    \
-        PARAM_DEF(_group, _name, PARAM_TYPE_ENUM, _size, _count, _ptr, _meta)
+        PARAM_DEF_META(_group, _name, PARAM_TYPE_ENUM, _size, _count, _ptr, _meta)
 
 
 #define PARAM_PID_BATCH(_group, _pid)                                   \
@@ -87,8 +90,10 @@ struct params_obj
     struct pid_params pid_roll_rate;
     struct pid_params pid_yaw_rate;
 
-    float   mag_calib_scale[9];
-    float   mag_calib_offset[3];
+    float   calib_acc_offset[3];
+    float   calib_gyro_offset[3];
+    float   calib_mag_scale[9];
+    float   calib_mag_offset[3];
 
     struct vec3  triad_ref_acc;
     struct vec3  triad_ref_mag;
@@ -105,6 +110,8 @@ struct params_obj
 
     float motor_max;
     float control_min_throttle;
+
+    uint32_t rcp_disc_time;
 };
 
 static struct params_obj params;
@@ -119,8 +126,10 @@ const struct param_info infos[] = {
     PARAM_PID_BATCH("pid_roll_rate", params.pid_roll_rate),
     PARAM_PID_BATCH("pid_yaw_rate", params.pid_yaw_rate),
 
-    PARAM_DEF_FLOAT("mag_calib", "scale", 9, params.mag_calib_scale),
-    PARAM_DEF_FLOAT("mag_calib", "offset", 3, params.mag_calib_offset),
+    PARAM_DEF_FLOAT("calibration", "acc_off", 3, params.calib_acc_offset),
+    PARAM_DEF_FLOAT("calibration", "gyro_off", 3, params.calib_gyro_offset),
+    PARAM_DEF_FLOAT("calibration", "mag_scale", 9, params.calib_mag_scale),
+    PARAM_DEF_FLOAT("calibration", "mag_off", 3, params.calib_mag_offset),
 
     PARAM_DEF_FLOAT("triad", "ref_acc", 3, &params.triad_ref_acc),
     PARAM_DEF_FLOAT("triad", "ref_mag", 3, &params.triad_ref_mag),
@@ -136,7 +145,9 @@ const struct param_info infos[] = {
     PARAM_AXIS_MODE("yaw", &params.mode_yaw),
 
     PARAM_DEF_FLOAT("control", "motor_max", 1, &params.motor_max),
-    PARAM_DEF_FLOAT("control", "min_thrott", 1, &params.control_min_throttle)
+    PARAM_DEF_FLOAT("control", "min_thrott", 1, &params.control_min_throttle),
+
+    PARAM_DEF("rcp", "disc_time", PARAM_TYPE_UINT32, sizeof(uint32_t), 1, &params.rcp_disc_time)
 };
 
 //-----------------------------------------------------------------
@@ -203,17 +214,27 @@ void params_load_defaults(void)
     params.pid_roll_rate    = PID_DEFAULTS(1.0f, 0.0f, 0.0f, 0.0f, -1000.0f, 1000.0f, PID_DERIV_ON_ERROR);
     params.pid_yaw_rate     = PID_DEFAULTS(1.0f, 0.0f, 0.0f, 0.0f, -1000.0f, 1000.0f, PID_DERIV_ON_ERROR);
 
-    const float def_mag_calib_scale[] = {
+    const float def_calib_acc_offset[] = {
+        0.0f, 0.0f, 0.0f
+    };
+    memcpy(params.calib_acc_offset, def_calib_acc_offset, sizeof(def_calib_acc_offset));
+
+    const float def_calib_gyro_offset[] = {
+        0.0f, 0.0f, 0.0f
+    };
+    memcpy(params.calib_gyro_offset, def_calib_gyro_offset, sizeof(def_calib_gyro_offset));
+
+    const float def_calib_mag_scale[] = {
         0.70892, 0.00171642, 0.0316637,
         0.00171642, 0.770402, 0.0256191,
         0.0316637, 0.0256191, 0.993655
     };
-    memcpy(params.mag_calib_scale, def_mag_calib_scale, sizeof(def_mag_calib_scale));
+    memcpy(params.calib_mag_scale, def_calib_mag_scale, sizeof(def_calib_mag_scale));
 
-    const float def_mag_calib_offset[] = {
+    const float def_calib_mag_offset[] = {
         52.541, -147.339, -98.677
     };
-    memcpy(params.mag_calib_offset, def_mag_calib_offset, sizeof(def_mag_calib_offset));
+    memcpy(params.calib_mag_offset, def_calib_mag_offset, sizeof(def_calib_mag_offset));
 
     params.triad_ref_acc = VEC3_NEW(-0.0156, 0.0391, 0.9375);
     params.triad_ref_mag = VEC3_NEW(131.6290, 11.9624, -343.7395);
@@ -234,6 +255,8 @@ void params_load_defaults(void)
 
     params.motor_max = 1000.0f;
     params.control_min_throttle = 100.0f;
+
+    params.rcp_disc_time = 1000;
 
     params_unlock();
 }
@@ -646,16 +669,30 @@ result_t params_get_pid_yaw_rate(struct pid_params *out)
 
 //-----------------------------------------------------------------
 
-result_t params_get_mag_calib_scale(float *out)
+result_t params_get_calib_acc_offset(float *out)
 {
-    return params_copy(out, params.mag_calib_scale, sizeof(params.mag_calib_scale));
+    return params_copy(out, params.calib_acc_offset, sizeof(params.calib_acc_offset));
 }
 
 //-----------------------------------------------------------------
 
-result_t params_get_mag_calib_offset(float *out)
+result_t params_get_calib_gyro_offset(float *out)
 {
-    return params_copy(out, params.mag_calib_offset, sizeof(params.mag_calib_offset));
+    return params_copy(out, params.calib_gyro_offset, sizeof(params.calib_gyro_offset));
+}
+
+//-----------------------------------------------------------------
+
+result_t params_get_calib_mag_scale(float *out)
+{
+    return params_copy(out, params.calib_mag_scale, sizeof(params.calib_mag_scale));
+}
+
+//-----------------------------------------------------------------
+
+result_t params_get_calib_mag_offset(float *out)
+{
+    return params_copy(out, params.calib_mag_offset, sizeof(params.calib_mag_offset));
 }
 
 //-----------------------------------------------------------------
@@ -753,4 +790,11 @@ result_t params_get_motor_max(float *out)
 result_t params_get_control_min_throttle(float *out)
 {
     return params_copy(out, &params.control_min_throttle, sizeof(float));
+}
+
+//-----------------------------------------------------------------
+
+result_t params_get_rcp_disc_time(uint32_t *out)
+{
+    return params_copy(out, &params.rcp_disc_time, sizeof(*out));
 }

@@ -55,8 +55,10 @@ result_t params_get_pid_pitch_rate(struct pid_params *out);
 result_t params_get_pid_roll_rate(struct pid_params *out);
 result_t params_get_pid_yaw_rate(struct pid_params *out);
 
-result_t params_get_mag_calib_scale(float *out);
-result_t params_get_mag_calib_offset(float *out);
+result_t params_get_calib_acc_offset(float *out);
+result_t params_get_calib_gyro_offset(float *out);
+result_t params_get_calib_mag_scale(float *out);
+result_t params_get_calib_mag_offset(float *out);
 
 result_t params_get_triad_ref_acc(struct vec3 *out);
 result_t params_get_triad_ref_mag(struct vec3 *out);
@@ -72,6 +74,8 @@ result_t params_get_yaw_mode(enum axis_mode *out);
 
 result_t params_get_motor_max(float *out);
 result_t params_get_control_min_throttle(float *out);
+
+result_t params_get_rcp_disc_time(uint32_t *out);
 
 //-----------------------------------------------------------------
 

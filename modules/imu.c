@@ -418,18 +418,20 @@ static result_t imu_quaternion_to_euler(struct vec3 *out)
     if (!out)
         return RES_ERR_BAD_PARAM;
 
-//    float m11 = 2.0f * q0 * q0 - 1.0f + 2.0f * q1 * q1;
-//    float m21 = 2.0f * (q1 * q2 - q0 * q3);
-//    float m31 = 2.0f * (q1 * q3 + q0 * q2);
-//    float m32 = 2.0f * (q2 * q3 - q0 * q1);
-//    float m33 = 2.0f * q0 * q0 - 1.0f + 2.0f * q3 * q3;
-//
-//    // pitch
-//    out->y = RAD_TO_DEG(-atanf(m31 * inv_sqrt(1.0f - m31 * m31)));
-//    // roll
-//    out->x = RAD_TO_DEG(atan2f(m32, m33));
-//    // yaw
-//    out->z = RAD_TO_DEG(atan2f(m21, m11));
+#if 0
+    float m11 = 2.0f * q0 * q0 - 1.0f + 2.0f * q1 * q1;
+    float m21 = 2.0f * (q1 * q2 - q0 * q3);
+    float m31 = 2.0f * (q1 * q3 + q0 * q2);
+    float m32 = 2.0f * (q2 * q3 - q0 * q1);
+    float m33 = 2.0f * q0 * q0 - 1.0f + 2.0f * q3 * q3;
+
+    // pitch
+    out->y = RAD_TO_DEG(-atanf(m31 * inv_sqrt(1.0f - m31 * m31)));
+    // roll
+    out->x = RAD_TO_DEG(atan2f(m32, m33));
+    // yaw
+    out->z = RAD_TO_DEG(atan2f(m21, m11));
+#endif
 
     float a = 2.0f * (q0 * q1 + q2 * q3);
     float b = 1.0f - 2.0f * (q1 * q1 + q2 * q2);
@@ -454,26 +456,30 @@ result_t imu_sensors_transform(struct imu_sensor_data *sens, struct imu_real *re
     if (!sens || !real)
         return RES_ERR_BAD_PARAM;
 
-    float mag_calib_scale[9];
-    params_get_mag_calib_scale(mag_calib_scale);
-    float mag_calib_offset[3];
-    params_get_mag_calib_offset(mag_calib_offset);
+    float offset[3];
+    params_get_calib_acc_offset(offset);
 
-    real->acc.x = (float)sens->acc.x / 256.0;
-    real->acc.y = (float)sens->acc.y / 256.0;
-    real->acc.z = (float)sens->acc.z / 256.0;
+    real->acc.x = (float)sens->acc.x / 256.0 + offset[0];
+    real->acc.y = (float)sens->acc.y / 256.0 + offset[1];
+    real->acc.z = (float)sens->acc.z / 256.0 + offset[2];
 
-    real->gyro.x = (float)sens->gyro.x * (70.0 / 1000.0);
-    real->gyro.y = (float)sens->gyro.y * (70.0 / 1000.0);
-    real->gyro.z = (float)sens->gyro.z * (70.0 / 1000.0);
+    params_get_calib_gyro_offset(offset);
 
-    float mx = (float)sens->mag.x * 0.92 - mag_calib_offset[0];
-    float my = (float)sens->mag.y * 0.92 - mag_calib_offset[1];
-    float mz = (float)sens->mag.z * 0.92 - mag_calib_offset[2];
+    real->gyro.x = (float)sens->gyro.x * (70.0 / 1000.0) + offset[0];
+    real->gyro.y = (float)sens->gyro.y * (70.0 / 1000.0) + offset[1];
+    real->gyro.z = (float)sens->gyro.z * (70.0 / 1000.0) + offset[2];
 
-    float cx = mag_calib_scale[0] * mx + mag_calib_scale[1] * my + mag_calib_scale[2] * mz;
-    float cy = mag_calib_scale[3] * mx + mag_calib_scale[4] * my + mag_calib_scale[5] * mz;
-    float cz = mag_calib_scale[6] * mx + mag_calib_scale[7] * my + mag_calib_scale[8] * mz;
+    float scale[9];
+    params_get_calib_mag_scale(scale);
+    params_get_calib_mag_offset(offset);
+
+    float mx = (float)sens->mag.x * 0.92 - offset[0];
+    float my = (float)sens->mag.y * 0.92 - offset[1];
+    float mz = (float)sens->mag.z * 0.92 - offset[2];
+
+    float cx = scale[0] * mx + scale[1] * my + scale[2] * mz;
+    float cy = scale[3] * mx + scale[4] * my + scale[5] * mz;
+    float cz = scale[6] * mx + scale[7] * my + scale[8] * mz;
     mx = cx / 1000.0;
     my = cy / 1000.0;
     mz = cz / 1000.0;

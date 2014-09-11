@@ -7,6 +7,7 @@
 
 #include "rcp.h"
 
+#include <modules/params.h>
 #include <drivers/nrf24l01.h>
 #include <drivers/led.h>
 #include <drivers/motors.h>
@@ -205,6 +206,9 @@ void rcp_process_message(struct rcp_msg *msg)
 
 bool rcp_is_connected(void)
 {
+    uint32_t time;
+    params_get_rcp_disc_time(&time);
+
     return last_msg_time &&
-            (xTaskGetTickCount() - last_msg_time <= MSEC_TO_TICKS(RCP_DISCONNECT_TIME));
+            (xTaskGetTickCount() - last_msg_time <= MSEC_TO_TICKS(time));
 }

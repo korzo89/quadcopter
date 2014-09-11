@@ -20,8 +20,6 @@
 
 //-----------------------------------------------------------------
 
-#define THROTTLE_TO_PULSE(x)    (1000 + (uint16_t)min(max(0, x), THROTTLE_MAX))
-
 #define MOTOR1_BASE     TIMER0_BASE
 #define MOTOR1_TIMER    TIMER_A
 #define MOTOR1_PORT     GPIO_PORTB_BASE
@@ -45,6 +43,10 @@
 #define MOTOR4_PORT     GPIO_PORTB_BASE
 #define MOTOR4_PIN      GPIO_PIN_4
 #define MOTOR4_CFG      GPIO_PB4_T1CCP0
+
+//-----------------------------------------------------------------
+
+static uint16_t calc_pulse(float throttle);
 
 //-----------------------------------------------------------------
 
@@ -124,13 +126,22 @@ void motors_disarm(void)
 
 void motors_set_throttle(float m1, float m2, float m3, float m4)
 {
-    if (!motors.armed)
-        return;
+    motors_servo_pulse(MOTOR1_BASE, MOTOR1_TIMER, calc_pulse(m1));
+    motors_servo_pulse(MOTOR2_BASE, MOTOR2_TIMER, calc_pulse(m2));
+    motors_servo_pulse(MOTOR3_BASE, MOTOR3_TIMER, calc_pulse(m3));
+    motors_servo_pulse(MOTOR4_BASE, MOTOR4_TIMER, calc_pulse(m4));
+}
 
-    motors_servo_pulse(MOTOR1_BASE, MOTOR1_TIMER, THROTTLE_TO_PULSE(m1));
-    motors_servo_pulse(MOTOR2_BASE, MOTOR2_TIMER, THROTTLE_TO_PULSE(m2));
-    motors_servo_pulse(MOTOR3_BASE, MOTOR3_TIMER, THROTTLE_TO_PULSE(m3));
-    motors_servo_pulse(MOTOR4_BASE, MOTOR4_TIMER, THROTTLE_TO_PULSE(m4));
+//-----------------------------------------------------------------
+
+static uint16_t calc_pulse(float throttle)
+{
+    if (throttle < 0.0f)
+        throttle = 0.0f;
+    else if (throttle > THROTTLE_MAX)
+        throttle = THROTTLE_MAX;
+
+    return 1000 + (uint16_t)throttle;
 }
 
 //-----------------------------------------------------------------
