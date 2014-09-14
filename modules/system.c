@@ -39,6 +39,28 @@
 
 //-----------------------------------------------------------------
 
+static void system_init_task(void *params);
+static void system_hw_init(void);
+
+static void esc_calibration(void);
+
+//-----------------------------------------------------------------
+
+result_t system_init(void)
+{
+    system_hw_init();
+
+    if (xTaskCreate(system_init_task, TASK_NAME("INIT"),
+            SYSTEM_INIT_TASK_STACK, NULL, SYSTEM_INIT_TASK_PRIORITY, NULL) != pdPASS)
+        return RES_ERR_FATAL;
+
+    vTaskStartScheduler();
+
+    return RES_OK;
+}
+
+//-----------------------------------------------------------------
+
 static void system_hw_init(void)
 {
     SysCtlClockSet(SYSCTL_SYSDIV_2_5 | SYSCTL_USE_PLL |
@@ -77,10 +99,10 @@ static void system_init_task(void *params)
     bool has_oled = oled_init();
 
     motors_init();
-    motors_set_throttle(0, 0, 0, 0);
 
     if (BUTTON_PRESSED())
     {
+#if 0
         char buf[17];
 
         led_set(LED_GREEN);
@@ -108,7 +130,11 @@ static void system_init_task(void *params)
         while (BUTTON_PRESSED());
 
         led_set(LEDS_OFF);
+#endif
+        esc_calibration();
     }
+
+    motors_set_throttle(0, 0, 0, 0);
 
     rcp_init();
 
@@ -135,17 +161,40 @@ static void system_init_task(void *params)
 
 //-----------------------------------------------------------------
 
-result_t system_init(void)
+static void esc_calibration(void)
 {
-    system_hw_init();
+    oled_clear();
+    oled_disp_str("ESC Calibration\n\n");
 
-    if (xTaskCreate(system_init_task, TASK_NAME("INIT"),
-            SYSTEM_INIT_TASK_STACK, NULL, SYSTEM_INIT_TASK_PRIORITY, NULL) != pdPASS)
-        return RES_ERR_FATAL;
+    led_turn_on(LED_GREEN);
+    oled_disp_str("Setting 100%  ");
+    motors_set_throttle(THROTTLE_MAX, THROTTLE_MAX, THROTTLE_MAX, THROTTLE_MAX);
+    DELAY_MS(2000);
+    oled_disp_str("OK");
 
-    vTaskStartScheduler();
+    led_turn_on(LED_YELLOW);
+    oled_disp_str("Setting 0%    ");
+    motors_set_throttle(0, 0, 0, 0);
+    DELAY_MS(2000);
+    oled_disp_str("OK\n");
 
-    return RES_OK;
+    led_turn_on(LED_RED);
+    oled_disp_str("Calibration OK\n");
+
+    buzzer_set_freq(NOTE_C5);
+    DELAY_MS(100);
+    buzzer_set_freq(NOTE_D5);
+    DELAY_MS(100);
+    buzzer_set_freq(NOTE_E5);
+    DELAY_MS(100);
+    buzzer_set_freq(0);
+
+    while (BUTTON_PRESSED());
+    while (!BUTTON_PRESSED());
+    while (BUTTON_PRESSED());
+
+    led_set(LEDS_OFF);
+    oled_clear();
 }
 
 

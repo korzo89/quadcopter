@@ -15,6 +15,8 @@
 
 bool oled_init(void);
 
+bool oled_is_present(void);
+
 void oled_clear(void);
 void oled_clear_rect(uint8_t row, uint8_t col, uint8_t width, uint8_t height);
 void oled_set_pos(uint8_t row, uint8_t col);
