@@ -47,9 +47,10 @@ static bool init_quat;
 
 //-----------------------------------------------------------------
 
-static void imu_poll_sensors(struct imu_sensor_data *data);
+static void poll_sensors(struct imu_sensor_data *data);
 
-static result_t imu_quaternion_to_euler(struct vec3 *out);
+static result_t quat_to_euler(struct vec3 *out);
+static float safe_asinf(float v);
 
 //-----------------------------------------------------------------
 
@@ -165,7 +166,7 @@ result_t imu_init(void)
 
 //-----------------------------------------------------------------
 
-static void imu_poll_sensors(struct imu_sensor_data *data)
+static void poll_sensors(struct imu_sensor_data *data)
 {
     adxl345_get_accel(&data->acc.x, &data->acc.y, &data->acc.z);
     l3g4200d_read_gyro(&data->gyro.x, &data->gyro.y, &data->gyro.z);
@@ -191,7 +192,7 @@ void imu_update(void)
 {
     static struct imu_real real_sens;
 
-    imu_poll_sensors(&sensors);
+    poll_sensors(&sensors);
     imu_sensors_transform(&sensors, &real_sens);
 
     if (init_quat)
@@ -213,7 +214,7 @@ void imu_update(void)
     };
 
     imu_estimate_madgwick(&real_sens.acc, &real_sens.mag, &gyro);
-    imu_quaternion_to_euler(&angles);
+    quat_to_euler(&angles);
 
     rates = real_sens.gyro;
 }
@@ -413,7 +414,7 @@ result_t imu_estimate_madgwick_no_mag(struct vec3 *acc, struct vec3 *gyro)
 
 //-----------------------------------------------------------------
 
-static result_t imu_quaternion_to_euler(struct vec3 *out)
+static result_t quat_to_euler(struct vec3 *out)
 {
     if (!out)
         return RES_ERR_BAD_PARAM;
@@ -440,13 +441,27 @@ static result_t imu_quaternion_to_euler(struct vec3 *out)
     float e = 1.0f - 2.0f * (q2 * q2 + q3 * q3);
 
     // pitch
-    out->y = RAD_TO_DEG(asinf(c));
+    out->y = RAD_TO_DEG(safe_asinf(c));
     // roll
     out->x = RAD_TO_DEG(atan2f(a, b));
     // yaw
     out->z = RAD_TO_DEG(atan2f(d, e));
 
     return RES_OK;
+}
+
+//-----------------------------------------------------------------
+
+static float safe_asinf(float v)
+{
+    if (isnan(v))
+        return 0.0f;
+    else if (v >= 1.0f)
+        return PI / 2;
+    else if (v <= -1.0f)
+        return -PI / 2;
+    else
+        return asinf(v);
 }
 
 //-----------------------------------------------------------------

@@ -241,7 +241,7 @@ void params_load_defaults(void)
 
     params.madgwick_beta = 0.4f;
 
-    params.limit_throttle       = LIMIT_DEFAULTS(1000.0f, 10.0f);
+    params.limit_throttle       = LIMIT_DEFAULTS(4000.0f, 100.0f);
     params.limit_angles.pitch   = LIMIT_DEFAULTS(60.0f, 1.0f);
     params.limit_angles.roll    = LIMIT_DEFAULTS(60.0f, 1.0f);
     params.limit_angles.yaw     = LIMIT_DEFAULTS(180.0f, 1.0f);
@@ -249,9 +249,9 @@ void params_load_defaults(void)
     params.limit_rates.roll     = LIMIT_DEFAULTS(10.0f, 0.5f);
     params.limit_rates.yaw      = LIMIT_DEFAULTS(10.0f, 0.5f);
 
-    params.mode_pitch = AXIS_MODE_ANGLE;
-    params.mode_roll = AXIS_MODE_ANGLE;
-    params.mode_yaw = AXIS_MODE_RATE;
+    params.mode_pitch = AXIS_MODE_DISABLED;
+    params.mode_roll = AXIS_MODE_DISABLED;
+    params.mode_yaw = AXIS_MODE_DISABLED;
 
     params.motor_max = 1000.0f;
     params.control_min_throttle = 100.0f;
