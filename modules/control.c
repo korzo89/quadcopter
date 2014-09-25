@@ -18,6 +18,7 @@
 #include <utils/delay.h>
 #include <utils/pid.h>
 #include <utils/buzzer_seq.h>
+#include <utils/tickstamp.h>
 
 #include <stellaris_config.h>
 #include <utils/ustdlib.h>
@@ -76,8 +77,11 @@ struct control_obj
     struct pid_axis pid_roll;
     struct pid_axis pid_yaw;
 
-    struct control_vals curr_control;
-    struct control_motors motors;
+    struct control_vals     curr_control;
+    struct control_motors   motors;
+
+    bool override_motors;
+    struct control_motors override_vals;
 
     xSemaphoreHandle mutex;
 };
@@ -110,6 +114,7 @@ static void rcp_cb_limits_set(struct rcp_msg *msg);
 static void rcp_cb_limits_get(struct rcp_msg *msg);
 static void rcp_cb_axis_modes_set(struct rcp_msg *msg);
 static void rcp_cb_axis_modes_get(struct rcp_msg *msg);
+static void rcp_cb_motors(struct rcp_msg *msg);
 
 static result_t calc_control(const struct cmd_control *cmd, struct control_vals *out);
 static result_t calc_axis_control(const struct control_axis *cmd, struct control_axis_val *out,
@@ -120,6 +125,8 @@ static float update_axis_control(struct pid_axis *axis, float val, float angle, 
 
 static void set_motors(const struct control_motors *val);
 static float limit_motor_val(float val, float max);
+
+static void process_arming(bool arm);
 
 //-----------------------------------------------------------------
 
@@ -152,6 +159,7 @@ result_t control_init(void)
     rcp_register_callback(RCP_CMD_LIMITS, rcp_cb_limits_get, true);
     rcp_register_callback(RCP_CMD_AXIS_MODES, rcp_cb_axis_modes_set, false);
     rcp_register_callback(RCP_CMD_AXIS_MODES, rcp_cb_axis_modes_get, true);
+    rcp_register_callback(RCP_CMD_MOTORS, rcp_cb_motors, false);
 
     DAQ_REGISTER_PID_AXIS("Pitch", control.pid_pitch);
     DAQ_REGISTER_PID_AXIS("Roll", control.pid_roll);
@@ -197,7 +205,10 @@ void control_process(void)
     imu_get_angles(&angles);
     imu_get_rates(&rates);
 
-    const float dt = 0.01f;
+    static uint32_t prev_time = 0;
+    uint32_t now = tickstamp_get_systick();
+    float dt = ((float)now - (float)prev_time) / 1000.0f;
+    prev_time = now;
 
     struct control_motors motors = {
         .m1 = 0.0f,
@@ -209,32 +220,40 @@ void control_process(void)
     bool manual_all = false;
     if (control.armed)
     {
-        float control_min;
-        params_get_control_min_throttle(&control_min);
-
-        float throttle = control.curr_control.throttle;
-        if (throttle < control_min)
+        if (control.override_motors)
         {
+            motors = control.override_vals;
             manual_all = true;
-
-            motors.m1 = throttle;
-            motors.m2 = throttle;
-            motors.m3 = throttle;
-            motors.m4 = throttle;
         }
         else
         {
-            float motor_max;
-            params_get_motor_max(&motor_max);
+            float control_min;
+            params_get_control_min_throttle(&control_min);
 
-            float pitch = update_axis_control(&control.pid_pitch, control.curr_control.pitch.value, angles.y, rates.y, dt);
-            float roll  = update_axis_control(&control.pid_roll, control.curr_control.roll.value, angles.x, rates.x, dt);
-            float yaw   = update_axis_control(&control.pid_yaw, control.curr_control.yaw.value, angles.z, rates.z, dt);
+            float throttle = control.curr_control.throttle;
+            if (throttle < control_min)
+            {
+                manual_all = true;
 
-            motors.m1 = (throttle - pitch + roll + yaw) * 0.25;
-            motors.m2 = (throttle + pitch + roll - yaw) * 0.25;
-            motors.m3 = (throttle + pitch - roll + yaw) * 0.25;
-            motors.m4 = (throttle - pitch - roll - yaw) * 0.25;
+                motors.m1 = throttle;
+                motors.m2 = throttle;
+                motors.m3 = throttle;
+                motors.m4 = throttle;
+            }
+            else
+            {
+                float motor_max;
+                params_get_motor_max(&motor_max);
+
+                float pitch = update_axis_control(&control.pid_pitch, control.curr_control.pitch.value, angles.y, rates.y, dt);
+                float roll  = update_axis_control(&control.pid_roll, control.curr_control.roll.value, angles.x, rates.x, dt);
+                float yaw   = update_axis_control(&control.pid_yaw, control.curr_control.yaw.value, angles.z, rates.z, dt);
+
+                motors.m1 = throttle - pitch + roll + yaw;
+                motors.m2 = throttle + pitch + roll - yaw;
+                motors.m3 = throttle + pitch - roll + yaw;
+                motors.m4 = throttle - pitch - roll - yaw;
+            }
         }
     }
     else
@@ -537,16 +556,23 @@ static result_t limit_control(enum control_type type, bool absolute, bool bipola
 
 //-----------------------------------------------------------------
 
+static void process_arming(bool arm)
+{
+    if (control.armed && !arm)
+        control_disarm();
+    else if (!control.armed && arm)
+        control_arm();
+}
+
+//-----------------------------------------------------------------
+
 static void rcp_cb_control(struct rcp_msg *msg)
 {
     control_lock();
 
     struct cmd_control *cmd = &msg->control;
 
-    if (control.armed && !cmd->flags.armed)
-        control_disarm();
-    else if (!control.armed && cmd->flags.armed)
-        control_arm();
+    process_arming((bool)cmd->flags.armed);
 
     struct control_vals vals;
     if (calc_control(cmd, &vals) == RES_OK)
@@ -717,4 +743,27 @@ static void rcp_cb_axis_modes_get(struct rcp_msg *msg)
     control_unlock();
 
     rcp_send_message(&resp);
+}
+
+//-----------------------------------------------------------------
+
+static void rcp_cb_motors(struct rcp_msg *msg)
+{
+    control_lock();
+
+    struct cmd_motors *cmd = &msg->motors;
+
+    control.override_motors = (bool)cmd->override;
+
+    if (control.override_motors)
+    {
+        process_arming((bool)cmd->armed);
+
+        control.override_vals.m1 = cmd->m1;
+        control.override_vals.m2 = cmd->m2;
+        control.override_vals.m3 = cmd->m3;
+        control.override_vals.m4 = cmd->m4;
+    }
+
+    control_unlock();
 }

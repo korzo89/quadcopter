@@ -44,6 +44,8 @@ enum rcp_cmd
     RCP_CMD_LIMITS,
     RCP_CMD_AXIS_MODES,
 
+    RCP_CMD_MOTORS,
+
     RCP_CMD_NUM
 };
 
@@ -226,6 +228,17 @@ struct cmd_axis_modes
 } PACK_STRUCT;
 
 
+struct cmd_motors
+{
+    uint8_t override;
+    uint8_t armed;
+    float m1;
+    float m2;
+    float m3;
+    float m4;
+} PACK_STRUCT;
+
+
 struct rcp_msg
 {
     uint8_t cmd;
@@ -248,6 +261,7 @@ struct rcp_msg
         struct cmd_daq_get      daq_get;
         struct cmd_limits       limits;
         struct cmd_axis_modes   axis_modes;
+        struct cmd_motors       motors;
     };
 } PACK_STRUCT;
 

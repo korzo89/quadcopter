@@ -241,7 +241,7 @@ void params_load_defaults(void)
 
     params.madgwick_beta = 0.4f;
 
-    params.limit_throttle       = LIMIT_DEFAULTS(4000.0f, 100.0f);
+    params.limit_throttle       = LIMIT_DEFAULTS(1000.0f, 100.0f);
     params.limit_angles.pitch   = LIMIT_DEFAULTS(60.0f, 1.0f);
     params.limit_angles.roll    = LIMIT_DEFAULTS(60.0f, 1.0f);
     params.limit_angles.yaw     = LIMIT_DEFAULTS(180.0f, 1.0f);
